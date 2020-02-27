@@ -20,7 +20,7 @@ for p in glob.glob('primitives/*/*/*.py'):
             print(f'Extracting {l}')
             md = pp.metadata.to_json_structure()
             name = md['python_path']
-            os.chdir('/yonder-primitives/annotations')
+            os.chdir('/annotations')
             if not os.path.isdir(name):
                 os.mkdir(name)
             os.chdir(name)
