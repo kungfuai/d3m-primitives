@@ -1,0 +1,19 @@
+Instructions for transferring D3M repository from NK Org to OSS Org.
+
+1) Create new directory specific to this primitive under `primitives/` directory under appropriate problem type sub-directory.
+2) Add `wrapper.py`, `__init__.py` to this new directory. Inside `wrapper.py` change the following metadata key-value pairs:
+    a) "uris" : "https://github.com/Yonder-OSS/D3M-Primitives"
+    b) "package_uri" : "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives"
+3) Change primitive class name to include Primitive, e.g. from `Kanine` to `KaninePrimitive` (scripts search for this classname pattern)
+4) Create `pipelines/` folder under this new directory.
+5) Add pipelines to this new directory.
+6) Create `old_scripts/` folder under this new directory.
+7) Add old scripts to this new directory. ** Note - top level python scripts (e.g. `generate_annotations.py`) should now subsume the functionality of these individual scripts
+8) If this primitive needs extra `util` modules, create new `utils` directory and add those modules here.
+9) Update `d3m.primitives` entry points in `setup.py` in top-level of directory
+10) Add description of algorithm w/ appropriate references in README. 
+
+TODO:
+
+1) add python script to generate all submission pipelines (need to indicate somewhere which pipelines in a folder are not submission pipelines)
+2) add python script to generate all submission pipeline runs (need to indicate somewhere on which datasets to run different pipelines)

@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+    yonder-primitives:
+        image: yonder-primitives
+        volumes:
+            - .:/yonder-primitives
+            - ./datasets/:/datasets/
+            - ./static_volumes/:/static_volumes/
