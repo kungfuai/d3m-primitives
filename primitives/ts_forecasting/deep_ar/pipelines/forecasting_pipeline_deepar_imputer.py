@@ -132,7 +132,7 @@ pipeline_description.add_step(step_6)
 # Step 7: forecasting primitive
 step_7 = PrimitiveStep(
     primitive=index.get_primitive(
-        "d3m.primitives.time_series_forecasting.recurrent_neural_network.DeepAR"
+        "d3m.primitives.time_series_forecasting.lstm.DeepAR"
     )
 )
 step_7.add_argument(

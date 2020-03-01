@@ -15,7 +15,9 @@ setup(
         "tslearn == 0.2.5",
         "statsmodels==0.10.2",
         "pmdarima==1.0.0",
-        "deepar @ git+https://github.com/NewKnowledge/deepar@d06db4f6324ab8006c9b4703408ce3b6ae955cf4#egg=deepar-0.0.2",
+        "punk==3.0.0",
+        "deepar @ git+https://github.com/NewKnowledge/deepar@c801332d26742c17c4265d2155372ce7f1192bc4#egg=deepar-0.0.2",
+        "object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet",
     ],
     entry_points={
         "d3m.primitives": [
@@ -23,6 +25,11 @@ setup(
             "time_series_forecasting.vector_autoregression.VAR = primitives.ts_forecasting.vector_autoregression.forecasting_var:VarPrimitive",
             "time_series_classification.convolutional_neural_net.LSTM_FCN = primitives.ts_classification.lstm_fcn.classification_lstm:LstmFcnPrimitive",
             "time_series_forecasting.lstm.DeepAR = primitives.ts_forecasting.deep_ar.forecasting_deepar:DeepArPrimitive",
+            "object_detection.retinanet = primitives.object_detection.retinanet.object_detection_retinanet:ObjectDetectionRNPrimitive",
+            "data_cleaning.data_cleaning.Datacleaning = primitives.data_preprocessing.data_cleaning.data_cleaning:DataCleaningPrimitive",
+            "data_cleaning.text_summarization.Duke = primitives.data_preprocessing.duke.duke:DukePrimitive",
+            "feature_selection.pca_features.Pcafeatures = primitives.feature_selection.pca_features.pca_features:PcaFeaturesPrimitive",
+            "feature_selection.rffeatures.Rffeatures = primitives.feature_selection.rf_features.rf_features:RfFeaturesPrimitive"
         ],
     },
 )

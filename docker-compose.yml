@@ -4,6 +4,7 @@ services:
     yonder-primitives:
         image: yonder-primitives
         volumes:
+            - ./all_primitives/:/all_primitives/
             - .:/yonder-primitives
             - ./annotations/:/annotations/
             - ./datasets/:/datasets/

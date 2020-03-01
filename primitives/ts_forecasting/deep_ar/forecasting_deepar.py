@@ -11,7 +11,7 @@ from d3m import container, utils
 from d3m.metadata import hyperparams, params, base as metadata_base
 from d3m.exceptions import PrimitiveNotFittedError
 
-from TimeSeriesD3MWrappers.models.var_model_utils import (
+from ..utils.var_model_utils import (
     calculate_time_frequency,
     discretize_time_difference,
 )
@@ -32,10 +32,21 @@ Outputs = container.DataFrame
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
-
 class Params(params.Params):
-    pass
-
+    drop_cols_no_tgt: typing.List[int]
+    cols_after_drop: int
+    train_data: pd.DataFrame
+    ts_frame: pd.DataFrame
+    target_column: int
+    timestamp_column: int
+    ts_object: TimeSeriesTrain
+    grouping_column: typing.Union[int, None]
+    output_columns: pd.Index
+    min_train: float
+    freq: str
+    integer_timestamps: bool
+    is_fit: bool
+  
 
 class Hyperparams(hyperparams.Hyperparams):
     emb_dim = hyperparams.UniformInt(
@@ -168,14 +179,14 @@ class Hyperparams(hyperparams.Hyperparams):
         description="proportion of training records to set aside for validation. Ignored "
         + "if iterations flag in `fit` method is not None",
     )
-    seed_predictions_with_all_data = hyperparams.UniformBool(
-        default=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="whether to pass all batches of training data through model before making test predictions "
-        + "otherwise only one batch of training data (of length window size) will be passed through model",
-    )
+    # seed_predictions_with_all_data = hyperparams.UniformBool(
+    #     default=True,
+    #     semantic_types=[
+    #         "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+    #     ],
+    #     description="whether to pass all batches of training data through model before making test predictions "
+    #     + "otherwise only one batch of training data (of length window size) will be passed through model",
+    # )
     confidence_interval_horizon = hyperparams.UniformInt(
         lower=1,
         upper=100,
@@ -244,7 +255,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 "contact": __contact__,
                 "uris": [
                     # Unstructured URIs.
-                    "https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers",
+                    "https://github.com/Yonder-OSS/D3M-Primitives",
                 ],
             },
             # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -255,7 +266,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 {"type": "PIP", "package": "cython", "version": "0.29.14"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package_uri": "git+https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers.git@{git_commit}#egg=TimeSeriesD3MWrappers".format(
+                    "package_uri": "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
                 },
@@ -277,14 +288,56 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         # set seed for reproducibility
         tf.random.set_seed(random_seed)
 
+        self._cols_after_drop = 0
         self._is_fit = False
-        self._new_train_data = False
 
     def get_params(self) -> Params:
-        return self._params
+        if not self._is_fit:
+            return Params(
+                drop_cols_no_tgt = None,
+                cols_after_drop = None,
+                train_data = None,
+                ts_frame = None,
+                target_column = None,
+                timestamp_column = None,
+                ts_object = None,
+                grouping_column = None,
+                output_columns = None,
+                min_train = None,
+                freq = None,
+                integer_timestamps = None,
+                is_fit = None
+            )
+        return Params(
+            drop_cols_no_tgt = self._drop_cols_no_tgt,
+            cols_after_drop = self._cols_after_drop,
+            train_data = self._train_data,
+            ts_frame = self._ts_frame,
+            target_column = self._target_column,
+            timestamp_column = self._timestamp_column,
+            ts_object = self._ts_object,
+            grouping_column = self._grouping_column,
+            output_columns = self._output_columns,
+            min_train = self._min_train,
+            freq = self.freq,
+            integer_timestamps = self._integer_timestamps,
+            is_fit = self._is_fit
+        )
 
     def set_params(self, *, params: Params) -> None:
-        self._params = params
+        self._drop_cols_no_tgt = params['drop_cols_no_tgt']
+        self._cols_after_drop = params['cols_after_drop']
+        self._train_data = params['train_data']
+        self._ts_frame = params['ts_frame']
+        self._target_column = params['target_column']
+        self._timestamp_column = params['timestamp_column']
+        self._ts_object = params['ts_object']
+        self._grouping_column = params['grouping_column']
+        self._output_columns = params['output_columns']
+        self._min_train = params['min_train']
+        self.freq = params['freq']
+        self._integer_timestamps = params['integer_timestamps']
+        self._is_fit = params['is_fit']
 
     def _drop_multiple_special_cols(self, col_list, col_type):
         """
@@ -411,7 +464,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         """
 
         # Create TimeSeries dataset objects
-        #logger.info(self._ts_frame.head())
         self._ts_object = TimeSeriesTrain(
             self._ts_frame,
             target_idx=self._target_column,
@@ -424,7 +476,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             integer_timestamps=self._integer_timestamps,
             freq=self.freq,
         )
-        #logger.info(self._ts_object.data.head())
 
         # Create learner
         self._learner = DeepARLearner(
@@ -439,7 +490,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
 
         # save weights so we can restart fitting from scratch (if desired by caller)
-        self._learner.save_weights("model_initial_weights.h5")
+        self._learner.save_weights("model_best_weights.h5")
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -497,13 +548,10 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 )
             )
             self._min_train = self._ts_frame.groupby(g_col)[t_col].agg("min").min()
+        logger.info(f'type: {type(self._min_train)}')
 
         # Create TimeSeries dataset object and learner
         self._create_data_object_and_learner(self.hyperparams["val_split"])
-
-        # mark that new training data has been set
-        self._new_train_data = True
-        self._in_sample_preds = None
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ Fits DeepAR model using training data from set_training_data and hyperparameters
@@ -516,13 +564,9 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 CallResult[None]
         """
 
-        # restore initial model weights if new training data
-        if self._new_train_data:
-
-            # only create new dataset object / model (w/out val) if new training data
-            if iterations is not None:
-                self._create_data_object_and_learner(0)
-            self._learner.load_weights("model_initial_weights.h5")
+        # special case for no validation
+        if iterations is not None:
+            self._create_data_object_and_learner(0)
 
         if iterations is None:
             iterations_set = False
@@ -662,28 +706,31 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         # Create TimeSeriesTest object
         if self._train_data.equals(inputs):
             ts_test_object = TimeSeriesTest(self._ts_object)
-            include_all_training = True
         # test
         else:
             ts_test_object = TimeSeriesTest(self._ts_object, test_frame)
-            include_all_training = self.hyperparams['seed_predictions_with_all_data']
 
         # get prediction slices
         pred_intervals = self._get_pred_intervals(test_frame)
 
         # make predictions with learner
+        learner = DeepARLearner(
+            self._ts_object,
+            emb_dim=self.hyperparams["emb_dim"],
+            lstm_dim=self.hyperparams["lstm_dim"],
+            dropout=self.hyperparams["dropout_rate"],
+            lr=self.hyperparams["learning_rate"],
+            batch_size=self.hyperparams["batch_size"],
+            train_window=self.hyperparams["window_size"],
+            verbose=0,
+        )
+        learner.load_weights("model_best_weights.h5")
         start_time = time.time()
         logger.info(f"Making predictions...")
-        preds = self._learner.predict(ts_test_object, include_all_training=include_all_training)
+        preds = learner.predict(ts_test_object, include_all_training=True)
         logger.info(
             f"Prediction took {time.time() - start_time}s. Predictions array shape: {preds.shape}"
         )
-
-        # append saved in-sample predictions to test predictions if not seeding with all context
-        if self._in_sample_preds is None:
-            self._in_sample_preds = preds
-        elif not self.hyperparams['seed_predictions_with_all_data']:
-            preds = np.concatenate((self._in_sample_preds, preds), axis=1)
 
         # slice predictions with learned intervals
         all_preds = []
