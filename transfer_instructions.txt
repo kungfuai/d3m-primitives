@@ -13,7 +13,15 @@ Instructions for transferring D3M repository from NK Org to OSS Org.
 9) Update `d3m.primitives` entry points in `setup.py` in top-level of directory
 10) Add description of algorithm w/ appropriate references in README. 
 
+Instructions for adding serialization capability.
+
+1) Add all class instance variables that are used in `produce()` methods to the Params class as key-value pairs. The value should be the type of the variable.
+2) Look at examples of `get_params` and `set_params` in time series primitives. These are called by runtime when `-save` flag is invoked.
+3) If, for the life of you, you can't figure out what the type of one instance variable is, you can add `__getstate__` and `__setstate__` methods for these variables
+   are serialized without typing information. Example in `ts_forecasting/vector_autoregression/forecasting_var.py`
+3) Test implementation with `.test_serialization.sh` script. This script takes two command line arguments: a) path to pipeline, b) name of dataset
+
 TODO:
 
-1) add python script to generate all submission pipelines (need to indicate somewhere which pipelines in a folder are not submission pipelines)
-2) add python script to generate all submission pipeline runs (need to indicate somewhere on which datasets to run different pipelines)
+1) add python script to generate submission pipeline runs (need to indicate somewhere on which datasets to run different pipelines)
+2) add python script to test whether submitted pipeline runs can still be run successful (probably should just use Mitar's CI repo)

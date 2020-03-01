@@ -1,7 +1,7 @@
 import sys
 import os
 import numpy as np
-import pandas
+import pandas as pd
 import time
 import logging
 
@@ -13,6 +13,7 @@ from d3m.exceptions import PrimitiveNotFittedError
 
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from TimeSeriesD3MWrappers.models.lstm_model_utils import (
@@ -34,7 +35,10 @@ Outputs = container.DataFrame
 
 
 class Params(params.Params):
-    pass
+    label_encoder: LabelEncoder
+    output_columns: pd.Index
+    ts_sz: int
+    n_classes: int
 
 
 class Hyperparams(hyperparams.Hyperparams):
@@ -163,7 +167,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 "contact": __contact__,
                 "uris": [
                     # Unstructured URIs.
-                    "https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers",
+                    "https://github.com/Yonder-OSS/D3M-Primitives",
                 ],
             },
             # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -174,7 +178,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 {"type": "PIP", "package": "cython", "version": "0.29.14"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package_uri": "git+https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers.git@{git_commit}#egg=TimeSeriesD3MWrappers".format(
+                    "package_uri": "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
                 },
@@ -197,13 +201,29 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         tf.random.set_seed(random_seed)
 
         self._is_fit = False
-        self._new_train_data = False
 
     def get_params(self) -> Params:
-        return self._params
+        if not self._is_fit:
+            return Params(
+                label_encoder=None,
+                output_columns=None,
+                ts_sz=ts_sz,
+                n_classes=n_classes
+            )
+        
+        return Params(
+            label_encoder=self._label_encoder,
+            output_columns=self._output_columns,
+            ts_sz=self._ts_sz,
+            n_classes=self._n_classes
+        )
 
     def set_params(self, *, params: Params) -> None:
-        self.params = params
+        self._label_encoder = params['label_encoder']
+        self._output_columns = params['output_columns']
+        self._ts_sz = params['ts_sz']
+        self._n_classes = params['n_classes']
+        self._is_fit = all(param is not None for param in params.values())
 
     def _get_cols(self, input_metadata):
         """ private util function that finds grouping column from input metadata
@@ -250,10 +270,10 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         self._output_columns = outputs.columns
         outputs = np.array(outputs)
         n_ts = outputs.shape[0]
-        ts_sz = inputs.shape[0] // n_ts
+        self._ts_sz = inputs.shape[0] // n_ts
 
         attribute_col = self._get_value_col(inputs.metadata)
-        self._X_train = inputs.iloc[:, attribute_col].values.reshape(n_ts, 1, ts_sz)
+        self._X_train = inputs.iloc[:, attribute_col].values.reshape(n_ts, 1, self._ts_sz)
         y_train = np.array(outputs)
 
         # encode labels and convert to categorical
@@ -266,28 +286,20 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         self._class_weights = [1 / w for w in weights]
 
         # convert labels to categorical
-        n_classes = len(np.unique(y_ind))
-        self._y_train = to_categorical(y_ind, n_classes)
+        self._n_classes = len(np.unique(y_ind))
+        self._y_train = to_categorical(y_ind, self._n_classes)
 
         # instantiate classifier
-        self._clf = generate_lstmfcn(
-            ts_sz,
-            n_classes,
+        clf = generate_lstmfcn(
+            self._ts_sz,
+            self._n_classes,
             lstm_dim=self.hyperparams["lstm_dim"],
             attention=self.hyperparams["attention_lstm"],
             dropout=self.hyperparams["dropout_rate"],
         )
 
-        # model compilation and training
-        self._clf.compile(
-            optimizer=Adam(lr=self.hyperparams["learning_rate"]),
-            loss="categorical_crossentropy",
-            metrics=["acc"],
-        )
-        # self._clf.summary(print_fn = lambda x: print(x, file=sys.__stdout__))
-
         # save weights so we can start fitting from scratch (if desired by caller)
-        self._clf.save_weights("model_initial_weights.h5")
+        clf.save_weights("model_weights.h5")
 
         # mark that new training data has been set
         self._new_train_data = True
@@ -303,9 +315,20 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 CallResult[None]
         """
 
-        # restore initial model weights if new training data
-        if self._new_train_data:
-            self._clf.load_weights("model_initial_weights.h5")
+        # instantiate classifier and load saved weights
+        clf = generate_lstmfcn(
+            self._ts_sz,
+            self._n_classes,
+            lstm_dim=self.hyperparams["lstm_dim"],
+            attention=self.hyperparams["attention_lstm"],
+            dropout=self.hyperparams["dropout_rate"],
+        )
+        clf.compile(
+            optimizer=Adam(lr=self.hyperparams["learning_rate"]),
+            loss="categorical_crossentropy",
+            metrics=["acc"],
+        )
+        clf.load_weights("model_weights.h5")
 
         # break out validation set if iterations arg not set
         if iterations is None:
@@ -340,7 +363,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 can consider timeout thoughtfully"
             )
             start_time = time.time()
-            fitting_history = self._clf.fit(
+            fitting_history = clf.fit(
                 train_dataset,
                 epochs=iterations,
                 validation_data=val_dataset,
@@ -362,7 +385,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         # normal fitting
         logger.info(f"Fitting for {iters-start_epoch} iterations")
         start_time = time.time()
-        fitting_history = self._clf.fit(
+        fitting_history = clf.fit(
             train_dataset,
             epochs=iters,
             validation_data=val_dataset,
@@ -378,9 +401,9 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             f"Fit for {iterations_completed} epochs, took {time.time() - start_time}s"
         )
 
-        # maintain primitive state (mark that training data has been used)
-        self._new_train_data = False
+        # maintain primitive state 
         self._is_fit = True
+        clf.save_weights("model_weights.h5")
 
         # use fitting history to set CallResult return values
         if iterations_set:
@@ -417,6 +440,17 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
 
+
+        # instantiate classifier and load saved weights
+        clf = generate_lstmfcn(
+            self._ts_sz,
+            self._n_classes,
+            lstm_dim=self.hyperparams["lstm_dim"],
+            attention=self.hyperparams["attention_lstm"],
+            dropout=self.hyperparams["dropout_rate"],
+        )
+        clf.load_weights("model_weights.h5")
+
         # find column with ts value through metadata
         grouping_column = self._get_cols(inputs.metadata)
 
@@ -428,7 +462,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         test_dataset = LSTMSequenceTest(x_vals, self.hyperparams['batch_size'])
 
         # make predictions
-        preds = self._clf.predict_generator(
+        preds = clf.predict_generator(
             test_dataset,
             use_multiprocessing=self.hyperparams["use_multiprocessing"],
             workers=self.hyperparams["num_workers"],

@@ -16,14 +16,15 @@ from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
 
 from statsmodels.tsa.api import VAR as vector_ar
+from statsmodels.tsa.vector_ar.var_model import VARResultsWrapper
 import statsmodels.api as sm
 import scipy.stats as stats
 
-from TimeSeriesD3MWrappers.models.var_model_utils import Arima, calculate_time_frequency, discretize_time_difference
+from ..utils.var_model_utils import Arima, calculate_time_frequency, discretize_time_difference
 import logging
 
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 __author__ = "Distil"
 __version__ = "1.2.0"
@@ -35,7 +36,24 @@ Outputs = container.pandas.DataFrame
 MAX_INT = np.finfo('d').max - 1
 
 class Params(params.Params):
-    pass
+    integer_time: bool
+    time_column: str
+    key: typing.List[int]
+    targets: typing.List[str]
+    target_indices: typing.List[int]
+    target_types: typing.List[str]
+    X_train: typing.Union[typing.List[d3m_DataFrame], typing.List[pd.DataFrame]]
+
+    filter_idxs: typing.List[str]
+    interpolation_ranges: typing.Union[pd.Series, None, pd.DataFrame]
+    freq: str
+    is_fit: bool
+
+    fits: typing.Union[typing.List[VARResultsWrapper], typing.List[Arima], typing.List[typing.Union[VARResultsWrapper, Arima]]]
+    values: typing.List[np.ndarray]
+    values_diff: typing.List[np.ndarray]
+    lag_order: typing.Union[typing.List[np.int64], typing.List[None], typing.List[typing.Union[np.int64, None]], typing.List[typing.Union[np.int64, int, None]]]
+    positive: typing.List[bool]
 
 
 class Hyperparams(hyperparams.Hyperparams):
@@ -203,7 +221,7 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         self.interpolation_ranges = None
 
         # data needed to fit model and reconstruct predictions
-        self._X_train_names = None
+        self._X_train_names = []
         self._X_train = None
         self._mins = None
         self._lag_order = []
@@ -212,10 +230,71 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         self._is_fit = False
 
     def get_params(self) -> Params:
-        return self._params
+        if not self._is_fit:
+            return Params(
+                integer_time=None,
+                time_column=None,
+                key=None,
+                targets=None,
+                target_indices=None,
+                target_types=None,
+                X_train=None,
+                fits=None,
+                values=None,
+                values_diff=None,
+                lag_order=None,
+                positive=None,
+                filter_idxs=None,
+                interpolation_ranges=None,
+                freq=None,
+                is_fit=None
+            )
+        
+        return Params(
+            integer_time=self.integer_time,
+            time_column=self.time_column,
+            key=self.key,
+            targets=self._targets,
+            target_indices=self.target_indices,
+            target_types=self._target_types,
+            X_train=self._X_train,
+            fits=self._fits,
+            values=self._values,
+            values_diff=self._values_diff,
+            lag_order=self._lag_order,
+            positive=self._positive,
+            filter_idxs=self.filter_idxs,
+            interpolation_ranges=self.interpolation_ranges,
+            freq=self.freq,
+            is_fit=self._is_fit
+        )
 
     def set_params(self, *, params: Params) -> None:
-        self.params = params
+        self.integer_time = params['integer_time']
+        self.time_column = params['time_column']
+        self.key = params['key']
+        self._targets = params['targets']
+        self.target_indices = params['target_indices']
+        self._target_types = params['target_types']
+        self._X_train = params['X_train']
+        self._fits = params['fits']
+        self._values = params['values']
+        self._values_diff = params['values_diff']
+        self._lag_order = params['lag_order']
+        self._positive = params['positive']
+        self.filter_idxs = params['filter_idxs']
+        self.interpolation_ranges = params['interpolation_ranges']
+        self.freq = params['freq']
+        self._is_fit = params['is_fit']
+
+    def __getstate__(self) -> dict:
+        state = SupervisedLearnerPrimitiveBase.__getstate__(self)
+        state["X_train_names"] = self._X_train_names
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        SupervisedLearnerPrimitiveBase.__setstate__(self, state)
+        self._X_train_names = state["X_train_names"]
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -275,7 +354,6 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                 "https://metadata.datadrivendiscovery.org/types/Target",
             )
         )
-        # logger.info(self._targets)
         self._target_types = [
             "i"
             if "http://schema.org/Integer"
@@ -348,14 +426,14 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                     [date_ranges] * len(indices), index=indices
                 )
                 self._X_train = [None]
-                self._X_train_names = [[]]
+                self._X_train_names = [None]
             else:
                 self.interpolation_ranges = inputs_copy.groupby(
                     self.filter_idxs[:-1]
                 ).agg({self.time_column: ["min", "max"]})
                 self._X_train = [None for i in range(self.interpolation_ranges.shape[0])]
-                self._X_train_names = [[] for i in range(self.interpolation_ranges.shape[0])]
-            
+                self._X_train_names = [None for i in range(self.interpolation_ranges.shape[0])]
+
             for name, group in inputs_copy.groupby(self.filter_idxs):
                 if len(grouping_keys) > 2:
                     group_value = tuple([group[self.filter_idxs[i]].values[0] for i in range(len(self.filter_idxs) - 1)])
@@ -403,7 +481,21 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                     self._X_train[training_idx] = pd.concat(
                         [self._X_train[training_idx], group], axis=1
                     )
-                self._X_train_names[training_idx].append(name)
+                if self._X_train_names[training_idx] is None:
+                    self._X_train_names[training_idx] = [name]
+                else:
+                    self._X_train_names[training_idx].append(name)
+
+        ## DEBUGGING for produce_confidence_intervals() serialization
+        # for train_list in self._X_train_names:
+        #     if train_list is None:
+        #         logger.info(f'list is NoneType')
+        #     elif type(train_list) != list: 
+        #         logger.info(f'train list entry not list: {type(train_list)}')
+        #     elif type(train_list[0]) != tuple: 
+        #         logger.info(f'train list entry not tuple: {type(train_list[0])}')
+        #     elif type(train_list[0][0]) != str: 
+        #         logger.info(f'train list entry not str: {type(train_list[0][0])}')
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ If there are multiple endogenous series, primitive will fit VAR model. Otherwise it will fit an ARIMA 
@@ -447,7 +539,6 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
 
         # fit models
         for vals, model, original in zip(self._values_diff, self.models, self._X_train):
-
             # VAR
             if vals.shape[1] > 1:
                 try:

@@ -2,6 +2,7 @@ import sys
 import os
 import numpy as np
 import pandas as pd
+import typing
 import logging
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
@@ -24,8 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 class Params(params.Params):
-    pass
-
+    scaler: TimeSeriesScalerMinMax
+    classifier: KNeighborsTimeSeriesClassifier
+    output_columns: pd.Index
 
 class Hyperparams(hyperparams.Hyperparams):
     n_neighbors = hyperparams.UniformInt(
@@ -88,7 +90,7 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 "contact": __contact__,
                 "uris": [
                     # Unstructured URIs.
-                    "https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers",
+                    "https://github.com/Yonder-OSS/D3M-Primitives",
                 ],
             },
             # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -99,7 +101,7 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 {"type": "PIP", "package": "cython", "version": "0.29.14"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package_uri": "git+https://github.com/NewKnowledge/TimeSeries-D3M-Wrappers.git@{git_commit}#egg=TimeSeriesD3MWrappers".format(
+                    "package_uri": "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
                 },
@@ -128,10 +130,24 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         self._is_fit = False
 
     def get_params(self) -> Params:
-        return self._params
+        if not self._is_fit:
+            return Params(
+                scaler=None,
+                classifier=None,
+                output_columns=None
+            )
+        
+        return Params(
+            scaler=self._scaler,
+            classifier=self._knn,
+            output_columns=self._output_columns
+        )
 
     def set_params(self, *, params: Params) -> None:
-        self._params = params
+        self._scaler = params['scaler']
+        self._knn = params['classifier']
+        self._output_columns = params['output_columns']
+        self._is_fit = all(param is not None for param in params.values())
 
     def _get_cols(self, input_metadata):
         """ private util function that finds grouping column from input metadata

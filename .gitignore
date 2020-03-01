@@ -139,3 +139,4 @@ _dev/
 datasets/
 annotations/
 static_volumes/
+all_primitives/
