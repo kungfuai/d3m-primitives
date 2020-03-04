@@ -4,7 +4,7 @@ Instructions for transferring D3M repository from NK Org to OSS Org.
 2) Add `wrapper.py`, `__init__.py` to this new directory. Inside `wrapper.py` change the following metadata key-value pairs:
     a) "uris" : "https://github.com/Yonder-OSS/D3M-Primitives"
     b) "package_uri" : "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives"
-    c) Double check that the `__author__`, `__version__`, and `__contact__` global variables  are used in the wrapper (scripts will search for these variables).
+    c) Double check that the `__version__` global variable is used in the wrapper (scripts will search for these variables).
 3) Change primitive class name to include Primitive, e.g. from `Kanine` to `KaninePrimitive` (scripts search for this classname pattern)
 4) Create `pipelines/` folder under this new directory.
 5) Add pipelines to this new directory.
@@ -28,7 +28,9 @@ Instructions for adding serialization capability.
 2) Look at examples of `get_params` and `set_params` in time series primitives. These are called by runtime when `-save` flag is invoked.
 3) If, for the life of you, you can't figure out what the type of one instance variable is, you can add `__getstate__` and `__setstate__` methods for these variables
    are serialized without typing information. Example in `ts_forecasting/vector_autoregression/forecasting_var.py`
-3) Test implementation with `.test_serialization.sh` script. This script takes two command line arguments: a) path to pipeline, b) name of dataset
+4) Make sure to run `generate_annotations.py` before the test script so that annotations are pointing to this repository and not previous repository.
+5) Generate new pipeline after generating annotations so this pipeline picks up new annotation
+6) Test implementationb with `.test-serialization.sh` script. This script takes two command line arguments: a) path to pipeline, b) name of dataset
 
 TODO:
 

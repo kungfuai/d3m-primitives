@@ -49,6 +49,13 @@ class Params(params.Params):
   
 
 class Hyperparams(hyperparams.Hyperparams):
+    weights_filepath = hyperparams.Hyperparameter[str](
+        default='model_weights.h5',
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="weights of trained model will be saved to this filepath",
+    )
     emb_dim = hyperparams.UniformInt(
         lower=8,
         upper=256,
@@ -436,7 +443,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self._count_data = False
         else:
             raise ValueError("Target column is not of type 'Integer' or 'Float'")
-        #logger.info(f"count data: {self._count_data}")
 
     def _update_indices(self):
         """ private util function: 
@@ -490,7 +496,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
 
         # save weights so we can restart fitting from scratch (if desired by caller)
-        self._learner.save_weights("model_best_weights.h5")
+        self._learner.save_weights(self.hyperparams['weights_filepath'])
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -548,7 +554,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 )
             )
             self._min_train = self._ts_frame.groupby(g_col)[t_col].agg("min").min()
-        logger.info(f'type: {type(self._min_train)}')
 
         # Create TimeSeries dataset object and learner
         self._create_data_object_and_learner(self.hyperparams["val_split"])
@@ -724,7 +729,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             train_window=self.hyperparams["window_size"],
             verbose=0,
         )
-        learner.load_weights("model_best_weights.h5")
+        learner.load_weights(self.hyperparams['weights_filepath'])
         start_time = time.time()
         logger.info(f"Making predictions...")
         preds = learner.predict(ts_test_object, include_all_training=True)
