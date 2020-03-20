@@ -14,3 +14,11 @@ COPY . /yonder-primitives
 RUN pip uninstall -y deepar
 #RUN pip install -e git+https://github.com/Yonder-OSS/D3M-Primitives@jg/image_primitives#egg=yonder-primitives --exists-action s
 RUN pip install -e git+https://github.com/Yonder-OSS/D3M-Primitives@sn/migration#egg=yonder-primitives --exists-action s
+
+# Need to talk to Mitar about how to actually make this change - might have to first delete all TS primitives, 
+# which would delete legacy TimeSeriesD3MWrappers and DeepAR base. 
+RUN pip uninstall -y deepar 
+
+# Might have to do first delete all legacy NK repos to delete installs...
+
+RUN pip install -e ./yonder-primitives
