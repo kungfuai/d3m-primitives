@@ -17,7 +17,6 @@ RUN pip install -e git+https://github.com/Yonder-OSS/D3M-Primitives@sn/migration
 
 # Need to talk to Mitar about how to actually make this change - might have to first delete all TS primitives, 
 # which would delete legacy TimeSeriesD3MWrappers and DeepAR base. 
-RUN pip uninstall -y deepar 
 
 # Might have to do first delete all legacy NK repos to delete installs...
 
