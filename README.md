@@ -2,9 +2,17 @@
 
 ## Data Preprocessing
 
+1. **DataCleaningPrimitive**: wrapper for the data cleaning primitive based on the Yonder [punk](https://github.com/NewKnowledge/punk) library.
+
+2. **DukePrimitive**: wrapper of the [Duke library](https://github.com/NewKnowledge/duke) in the D3M infrastructure.
+
 ## Clustering
 
 ## Feature Selection
+
+1. **PcaFeaturesPrimitive**: wrapper of the [Punk](https://github.com/NewKnowledge/punk) feature ranker into D3M infrastructure.
+
+2. **RfFeaturesPrimitive** wrapper of the [Punk](https://github.com/NewKnowledge/punk) punk rrfeatures library into D3M infrastructure
 
 ## Dimensionality Reduction
 
@@ -14,9 +22,11 @@
 
 ## Object Detection
 
+1. **ObjectDetectionRNPrimitive**: wrapper for the Keras implementation of Retinanet from [this repo](https://github.com/fizyr/keras-retinanet). The original Retinanet paper can be found [here](https://arxiv.org/abs/1708.02002).
+
 ## Time Series Classification
 
-1. **KaninePrimitive**: wrapper for tslearn's KNeighborsTimeSeriesClassifier algorithm 
+1. **KaninePrimitive**: wrapper for tslearn's KNeighborsTimeSeriesClassifier algorithm
 
 2. **LstmFcnPrimitive**: wrapper for LSTM Fully Convolutional Networks for Time Series Classification paper, original repo (https://github.com/titu1994/MLSTM-FCN), paper (https://arxiv.org/abs/1801.04503)
 
