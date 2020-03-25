@@ -16,6 +16,7 @@ setup(
         "statsmodels==0.10.2",
         "pmdarima==1.0.0",
         "punk==3.0.0",
+        "albumentations==0.4.5",
         "deepar @ git+https://github.com/NewKnowledge/deepar@c801332d26742c17c4265d2155372ce7f1192bc4#egg=deepar-0.0.2",
         "object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet"
     ],
@@ -28,6 +29,7 @@ setup(
             "object_detection.retinanet = primitives.object_detection.retinanet.object_detection_retinanet:ObjectDetectionRNPrimitive",
             "data_cleaning.data_cleaning.Datacleaning = primitives.data_preprocessing.data_cleaning.data_cleaning:DataCleaningPrimitive",
             "data_cleaning.text_summarization.Duke = primitives.data_preprocessing.duke.duke:DukePrimitive",
+            "data_augmentation.image_augmentation.image_augmentation = primitives.data_preprocessing.image_augmentation.image_augmentation:ImageAugmentationPrimitive",
             "feature_selection.pca_features.Pcafeatures = primitives.feature_selection.pca_features.pca_features:PcaFeaturesPrimitive",
             "feature_selection.rffeatures.Rffeatures = primitives.feature_selection.rf_features.rf_features:RfFeaturesPrimitive"
         ],

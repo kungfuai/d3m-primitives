@@ -6,6 +6,8 @@
 
 2. **DukePrimitive**: wrapper of the [Duke library](https://github.com/NewKnowledge/duke) in the D3M infrastructure.
 
+3. **ImageAugmentationPrimitive**: An image augmentation primitive based on the [Albumentations](https://github.com/albumentations-team/albumentations) library.
+
 ## Clustering
 
 ## Feature Selection
