@@ -8,6 +8,8 @@ import importlib
 import inspect
 import glob
 
+ignore = ['PrimitiveBase', 'PrimitiveNotFittedError', 'UnsupervisedLearnerPrimitiveBase', 'SupervisedLearnerPrimitiveBase', 'TransformerPrimitiveBase', 'PrimitiveStep']
+
 # List all the primitives
 for p in glob.glob('primitives/*/*/*.py'):
     if p in glob.glob('primitives/*/utils/*') or p in glob.glob('primitives/*/*/__.init__.py'):
@@ -15,7 +17,7 @@ for p in glob.glob('primitives/*/*/*.py'):
     f = p.replace('/', '.').replace('.py', '')
     lib = importlib.import_module(f)
     for l in dir(lib):
-        if 'Primitive' in l and l != 'PrimitiveBase' and l != 'PrimitiveNotFittedError' and l != 'SupervisedLearnerPrimitiveBase' and l != 'TransformerPrimitiveBase':
+        if 'Primitive' in l and l not in ignore:
             pp = getattr(lib, l)
             print(f'Extracting {l}')
             md = pp.metadata.to_json_structure()

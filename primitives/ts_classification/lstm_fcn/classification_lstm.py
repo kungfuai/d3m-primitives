@@ -16,11 +16,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
-#from TimeSeriesD3MWrappers.models.lstm_model_utils import (
-#    generate_lstmfcn,
-#    LSTMSequence,
-#    LSTMSequenceTest,
-#)
+from ..utils.lstm_model_utils import (
+    generate_lstmfcn,
+    LSTMSequence,
+    LSTMSequenceTest,
+)
 from sklearn.preprocessing import LabelEncoder
 
 __author__ = "Distil"
@@ -42,6 +42,13 @@ class Params(params.Params):
 
 
 class Hyperparams(hyperparams.Hyperparams):
+    weights_filepath = hyperparams.Hyperparameter[str](
+        default='model_weights.h5',
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="weights of trained model will be saved to this filepath",
+    )
     attention_lstm = hyperparams.UniformBool(
         default=False,
         semantic_types=[
@@ -207,8 +214,13 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             return Params(
                 label_encoder=None,
                 output_columns=None,
+<<<<<<< HEAD
                 ts_sz=ts_sz,
                 n_classes=n_classes
+=======
+                ts_sz=None,
+                n_classes=None
+>>>>>>> 3e97a7c... gator primitive files
             )
         
         return Params(
@@ -298,9 +310,6 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             dropout=self.hyperparams["dropout_rate"],
         )
 
-        # save weights so we can start fitting from scratch (if desired by caller)
-        clf.save_weights("model_weights.h5")
-
         # mark that new training data has been set
         self._new_train_data = True
 
@@ -328,7 +337,6 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             loss="categorical_crossentropy",
             metrics=["acc"],
         )
-        clf.load_weights("model_weights.h5")
 
         # break out validation set if iterations arg not set
         if iterations is None:
@@ -403,7 +411,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
 
         # maintain primitive state 
         self._is_fit = True
-        clf.save_weights("model_weights.h5")
+        clf.save_weights(self.hyperparams['weights_filepath'])
 
         # use fitting history to set CallResult return values
         if iterations_set:
@@ -449,7 +457,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             attention=self.hyperparams["attention_lstm"],
             dropout=self.hyperparams["dropout_rate"],
         )
-        clf.load_weights("model_weights.h5")
+        clf.load_weights(self.hyperparams['weights_filepath'])
 
         # find column with ts value through metadata
         grouping_column = self._get_cols(inputs.metadata)

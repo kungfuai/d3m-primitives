@@ -5,7 +5,7 @@ from tensorflow.keras.utils import Sequence
 import tensorflow as tf
 import math
 import numpy as np
-#from TimeSeriesD3MWrappers.models.layer_utils import AttentionLSTM
+from .layer_utils import AttentionLSTM
 import logging
 
 logger = logging.getLogger(__name__)

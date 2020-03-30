@@ -4,7 +4,7 @@
 #
 # Usage
 #
-# ./test_serialization.sh pipeline dataset
+# ./test-serialization.sh pipeline dataset
 #
 # Argument 1: pipeline
 # Argument 2: dataset

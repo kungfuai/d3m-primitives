@@ -6,7 +6,19 @@
 
 2. **DukePrimitive**: wrapper of the [Duke library](https://github.com/NewKnowledge/duke) in the D3M infrastructure.
 
+3. **SimonPrimitive**: LSTM-FCN neural network trained on 18 different semantic types, which infers the semantic type of each column. Base library: https://github.com/NewKnowledge/simon/tree/d3m-simon
+
+4. **GoatForwardPrimitive**: geocodes names of locations into lat/long pairs with requests to photon geocoding server (based on OpenStreetMap)
+
+5. **GoatReversePrimitive**: geocodes lat/long pairs into geographic names of varying granularity with requests to photon geocoding server (based on OpenStreetMap)
+
 ## Clustering
+
+1. **HdbscanPrimitive**: wrapper for *scikit-learn*'s HDBSCAN and DBSCAN implementations
+
+2. **StorcPrimitive**: wrapper for *tslearn*'s kmeans implementations
+
+3. **SpectralClustering**: wrapper for *scikit-learn*'s Spectral Clustering implementation
 
 ## Feature Selection
 
@@ -16,9 +28,17 @@
 
 ## Dimensionality Reduction
 
+1. **TsnePrimitive**: wrapper for *scikit-learn*'s TSNE implementation
+
 ## Natural Language Processing
 
+1. **Sent2VecPrimitive**: converts sentences into numerical feature representations. Base library: https://github.com/NewKnowledge/nk-sent2vec
+
 ## Image Classification
+
+1. **GatorPrimitive**: Inception V3 model pretrained on ImageNet finetuned for classification
+
+**imagenet.py**: ImagenetModel class with finetune() and finetune_classify() methods
 
 ## Object Detection
 
@@ -26,7 +46,7 @@
 
 ## Time Series Classification
 
-1. **KaninePrimitive**: wrapper for tslearn's KNeighborsTimeSeriesClassifier algorithm
+1. **KaninePrimitive**: wrapper for tslearn's KNeighborsTimeSeriesClassifier algorithm 
 
 2. **LstmFcnPrimitive**: wrapper for LSTM Fully Convolutional Networks for Time Series Classification paper, original repo (https://github.com/titu1994/MLSTM-FCN), paper (https://arxiv.org/abs/1801.04503)
 
@@ -34,14 +54,17 @@
 
 **lstm_model_utils.py**: functions to generate LSTM_FCN model architecture and data generators
 
-**var_model_utils.py**: wrapper of the **auto_arima** method from **pmdarima.arima** with some specific parameters fixed
+**var_model_utils.py**: wrapper of the *auto_arima* method from *pmdarima.arima* with some specific parameters fixed
 
 ## Time Series Forecasting
 
-1. **DeepArPrimitive**: wrapper for DeepAR recurrent, autoregressive Time Series Forecasting algorithm (https://arxiv.org/abs/1704.04110). Custom implementation repo (https://github.com/NewKnowledge/deepar)
+1. **DeepArPrimitive**: DeepAR recurrent, autoregressive Time Series Forecasting algorithm (https://arxiv.org/abs/1704.04110). Base library: https://github.com/NewKnowledge/deepar
 
-2. **VarPrimitive**: wrapper for **statsmodels**' implementation of vector autoregression for multivariate time series
+2. **VarPrimitive**: wrapper for *statsmodels*' implementation of vector autoregression for multivariate time series
 
-**var_model_utils.py**: wrapper of the **auto_arima** method from **pmdarima.arima** with some specific parameters fixed
+**var_model_utils.py**: wrapper of the *auto_arima* method from *pmdarima.arima* with some specific parameters fixed
 
+## Interpretability
+
+**shap_explainers**: wrapper of Lundberg's shapley values implementation for tree models. Currently integrated into *d3m.primitives.learner.random_forest.DistilEnsembleForest* as *produce_shap_values()*
 
