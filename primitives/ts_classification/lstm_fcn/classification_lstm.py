@@ -214,13 +214,8 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             return Params(
                 label_encoder=None,
                 output_columns=None,
-<<<<<<< HEAD
-                ts_sz=ts_sz,
-                n_classes=n_classes
-=======
                 ts_sz=None,
                 n_classes=None
->>>>>>> 3e97a7c... gator primitive files
             )
         
         return Params(

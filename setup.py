@@ -17,7 +17,7 @@ setup(
         "pmdarima==1.0.0",
         "punk==3.0.0",
         "deepar @ git+https://github.com/NewKnowledge/deepar@c801332d26742c17c4265d2155372ce7f1192bc4#egg=deepar-0.0.2",
-        "object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet"
+        "object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet",
         "Simon @ git+https://github.com/NewKnowledge/simon@fe41f4eb4f3af848841b325323fc7fc01cd7711b#egg=Simon-1.2.4",
         "hdbscan==0.8.25",
         "Simon @ git+https://github.com/NewKnowledge/simon@997a6a78a6bf920f05e68be6a052adf1348acce6#egg=Simon-1.2.4",
