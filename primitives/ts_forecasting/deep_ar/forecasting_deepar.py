@@ -1,9 +1,22 @@
 import sys
 import os
-import numpy as np
-import pandas as pd
+from pathlib import Path
 import logging
 import collections
+import time
+from datetime import timedelta
+import typing
+
+import numpy as np
+import pandas as pd
+import mxnet as mx
+from sklearn.preprocessing import OrdinalEncoder
+
+from gluonts.dataset.common import ListDataset
+from gluonts.dataset.field_names import FieldName
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.trainer import Trainer
+from gluonts.distribution import NegativeBinomialOutput, StudentTOutput
 
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
@@ -15,16 +28,11 @@ from ..utils.var_model_utils import (
     calculate_time_frequency,
     discretize_time_difference,
 )
-from deepar.dataset.time_series import TimeSeriesTrain, TimeSeriesTest
-from deepar.model.learner import DeepARLearner
-import tensorflow as tf
-import time
-from datetime import timedelta
-import typing
+
 
 __author__ = "Distil"
 __version__ = "1.2.0"
-__contact__ = "mailto:jeffrey.gleason@yonder.co"
+__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
 
 Inputs = container.DataFrame
 Outputs = container.DataFrame
@@ -39,7 +47,7 @@ class Params(params.Params):
     ts_frame: pd.DataFrame
     target_column: int
     timestamp_column: int
-    ts_object: TimeSeriesTrain
+    # ts_object: TimeSeriesTrain
     grouping_column: typing.Union[int, None]
     output_columns: pd.Index
     min_train: float
@@ -56,20 +64,40 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="weights of trained model will be saved to this filepath",
     )
-    emb_dim = hyperparams.UniformInt(
-        lower=8,
-        upper=256,
-        default=32,
+    prediction_length = hyperparams.UniformInt(
+        lower=1,
+        upper=60,
+        default=30,
         upper_inclusive=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="number of cells to use in the categorical embedding component of the model",
+        description="number of future timesteps to predict",
+    )
+    context_length = hyperparams.UniformInt(
+        lower=1,
+        upper=60,
+        default=30,
+        upper_inclusive=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+        ],
+        description="number of context timesteps to consider before prediction, for both training and test",
+    )
+    num_layers = hyperparams.UniformInt(
+        lower=1,
+        upper=16,
+        default=2,
+        upper_inclusive=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+        ],
+        description="number of cells to use in the lstm component of the model",
     )
     lstm_dim = hyperparams.UniformInt(
-        lower=8,
-        upper=256,
-        default=32,
+        lower=10,
+        upper=400,
+        default=40,
         upper_inclusive=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
@@ -86,39 +114,19 @@ class Hyperparams(hyperparams.Hyperparams):
         description="number of training epochs",
     )
     steps_per_epoch = hyperparams.UniformInt(
-        lower=5,
+        lower=1,
         upper=200,
-        default=10,
+        default=100,
         upper_inclusive=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
         description="number of steps to do per epoch",
     )
-    early_stopping_patience = hyperparams.UniformInt(
-        lower=0,
-        upper=sys.maxsize,
-        default=1,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="number of epochs to wait before invoking early stopping criterion",
-    )
-    early_stopping_delta = hyperparams.UniformInt(
-        lower=0,
-        upper=sys.maxsize,
-        default=0,
-        upper_inclusive=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="early stopping will interpret change of < delta in desired direction "
-        + "will increment early stopping counter state",
-    )
     learning_rate = hyperparams.Uniform(
         lower=0.0,
         upper=1.0,
-        default=1e-3,
+        default=1e-4,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
@@ -127,7 +135,7 @@ class Hyperparams(hyperparams.Hyperparams):
     batch_size = hyperparams.UniformInt(
         lower=1,
         upper=256,
-        default=64,
+        default=32,
         upper_inclusive=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
@@ -137,7 +145,7 @@ class Hyperparams(hyperparams.Hyperparams):
     dropout_rate = hyperparams.Uniform(
         lower=0.0,
         upper=1.0,
-        default=0.2,
+        default=0.1,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
@@ -156,44 +164,13 @@ class Hyperparams(hyperparams.Hyperparams):
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
     )
-    window_size = hyperparams.UniformInt(
-        lower=10,
-        upper=sys.maxsize,
-        default=20,
-        upper_inclusive=True,
+    output_mean = hyperparams.UniformBool(
+        default=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="window size of sampled time series in training process",
+        description="whether to output mean (or median) forecasts from probability distributions",
     )
-    negative_obs = hyperparams.UniformInt(
-        lower=0,
-        upper=10,
-        default=1,
-        upper_inclusive=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="whether to sample time series with padded observations before t=0 in training ",
-    )
-    val_split = hyperparams.Uniform(
-        lower=0.0,
-        upper=1.0,
-        default=0,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="proportion of training records to set aside for validation. Ignored "
-        + "if iterations flag in `fit` method is not None",
-    )
-    # seed_predictions_with_all_data = hyperparams.UniformBool(
-    #     default=True,
-    #     semantic_types=[
-    #         "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-    #     ],
-    #     description="whether to pass all batches of training data through model before making test predictions "
-    #     + "otherwise only one batch of training data (of length window size) will be passed through model",
-    # )
     confidence_interval_horizon = hyperparams.UniformInt(
         lower=1,
         upper=100,
@@ -232,7 +209,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
     """
         Primitive that applies a deep autoregressive forecasting algorithm for time series
         prediction. The implementation is based off of this paper: https://arxiv.org/pdf/1704.04110.pdf
-        and is implemented in AWS's Sagemaker interface.
+        and this implementation: https://gluon-ts.mxnet.io/index.html
 
         Training inputs: 1) Feature dataframe, 2) Target dataframe
         Outputs: Dataframe with predictions for specific time series at specific future time instances 
@@ -262,7 +239,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 "contact": __contact__,
                 "uris": [
                     # Unstructured URIs.
-                    "https://github.com/Yonder-OSS/D3M-Primitives",
+                    "https://github.com/kungfuai/d3m-primitives",
                 ],
             },
             # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -270,10 +247,10 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             # install a Python package first to be even able to run setup.py of another package. Or you have
             # a dependency which is not on PyPi.
             "installation": [
-                {"type": "PIP", "package": "cython", "version": "0.29.14"},
+                {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package_uri": "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives".format(
+                    "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
                 },
@@ -292,13 +269,16 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0) -> None:
         super().__init__(hyperparams=hyperparams, random_seed=random_seed)
 
-        # set seed for reproducibility
-        tf.random.set_seed(random_seed)
+        # set random seeds for reproducibility
+        mx.random.seed(random_seed)
+        np.random.seed(random_seed)
 
-        self._cols_after_drop = 0
+        self._freq = None
         self._is_fit = False
+        self._enc = OrdinalEncoder()
 
     def get_params(self) -> Params:
+        ## TODO serialize/deserialize through this interface
         if not self._is_fit:
             return Params(
                 drop_cols_no_tgt = None,
@@ -326,7 +306,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             grouping_column = self._grouping_column,
             output_columns = self._output_columns,
             min_train = self._min_train,
-            freq = self.freq,
+            freq = self._freq,
             integer_timestamps = self._integer_timestamps,
             is_fit = self._is_fit
         )
@@ -342,13 +322,13 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         self._grouping_column = params['grouping_column']
         self._output_columns = params['output_columns']
         self._min_train = params['min_train']
-        self.freq = params['freq']
+        self._freq = params['freq']
         self._integer_timestamps = params['integer_timestamps']
         self._is_fit = params['is_fit']
 
-    def _drop_multiple_special_cols(self, col_list, col_type):
+    def _process_special_cols(self, col_list, col_type):
         """
-            private util function that creates list of duplicated special columns (for deletion)
+            private util function that warns if multiple special columns 
 
             Arguments:
                 col_list {List[int]} -- list of column indices 
@@ -362,25 +342,30 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             return None
         elif len(col_list) > 1:
             logger.warn(
-                f"""There are more than one {col_type} marked. This primitive will use the first and drop other {col_type}s."""
+                f"""There are more than one {col_type} marked. This primitive will use the first"""
             )
-            self._drop_cols += col_list[1:]
-            if col_type != "target column":
-                self._drop_cols_no_tgt += col_list[1:]
         return col_list[0]
 
-    def _get_cols(self, input_metadata):
+    def _sort_by_timestamp(self, frame):
+        """ private util function: sort by raw timestamp and convert to pd datetime
+        """
+        time_name = frame.columns[self._timestamp_column]
+
+        if "http://schema.org/Integer" in frame.metadata.query_column_field(
+            self._timestamp_column, "semantic_types"
+        ):
+            frame[time_name] = pd.to_datetime(frame[time_name] - 1, unit = 'D')
+            self._freq = 'D'
+        else:
+            frame[time_name] = pd.to_datetime(frame[time_name], unit = 's')
+
+        return frame.sort_values(by = time_name)
+
+    def _get_cols(self, frame):
         """ private util function: get indices of important columns from metadata 
-
-            Arguments:
-                input_metadata {D3M Metadata object} -- D3M Metadata object for input frame
-
-            Raises:
-                ValueError: If Target column is not of type 'Integer' or 'Float'
         """
 
-        self._drop_cols = []
-        self._drop_cols_no_tgt = []
+        input_metadata = frame.metadata
 
         # get target idx (first column by default)
         target_columns = input_metadata.list_columns_with_semantic_types(
@@ -392,7 +377,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
         if len(target_columns) == 0:
             raise ValueError("At least one column must be marked as a target")
-        self._target_column = self._drop_multiple_special_cols(
+        self._target_column = self._process_special_cols(
             target_columns, "target column"
         )
 
@@ -403,100 +388,89 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 "http://schema.org/DateTime",
             )
         )
-        self._timestamp_column = self._drop_multiple_special_cols(
+        self._timestamp_column = self._process_special_cols(
             timestamp_columns, "timestamp column"
         )
 
-        # get grouping idx and add suggested grouping keys to drop_cols list
-        grouping_columns = input_metadata.list_columns_with_semantic_types(
+        # get grouping idx 
+        self._grouping_columns = input_metadata.list_columns_with_semantic_types(
             ("https://metadata.datadrivendiscovery.org/types/GroupingKey",)
         )
-        self._grouping_column = self._drop_multiple_special_cols(
-            grouping_columns, "grouping column"
-        )
-        suggested_grouping_columns = input_metadata.list_columns_with_semantic_types(
-            ("https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey",)
-        )
-        self._drop_cols += suggested_grouping_columns
-        self._drop_cols_no_tgt += suggested_grouping_columns
+        if len(self._grouping_columns) == 0:
+            self._grouping_columns = input_metadata.list_columns_with_semantic_types(
+                ("https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey",)
+            )
 
-        # get index_col (first index column by default)
-        index_columns = input_metadata.list_columns_with_semantic_types(
-            ("https://metadata.datadrivendiscovery.org/types/PrimaryKey",)
+        def diff(li1, li2): 
+            return list(set(li1) - set(li2))
+
+        # categorical columns
+        self._cat_columns = input_metadata.list_columns_with_semantic_types(
+            ("https://metadata.datadrivendiscovery.org/types/CategoricalData",)
         )
-        self._index_column = self._drop_multiple_special_cols(
-            index_columns, "index column"
+        self._cat_columns = diff(self._cat_columns, self._grouping_columns)
+
+        # real valued columns
+        self._real_columns = input_metadata.list_columns_with_semantic_types(
+            ("http://schema.org/Integer", "http://schema.org/Float")
+        )
+
+        self._real_columns = diff(
+            self._real_columns, 
+            [self._timestamp_column] + [self._target_column] + self._grouping_columns
         )
 
         # determine whether targets are count data
         target_semantic_types = input_metadata.query_column_field(
             self._target_column, "semantic_types"
         )
-        if self.hyperparams["count_data"] is not None:
-            self._count_data = self.hyperparams["count_data"]
+        if self.hyperparams["count_data"]:
+            self._distr_output = NegativeBinomialOutput()
+        elif self.hyperparams["count_data"] == False:
+            self._distr_output = StudentTOutput()
         elif "http://schema.org/Integer" in target_semantic_types:
-            if np.min(self._ts_frame.iloc[:, self._target_column]) > 0:
-                self._count_data = True
+            if np.min(frame.iloc[:, self._target_column]) > 0:
+                self._distr_output = NegativeBinomialOutput()
             else:
-                self._count_data = False
+                self._distr_output = StudentTOutput()
         elif "http://schema.org/Float" in target_semantic_types:
-            self._count_data = False
+            self._distr_output = StudentTOutput()
         else:
             raise ValueError("Target column is not of type 'Integer' or 'Float'")
 
-    def _update_indices(self):
-        """ private util function: 
-            subtract length of drop cols from each marked idx to account for smaller df 
-        """
+    def _get_features(self, df, stop_idx = None):
+        """ private util function: returns features for one individual time series in dataset"""
+        
+        features = {
+            FieldName.START: df.iloc[0, self._timestamp_column],
+            FieldName.TARGET: df.iloc[:stop_idx, self._target_column].values
+        }
+        if len(self._grouping_columns) != 0:
+            features[FieldName.FEAT_STATIC_CAT] = df.iloc[0, self._grouping_columns].values
+        if len(self._cat_columns) != 0:
+            features[FieldName.FEAT_DYNAMIC_CAT] = df.iloc[:stop_idx, self._cat_columns].values
+        if len(self._real_columns) != 0:
+            features[FieldName.FEAT_DYNAMIC_REAL] = df.iloc[:stop_idx, self._real_columns].values 
+        return features
 
-        length = len(self._drop_cols)
-        if self._target_column is not None:
-            self._target_column -= length
-        if self._timestamp_column is not None:
-            self._timestamp_column -= length
-        if self._grouping_column is not None:
-            self._grouping_column -= length
-        if self._index_column is not None:
-            self._index_column -= length
-        self._cols_after_drop = self._ts_frame.shape[0]
+    def _create_train_dataset(self, frame, stop_idx = None):
+        """ private util function: creates train ds object """
 
-    def _create_data_object_and_learner(self, val_split):
-        """ private util function:
-            creates (or updates) train ds object and learner 
-
-            Arguments:
-                val_split {float} -- proportion of training data to withhold for validation
-
-        """
-
-        # Create TimeSeries dataset objects
-        self._ts_object = TimeSeriesTrain(
-            self._ts_frame,
-            target_idx=self._target_column,
-            timestamp_idx=self._timestamp_column,
-            grouping_idx=self._grouping_column,
-            index_col=self._index_column,
-            count_data=self._count_data,
-            negative_obs=self.hyperparams["negative_obs"],
-            val_split=val_split,
-            integer_timestamps=self._integer_timestamps,
-            freq=self.freq,
+        # label encode groupings /cats
+        frame.iloc[:, self._grouping_columns + self._cat_columns] = self._enc.transform(
+            frame.iloc[:, self._grouping_columns + self._cat_columns]
         )
 
-        # Create learner
-        self._learner = DeepARLearner(
-            self._ts_object,
-            emb_dim=self.hyperparams["emb_dim"],
-            lstm_dim=self.hyperparams["lstm_dim"],
-            dropout=self.hyperparams["dropout_rate"],
-            lr=self.hyperparams["learning_rate"],
-            batch_size=self.hyperparams["batch_size"],
-            train_window=self.hyperparams["window_size"],
-            verbose=0,
-        )
+        self._cardinality = [frame.iloc[:,col] for col in self._grouping_columns]
 
-        # save weights so we can restart fitting from scratch (if desired by caller)
-        self._learner.save_weights(self.hyperparams['weights_filepath'])
+        # create dataset object
+        if len(self._grouping_columns) == 0:
+            return [self._get_features(frame, stop_idx)]
+        else:
+            data = []
+            for _, df in frame.groupby(self._grouping_columns):
+                data.append(self._get_features(df, stop_idx)) 
+            return data
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -509,54 +483,38 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 ValueError: If multiple columns are annotated with 'Time' or 'DateTime' metadata
         """
 
-        # save copy of train data so we don't predict for each row in training
         self._output_columns = outputs.columns
         self._train_data = inputs.copy()
-
-        # combine inputs and outputs for internal TimeSeries object
-        self._ts_frame = inputs.append_columns(outputs)
+        frame = inputs.append_columns(outputs)
 
         # Parse cols needed for ts object
-        self._get_cols(self._ts_frame.metadata)
-
-        # drop cols if multiple special type columns
-        if len(self._drop_cols) > 0:
-            self._ts_frame = self._ts_frame.remove_columns(self._drop_cols)
-            self._update_indices()
-
-        # assumption is that integer timestamps are days (treated this way by DeepAR objects)
-        if "http://schema.org/Integer" in self._ts_frame.metadata.query_column_field(
-            self._timestamp_column, "semantic_types"
-        ):
-            self._integer_timestamps = True
-        else:
-            self._integer_timestamps = False
+        self._get_cols(frame)
 
         # calculate frequency of time series
-        g_col, t_col = (
-            self._ts_frame.columns[self._grouping_column],
-            self._ts_frame.columns[self._timestamp_column],
-        )
-        if self._grouping_column is None:
-            time_col_sorted = np.sort(self._ts_frame[t_col])
-            self._min_train = time_col_sorted[0]
-            self.freq = calculate_time_frequency(time_col_sorted[1] - self._min_train)
-            # self._train_diff = int(
-            #     np.diff(np.sort(self._ts_frame.iloc[:, self._timestamp_column]))[0]
-            # )
-        else:
-            # assume frequency is the same across all time series
-            self.freq = calculate_time_frequency(
-                int(
-                    self._ts_frame.groupby(g_col)[t_col]
-                    .apply(lambda x: np.diff(np.sort(x)))
-                    .iloc[0][0]
+        frame = self._sort_by_timestamp(frame)
+        if len(self._grouping_columns) == 0:
+            self._min_train = frame.iloc[0, self._timestamp_column]
+            if self._freq is None:
+                self._freq = calculate_time_frequency(
+                    frame.iloc[1, self._timestamp_column] - self._min_train
                 )
-            )
-            self._min_train = self._ts_frame.groupby(g_col)[t_col].agg("min").min()
+        else:
+            # assuming frequency is the same across all grouped time series
+            g_cols = [frame.columns[col] for col in self._grouping_columns]
+            if sel.freq is None:
+                self._freq = calculate_time_frequency(
+                    int(
+                        frame.groupby(g_cols)[t_col]
+                        .apply(lambda x: np.diff(np.sort(x)))
+                        .iloc[0][0]
+                    )
+                )
+            self._min_train = frame.groupby(g_col)[t_col].agg("min").min()
 
-        # Create TimeSeries dataset object and learner
-        self._create_data_object_and_learner(self.hyperparams["val_split"])
+        # Create dataset
+        self._enc.fit(frame.iloc[:, self._grouping_columns + self._cat_columns])
+        self._train_frame = frame
+        self._train_data = self._create_train_dataset(frame)
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ Fits DeepAR model using training data from set_training_data and hyperparameters
@@ -569,71 +527,42 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 CallResult[None]
         """
 
-        # special case for no validation
-        if iterations is not None:
-            self._create_data_object_and_learner(0)
-
         if iterations is None:
-            iterations_set = False
             iterations = self.hyperparams["epochs"]
-            validation = self.hyperparams["val_split"] > 0
+            has_finished = True
         else:
-            iterations_set = True
-            validation = False
+            has_finished = False
 
-        # time training for 1 epoch so we can consider timeout argument thoughtfully
-        if timeout:
-            logger.info(
-                """Timing the fitting procedure for one epoch so we
-                can consider timeout thoughtfully"""
+        # Create learner
+        estimator = DeepAREstimator(
+            freq=self._freq,
+            prediction_length=self.hyperparams['prediction_length'],
+            context_length=self.hyperparams['context_length'],
+            use_feat_static_cat=len(self._grouping_columns) != 0,
+            use_feat_dynamic_cat=len(self._cat_columns) != 0,
+            use_feat_dynamic_real=len(self._real_columns) != 0,
+            cardinality=self._cardinality,
+            distr_output=self._distr_output,
+            dropout_rate=self.hyperparams['dropout_rate'],
+            trainer=Trainer(
+                epochs=iterations,
+                learning_rate=self.hyperparams['learning_rate'], 
+                batch_size=self.hyperparams['batch_size'],
+                num_batches_per_epoch=self.hyperparams['steps_per_epoch']
             )
-            start_time = time.time()
-            _, iterations_completed = self._learner.fit(
-                validation=validation,
-                steps_per_epoch=self.hyperparams["steps_per_epoch"],
-                epochs=1,
-                stopping_patience=self.hyperparams["early_stopping_patience"],
-                stopping_delta=self.hyperparams["early_stopping_delta"],
-                tensorboard=False,
-            )
-            epoch_time_estimate = time.time() - start_time
-            # subract 1 for epoch that already happened and 1 more to be safe
-            timeout_epochs = timeout // epoch_time_estimate - 2
-            iters = min(timeout_epochs, iterations)
-        else:
-            iters = iterations
+        )
 
-        # normal fitting
-        logger.info(f"Fitting for {iters} iterations")
+        # Fit + serialize
+        logger.info(f"Fitting for {iterations} iterations")
         start_time = time.time()
-
-        _, iterations_completed = self._learner.fit(
-            validation=validation,
-            steps_per_epoch=self.hyperparams["steps_per_epoch"],
-            epochs=iters,
-            stopping_patience=self.hyperparams["early_stopping_patience"],
-            stopping_delta=self.hyperparams["early_stopping_delta"],
-            tensorboard=False,
+        predictor = estimator.train(
+            ListDataset(self._train_data, freq=self._freq)
         )
-        logger.info(
-            f"Fit for {iterations_completed} epochs, took {time.time() - start_time}s"
-        )
+        predictor.serialize(Path(self.hyperparams['weights_filepath']))
+        self.is_fit = True
+        logger.info(f"Fit for {iterations} epochs, took {time.time() - start_time}s")
 
-        # maintain primitive state (mark that training data has been used)
-        self._new_train_data = False
-        self._is_fit = True
-
-        # use fitting history to set CallResult return values
-        if iterations_set:
-            has_finished = False
-        elif iters < iterations:
-            has_finished = False
-        else:
-            has_finished = self._is_fit
-
-        return CallResult(
-            None, has_finished=has_finished, iterations_done=iterations_completed
-        )
+        return CallResult(None, has_finished=has_finished)
 
     def _get_pred_intervals(self, df, keep_all=False):
         """ private util function that retrieves unevenly spaced prediction intervals from data frame 
@@ -655,7 +584,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             interval = discretize_time_difference(
                 df.iloc[:, self._timestamp_column],
                 self._min_train,
-                self.freq,
+                self._freq,
                 self._integer_timestamps,
             )
             if keep_all:
@@ -671,13 +600,55 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             all_intervals, groups = [], []
             for (group, vals) in df.groupby(g_col)[t_col]:
                 interval = discretize_time_difference(
-                    vals, self._min_train, self.freq, self._integer_timestamps
+                    vals, self._min_train, self._freq, self._integer_timestamps
                 )
                 if keep_all:
                     interval = np.arange(min(interval), max(interval) + 1)
                 all_intervals.append(interval)
                 groups.append(group)
             return pd.Series(all_intervals, index=groups)
+
+    def _predict(test_frame):
+        """ private util function 
+        """
+
+        predictor = GluonPredictor.deserialize(Path(self.hyperparams['weights_filepath']))
+        
+        def _forecast(train_data):
+            ## forecast (just pred_length into future)
+            output_forecasts = [] 
+            with tqdm(
+                predictor.predict(ListDataset(train_data, freq=self.freq)),
+                total=len(train_data),
+                desc="Making Predictions"
+            ) as it, np.errstate(invalid='ignore'):
+                for forecast in it:
+                    if self.hyperparams['output_mean']:
+                        output_forecasts.append(forecast.mean)
+                    else:
+                        output_forecasts.append(forecast.quantile(0.5))
+            return np.array(output_forecasts)
+
+        # cycle through training set to get in-sample predictions
+        if test_frame.equals(self._train_frame): 
+            preds = np.array([])
+            for _, df in test_frame.groupby(self._grouping_columns):
+                data = []
+                for stop_idx in range(
+                    self.hyperparams['context_length'], 
+                    test_frame.shape[0], 
+                    self.hyperparams['prediction_length']
+                ):
+                    data.append(self._get_features(df, stop_idx))
+                series_forecast = np.concatenate((
+                    np.zeros(self.hyperparams['context_length']),  
+                    np.flatten(_forecast(data))[:-self.hyperparams['context_length']]
+                )) # 1, 120
+                preds = np.concatenate((preds, series_forecast)) # 10, 120
+        else:
+            preds = _forecast(self._train_data) # 10, 30
+
+        return preds
 
     def produce(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
@@ -703,61 +674,24 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
 
-        if len(self._drop_cols_no_tgt) > 0 and inputs.shape[1] != self._cols_after_drop:
-            test_frame = inputs.remove_columns(self._drop_cols_no_tgt)
-        else:
-            test_frame = inputs.copy()
-
         # Create TimeSeriesTest object
-        if self._train_data.equals(inputs):
-            ts_test_object = TimeSeriesTest(self._ts_object)
-        # test
-        else:
-            ts_test_object = TimeSeriesTest(self._ts_object, test_frame)
+        test_frame = inputs.copy()
 
-        # get prediction slices
-        pred_intervals = self._get_pred_intervals(test_frame)
-
-        # make predictions with learner
-        learner = DeepARLearner(
-            self._ts_object,
-            emb_dim=self.hyperparams["emb_dim"],
-            lstm_dim=self.hyperparams["lstm_dim"],
-            dropout=self.hyperparams["dropout_rate"],
-            lr=self.hyperparams["learning_rate"],
-            batch_size=self.hyperparams["batch_size"],
-            train_window=self.hyperparams["window_size"],
-            verbose=0,
-        )
-        learner.load_weights(self.hyperparams['weights_filepath'])
-        start_time = time.time()
-        logger.info(f"Making predictions...")
-        preds = learner.predict(ts_test_object, include_all_training=True)
-        logger.info(
-            f"Prediction took {time.time() - start_time}s. Predictions array shape: {preds.shape}"
-        )
+        # predict
+        test_frame = self._sort_by_timestamp(test_frame)
+        preds = self._predict(test_frame)
 
         # slice predictions with learned intervals
+        pred_intervals = self._get_pred_intervals(test_frame)
+        # condense this guy
         all_preds = []
         for p, idxs in zip(preds, pred_intervals.values):
-            # all_preds.extend(p[: len(idxs)])  # this takes first n predictions
-            all_preds.extend(
-                [p[i] for i in idxs]
-            )  # this takes predictions at actual indices
+            all_preds.extend([p[i] for i in idxs]) 
         flat_list = np.array([p for pred_list in all_preds for p in pred_list])
-
-        # if np.isinf(all_preds).any():
-        #     logger.debug(f'There are {np.isinf(all_preds).sum()} inf preds')
-        # if np.isnan(all_preds).any():
-        #     logger.debug(f'There are {np.isnan(all_preds).sum()} nan preds')
-        # logger.debug(f'Max: {preds.max()}, Min: {preds.min()}')
-
-        # fill nans with 0s in case model predicted some (shouldnt need to - preventing edge case)
-        flat_list = np.nan_to_num(flat_list)
 
         # create output frame
         result_df = container.DataFrame(
-            {self._ts_frame.columns[self._target_column]: flat_list},
+            {self._output_columns[self._target_column]: flat_list},
             generate_metadata=True,
         )
         result_df.metadata = result_df.metadata.add_semantic_type(

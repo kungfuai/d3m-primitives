@@ -9,6 +9,7 @@ import inspect
 import glob
 
 ignore = ['PrimitiveBase', 'PrimitiveNotFittedError', 'UnsupervisedLearnerPrimitiveBase', 'SupervisedLearnerPrimitiveBase', 'TransformerPrimitiveBase', 'PrimitiveStep']
+#skip_modukles = ['primitives.ts_forecasting.deep_ar.forecasting_deepar']
 
 # List all the primitives
 for p in glob.glob('primitives/*/*/*.py'):
@@ -22,7 +23,7 @@ for p in glob.glob('primitives/*/*/*.py'):
             print(f'Extracting {l}')
             md = pp.metadata.to_json_structure()
             name = md['python_path']
-            os.chdir('/yonder-primitives/annotations')
+            os.chdir('/d3m-primitives/annotations')
             if not os.path.isdir(name):
                 os.mkdir(name)
             os.chdir(name)

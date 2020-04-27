@@ -10,7 +10,7 @@ from d3m.metadata import hyperparams, base as metadata_base
 
 __author__ = 'Distil'
 __version__ = '3.0.2'
-__contact__ = 'mailto:jeffrey.gleason@yonder-ai.com'
+__contact__ = 'mailto:jeffrey.gleason@kungfu.ai'
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -35,19 +35,22 @@ class DataCleaningPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparam
             'contact': __contact__,
             'uris': [
                 # Unstructured URIs.
-                "https://github.com/Yonder-OSS/D3M-Primitives",
+                "https://github.com/kungfuai/d3m-primitives",
             ],
         },
         # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
         # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
         # install a Python package first to be even able to run setup.py of another package. Or you have
         # a dependency which is not on PyPi.
-         'installation': [{
-            'type': metadata_base.PrimitiveInstallationType.PIP,
-            'package_uri': 'git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives'.format(
-                git_commit=utils.current_git_commit(os.path.dirname(__file__)),
-            ),
-        }],
+        "installation": [
+            {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+            {
+                "type": metadata_base.PrimitiveInstallationType.PIP,
+                "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
+                    git_commit=utils.current_git_commit(os.path.dirname(__file__)),
+                ),
+            },
+        ],
         # The same path the primitive is registered with entry points in setup.py.
         'python_path': 'd3m.primitives.data_cleaning.data_cleaning.Datacleaning',
         # Choose these from a controlled vocabulary in the schema. If anything is missing which would

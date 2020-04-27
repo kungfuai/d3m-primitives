@@ -1,11 +1,12 @@
 version: '3'
 
 services:
-    yonder-primitives:
-        image: yonder-primitives
+    d3m-primitives:
+        image: d3m-primitives
         volumes:
-            - ./all_primitives/:/all_primitives/
-            - .:/yonder-primitives
+            #- ./all_primitives/:/all_primitives/
+            - .:/d3m-primitives
             - ./annotations/:/annotations/
             - ./datasets/:/datasets/
             - ./static_volumes/:/static_volumes/
+            - ./test_data:/test_data

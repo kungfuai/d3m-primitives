@@ -50,3 +50,5 @@ annotations/
 static_volumes/
 datasets/
 simon/
+d3m-env/
+test_data/
