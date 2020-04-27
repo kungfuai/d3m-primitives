@@ -1,29 +1,34 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="yonder-primitives",
+    name="kf-d3m-primitives",
     version="2.0.0",
-    description="All Yonder primitives as a single library",
+    description="All Kung Fu D3M primitives as a single library",
     packages=find_packages(),
     setkeywords=['d3m_primitive'],
     install_requires=[
-        "numpy>=1.15.4,<=1.17.3",
-        "scipy>=1.2.1,<=1.3.1",
-        "scikit-learn[alldeps]>=0.20.3,<=0.21.3",
-        "pandas>=0.23.4,<=0.25.2",
-        "tensorflow-gpu == 2.0.0",
-        "tslearn == 0.2.5",
-        "statsmodels==0.10.2",
-        "pmdarima==1.0.0",
+        "numpy>=1.15.4,<=1.17.3", #"numpy==1.18.2",
+        "pandas>=0.23.4,<=0.25.2", #"pandas==1.0.3",
+        "scipy>=1.2.1,<=1.3.1", #"scipy==1.4.1",
+        "scikit-learn[alldeps]>=0.20.3,<=0.21.3", #"scikit-learn==0.22.2.post1",
+        "tslearn",
+        "statsmodels",
+        "pmdarima",
         "punk==3.0.0",
-        "deepar @ git+https://github.com/NewKnowledge/deepar@c801332d26742c17c4265d2155372ce7f1192bc4#egg=deepar-0.0.2",
-        "object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet",
-        "Simon @ git+https://github.com/NewKnowledge/simon@fe41f4eb4f3af848841b325323fc7fc01cd7711b#egg=Simon-1.2.4",
-        "hdbscan==0.8.25",
-        "Simon @ git+https://github.com/NewKnowledge/simon@997a6a78a6bf920f05e68be6a052adf1348acce6#egg=Simon-1.2.4",
-        "requests>=2.19.1,<=2.22.0",
-        "nk_sent2vec @ git+https://github.com/NewKnowledge/nk-sent2vec@85cdd7538c41ea8edf49d15ab749d258656eff00#egg=nk_sent2vec",
-        "shap == 0.34.0",
+        "hdbscan",
+        "requests",
+        "shap",
+        "tensorflow-gpu == 2.0.0", #"tensorflow-gpu == 2.1.0"
+        "torch==1.4.0",
+        #"mxnet==1.6.0",
+        #"gluonts @ git+https://github.com/awslabs/gluon-ts@master#egg=gluonts",
+        "torchvision",
+        "albumentations",
+        "tifffile",
+        # TODO transfer these repos
+        #"object_detection_retinanet @ git+https://github.com/NewKnowledge/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet",
+        #"Simon @ git+https://github.com/NewKnowledge/simon@997a6a78a6bf920f05e68be6a052adf1348acce6#egg=Simon-1.2.4",
+        #"nk_sent2vec @ git+https://github.com/NewKnowledge/nk-sent2vec@85cdd7538c41ea8edf49d15ab749d258656eff00#egg=nk_sent2vec",
     ],
     entry_points={
         "d3m.primitives": [
@@ -45,7 +50,7 @@ setup(
             "feature_selection.pca_features.Pcafeatures = primitives.feature_selection.pca_features.pca_features:PcaFeaturesPrimitive",
             "feature_selection.rffeatures.Rffeatures = primitives.feature_selection.rf_features.rf_features:RfFeaturesPrimitive"
             "classification.inceptionV3_image_feature.Gator = primitives.image_classification.imagenet_transfer_learning.gator:GatorPrimitive",
-           
+            "remote_sensing.remote_sensing_pretrained.RemoteSensingTransfer = primitives.remote_sensing.featurizer.pretrained_featurizer:RemoteSensingTransferPrimitive",
         ],
     },
 )

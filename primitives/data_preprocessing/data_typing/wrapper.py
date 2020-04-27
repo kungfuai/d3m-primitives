@@ -22,7 +22,7 @@ import logging
 
 __author__ = "Distil"
 __version__ = "1.2.3"
-__contact__ = "mailto:jeffrey.gleason@yonder.co"
+__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
 
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
@@ -226,7 +226,7 @@ class SimonPrimitive(UnsupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 "contact": __contact__,
                 'uris': [
                     # Unstructured URIs.
-                    "https://github.com/Yonder-OSS/D3M-Primitives",
+                    "https://github.com/kungfuai/d3m-primitives",
                 ],
             },
             # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -234,11 +234,12 @@ class SimonPrimitive(UnsupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             # install a Python package first to be even able to run setup.py of another package. Or you have
             # a dependency which is not on PyPi.
             "installation": [
+                {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
                 {
-                    "type": "PIP",
-                        "package_uri": "git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives".format(
-                            git_commit=utils.current_git_commit(os.path.dirname(__file__)),
-                        ),
+                    "type": metadata_base.PrimitiveInstallationType.PIP,
+                    "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
+                        git_commit=utils.current_git_commit(os.path.dirname(__file__)),
+                    ),
                 },
                 {
                     "type": "TGZ",

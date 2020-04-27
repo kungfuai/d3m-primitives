@@ -1,7 +1,7 @@
 build:
-	@echo "Building Image"
-	DOCKER_BUILDKIT=1 docker build -t yonder-primitives . 
+	@echo "Building Kung Fu D3M Primitives Image"
+	DOCKER_BUILDKIT=1 docker build -t d3m-primitives . 
 
 run:
-	@echo "Running Yonder Primitives Image"
-	docker-compose run yonder-primitives
+	@echo "Running Kung Fu D3M Primitives Image"
+	docker-compose run d3m-primitives

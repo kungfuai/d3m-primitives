@@ -11,7 +11,7 @@ def load_dataset(base_path: str) -> container.Dataset:
     dataset = container.Dataset.load('file://{dataset_doc_path}'.format(dataset_doc_path=dataset_doc_path))
     return dataset
 
-def get_dataframe(dataset: container.Dataset, resource_id: str) -> container.DataFrame:
+def get_dataframe(dataset: container.Dataset, resource_id: str, target_col: int) -> container.DataFrame:
     # extracts a dataframe from a dataset and ensures its metadata is transferred over
 
     # grab the resource and its metadata out of the dataset
@@ -21,6 +21,9 @@ def get_dataframe(dataset: container.Dataset, resource_id: str) -> container.Dat
     new_metadata = metadata_base.DataMetadata(resource_metadata)
     new_metadata = dataset.metadata.copy_to(new_metadata, (resource_id,))
     new_metadata = new_metadata.remove_semantic_type((), 'https://metadata.datadrivendiscovery.org/types/DatasetEntryPoint')
+    new_metadata = new_metadata.add_semantic_type(
+        (metadata_base.ALL_ELEMENTS, target_col),
+        'https://metadata.datadrivendiscovery.org/types/TrueTarget'
+    )
     dataframe.metadata = new_metadata
-
     return dataframe

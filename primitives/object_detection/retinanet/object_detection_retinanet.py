@@ -33,7 +33,7 @@ from object_detection_retinanet.utils.image import read_image_bgr, preprocess_im
 
 __author__ = 'Distil'
 __version__ = '0.1.0'
-__contact__ = 'mailto:sanjeev@yonder-ai.com'
+__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -131,14 +131,16 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             'name': __author__,
             'contact': __contact__,
             'uris': [
-                'https://github.com/Yonder-OSS/D3M-Primitives',
+                'https://github.com/kungfuai/d3m-primitives',
             ],
         },
-       'installation': [
+        "installation": [
+            {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
             {
-                'type': 'PIP',
-                'package_uri': 'git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives'.format(
-                    git_commit = utils.current_git_commit(os.path.dirname(__file__)),)
+                "type": metadata_base.PrimitiveInstallationType.PIP,
+                "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
+                    git_commit=utils.current_git_commit(os.path.dirname(__file__)),
+                ),
             },
             {
             'type': "FILE",

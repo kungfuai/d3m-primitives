@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 
 class Arima:
     def __init__(
-        self, seasonal=True, seasonal_differencing=1, max_order=5, dynamic=True
+        self, 
+        seasonal: bool = True, 
+        seasonal_differencing: int = 1, 
+        max_order: int = 5, 
+        dynamic: bool = True,
+        log_transform: bool = False,
     ):
         """initialize ARIMA class
         
@@ -19,12 +24,14 @@ class Arima:
             seasonal_differencing {int} -- period for seasonal differencing (default: {1})
             max_order {int} -- maximum order of p and q terms on which to fit model (default: {5})
             dynamic {bool} -- whether in-sample lagged values should be used for in-sample prediction
+            log_transform {bool} -- whether to apply log_transform before fitting arima model
         """
 
         self.seasonal = seasonal
         self.seasonal_differencing = seasonal_differencing
         self.max_order = max_order
         self.dynamic = dynamic
+        self.log_transform = log_transform
 
     def _transform(self, input):
         """ transforms data according to defined transformation 
@@ -58,9 +65,12 @@ class Arima:
         """
 
         self.min_train = min(train)
+
+        if self.log_transform:
+            train = self._transform(train)
+            
         self.arima_model = auto_arima(
             train,
-            # self._transform(train),
             start_p=1,
             start_q=1,
             max_p=self.max_order,
@@ -70,9 +80,9 @@ class Arima:
             stepwise=True,
             suppress_warnings=True,
         )
-        logger.info(f'Fit ARIMA model with {self.arima_model.df_model()} degrees of freedom')
-        # self.arima_model.fit(self._transform(train))
+        
         self.arima_model.fit(train)
+        logger.info(f'Fit ARIMA model with {self.arima_model.df_model()} degrees of freedom')
 
     def predict(self, n_periods=1, return_conf_int=False, alpha=0.05):
         """forecasts the time series n_periods into the future
@@ -94,28 +104,36 @@ class Arima:
             forecast, interval = self.arima_model.predict(
                 n_periods=n_periods, return_conf_int=True, alpha=alpha
             )
-            return (
-                forecast,
-                interval[:, 0],
-                interval[:, 1],
-                # self._inverse_transform(forecast),
-                # self._inverse_transform(interval[:, 0]),
-                # self._inverse_transform(interval[:, 1]),
-            )
+            if self.log_transform:
+                return (
+                    self._inverse_transform(forecast),
+                    self._inverse_transform(interval[:, 0]),
+                    self._inverse_transform(interval[:, 1]),
+                )
+            else:
+                return (
+                    forecast,
+                    interval[:, 0],
+                    interval[:, 1],
+                )
         else:
-            # return self._inverse_transform(
-            #     self.arima_model.predict(n_periods=n_periods)
-            # )
-            return self.arima_model.predict(n_periods=n_periods)
+            if self.log_transform:
+                return self._inverse_transform(
+                    self.arima_model.predict(n_periods=n_periods)
+                )
+            else:
+                return self.arima_model.predict(n_periods=n_periods)
 
     def predict_in_sample(self):
         """ thin wrapper for ARIMA predict_in_sample f(). always predicts all in-sample 
             points (except for first point). dynamic parameter controlled by instance variable
         """
-        # return self._inverse_transform(
-        #     self.arima_model.predict_in_sample(0, 1, dynamic=self.dynamic)
-        # )
-        return self.arima_model.predict_in_sample(0, 1, dynamic=self.dynamic)
+        if self.log_transform:
+            return self._inverse_transform(
+                self.arima_model.predict_in_sample(0, 1, dynamic=self.dynamic)
+            )
+        else:
+            return self.arima_model.predict_in_sample(0, 1, dynamic=self.dynamic)
 
     def get_absolute_value_params(self):
         """get absolute value of trend, AR, and MA parameters of 

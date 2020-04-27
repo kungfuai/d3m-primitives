@@ -13,6 +13,4 @@ RUN rm -r /src/sent2vec-wrapper
 RUN rm -r /src/goatd3mwrapper
 RUN pip uninstall -y Sloth
 
-COPY . /yonder-primitives
-
-RUN pip install -e git+https://github.com/Yonder-OSS/D3M-Primitives#egg=yonder-primitives --exists-action s
+#RUN pip install -e git+https://github.com/kungfuai/d3m-primitives#egg=primitives --exists-action s

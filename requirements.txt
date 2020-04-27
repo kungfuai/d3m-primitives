@@ -1,0 +1,18 @@
+numpy==1.18.2
+pandas==1.0.3
+scipy==1.4.1
+scikit-learn==0.22.2.post1
+tensorflow-gpu == 2.1.0
+torch==1.4.0
+mxnet==1.6.0
+tslearn
+statsmodels
+pmdarima
+punk==3.0.0
+hdbscan
+requests
+shap
+git+https://github.com/awslabs/gluon-ts@master#egg=gluonts
+torchvision
+albumentations
+tifffile

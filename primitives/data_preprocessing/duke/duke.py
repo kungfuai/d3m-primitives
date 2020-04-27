@@ -23,7 +23,7 @@ from d3m.primitives.data_transformation.dataset_to_dataframe import Common as Da
 
 __author__ = 'Distil'
 __version__ = '1.2.0'
-__contact__ = 'mailto:sanjeev@yonder.co'
+__contact__ = 'mailto:jeffrey.gleason@kungfu.ai'
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -53,25 +53,27 @@ class DukePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
             'contact': __contact__,
             'uris': [
                 # Unstructured URIs.
-                "https://github.com/Yonder-OSS/D3M-Primitives",
+                "https://github.com/kungfuai/d3m-primitives",
             ],
         },
         # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
         # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
         # install a Python package first to be even able to run setup.py of another package. Or you have
         # a dependency which is not on PyPi.
-         'installation': [{
-            'type': metadata_base.PrimitiveInstallationType.PIP,
-            'package_uri': 'git+https://github.com/Yonder-OSS/D3M-Primitives.git@{git_commit}#egg=yonder-primitives'.format(
-                git_commit=utils.current_git_commit(os.path.dirname(__file__)),
-            ),
-         },
+        "installation": [
+            {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+            {
+                "type": metadata_base.PrimitiveInstallationType.PIP,
+                "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
+                    git_commit=utils.current_git_commit(os.path.dirname(__file__)),
+                ),
+            },
             {
             "type": "TGZ",
             "key": "en.model",
             "file_uri": "http://public.datadrivendiscovery.org/en_1000_no_stem.tar.gz",
             "file_digest":"3b1238137bba14222ae7c718f535c68a3d7190f244296108c895f1abe8549861"
-        },
+            },
         ],
         # The same path the primitive is registered with entry points in setup.py.
         'python_path': 'd3m.primitives.data_cleaning.text_summarization.Duke',
