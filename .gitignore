@@ -142,3 +142,7 @@ static_volumes/
 all_primitives/
 simon/
 d3m-env/
+tests/deepar_weights/
+common_primitives/
+gluon-ts/
+rs_pretrained/

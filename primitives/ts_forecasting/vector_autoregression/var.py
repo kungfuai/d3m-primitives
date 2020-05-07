@@ -20,7 +20,8 @@ from statsmodels.tsa.vector_ar.var_model import VARResultsWrapper
 import statsmodels.api as sm
 import scipy.stats as stats
 
-from ..utils.var_model_utils import Arima, calculate_time_frequency, discretize_time_difference
+from ..utils.time_utils import calculate_time_frequency, discretize_time_difference
+from ..utils.arima import Arima
 import logging
 
 logger = logging.getLogger(__name__)
