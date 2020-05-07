@@ -61,9 +61,10 @@ class Hyperparams(hyperparams.Hyperparams):
 
 class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     '''
-        Primitive that applies a self-supervised, pretrained remote sensing featurizer. There are two 
-        options for the inference model pretraining task: Augmented Multiscale Deep InfoMax (amdim),
-        https://arxiv.org/abs/1906.00910 and Momentum Contrast (moco), https://arxiv.org/abs/1911.05722
+        Primitive that featurizes remote sensing imagery using a pre-trained model that was optimized
+        with a self-supervised objective. There are two inference models that correspond to two pretext tasks:
+        Augmented Multiscale Deep InfoMax (amdim), https://arxiv.org/abs/1906.00910 and 
+        Momentum Contrast (moco), https://arxiv.org/abs/1911.05722
 
         Training inputs: D3M dataset
         Outputs: D3M dataset with featurized RS images (one feature/column)

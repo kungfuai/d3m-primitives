@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 import time
 from typing import List, Union
+import collections
 
 import numpy as np
 import pandas as pd
@@ -59,7 +60,7 @@ class Hyperparams(hyperparams.Hyperparams):
     )
     prediction_length = hyperparams.UniformInt(
         lower=1,
-        upper=100,
+        upper=120,
         default=30,
         upper_inclusive=True,
         semantic_types=[
@@ -69,7 +70,7 @@ class Hyperparams(hyperparams.Hyperparams):
     )
     context_length = hyperparams.UniformInt(
         lower=1,
-        upper=100,
+        upper=120,
         default=30,
         upper_inclusive=True,
         semantic_types=[
@@ -143,6 +144,19 @@ class Hyperparams(hyperparams.Hyperparams):
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
         description="dropout to use in lstm model (input and recurrent transform)",
+    )
+    count_data = hyperparams.Union[Union[bool, None]](
+        configuration=collections.OrderedDict(
+            user_selected=hyperparams.UniformBool(default=True),
+            auto_selected=hyperparams.Hyperparameter[None](default=None),
+        ),
+        default="auto_selected",
+        description="Whether we should label the target column as real or count (positive) "
+        + "based on user input or automatic selection. For example, user might want to specify "
+        + "positive only count data if target column is real-valued, but domain is >= 0",
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
     )
     output_mean = hyperparams.UniformBool(
         default=True,
@@ -312,45 +326,45 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 self._reind_freq = calculate_time_frequency(diff, model = 'var')
 
     def _robust_reindex(self, frame):
-        """ reindex dataframe IFF it has > 1 row """ 
+        """ reindex dataframe IFF it has > 1 row, interpolate real-valued columns, forward-filling
+            categorical and grouping columns """ 
+        
+        original_times = frame.iloc[:, self._timestamp_column]
+        frame = frame.drop_duplicates(subset = frame.columns[self._timestamp_column])
+        frame.index = frame.iloc[:, self._timestamp_column]
         if frame.shape[0] > 1:
             frame = frame.reindex(
                 pd.date_range(
                     frame.index[0], 
                     frame.index[-1], 
-                    freq = self._reind_freq
+                    freq = self._reind_freq,
                 )
             )
-        return frame
+        frame.iloc[:, self._real_columns] = frame.iloc[:, self._real_columns].interpolate()
+        frame.iloc[:, self._cat_columns + self._grouping_columns] = \
+            frame.iloc[:, self._cat_columns + self._grouping_columns].ffill()
+
+        return frame, original_times
 
     def _reindex(self, frame):
         """ reindex data, keeping NA values for target column, but interpolating feature columns
         """ 
 
         if len(self._grouping_columns) == 0:
-            df = frame.drop_duplicates(subset = frame.columns[self._timestamp_column])
-            df.index = df.iloc[:, self._timestamp_column]
-            df = self._robust_reindex(df)
-            df.iloc[:, self._real_columns] = df.iloc[:, self._real_columns].interpolate()
-            df.iloc[:, self._cat_columns + self._grouping_columns] = \
-                df.iloc[:, self._cat_columns + self._grouping_columns].ffill()
-            return df, df.index[-1], df.shape[0]
+            df, original_times = self._robust_reindex(frame)
+            return df, df.index[-1], df.shape[0], original_times
         else:
-            all_dfs, max_trains = [], []
+            all_dfs, max_trains, original_times = [], [], []
             max_train_length = 0
             g_cols = self._get_col_names(self._grouping_columns, frame.columns)
             for _, df in frame.groupby(g_cols):
-                df = df.drop_duplicates(subset = frame.columns[self._timestamp_column])
-                df.index = df.iloc[:, self._timestamp_column]
-                df = self._robust_reindex(df)
+                df, orig_times = self._robust_reindex(df)
                 if df.shape[0] > max_train_length:
                     max_train_length = df.shape[0]
                 max_trains.append(df.index[-1])
-                df.iloc[:, self._real_columns] = df.iloc[:, self._real_columns].interpolate()
-                df.iloc[:, self._cat_columns + self._grouping_columns] = \
-                    df.iloc[:, self._cat_columns + self._grouping_columns].ffill()
                 all_dfs.append(df)
-            return pd.concat(all_dfs), max_trains, max_train_length
+                original_times.append(orig_times)
+            return pd.concat(all_dfs), max_trains, max_train_length, original_times
 
     def _get_cols(self, frame):
         """ private util function: get indices of important columns from metadata 
@@ -388,11 +402,11 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         self._grouping_columns = input_metadata.list_columns_with_semantic_types(
             ("https://metadata.datadrivendiscovery.org/types/GroupingKey",)
         )
-
-        if len(self._grouping_columns) == 0:
-            self._grouping_columns = input_metadata.list_columns_with_semantic_types(
+        suggested_group_cols = input_metadata.list_columns_with_semantic_types(
             ("https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey",)
         )
+        if len(self._grouping_columns) == 0:
+            self._grouping_columns = suggested_group_cols
 
         def diff(li1, li2): 
             return list(set(li1) - set(li2))
@@ -401,7 +415,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         self._cat_columns = input_metadata.list_columns_with_semantic_types(
             ("https://metadata.datadrivendiscovery.org/types/CategoricalData",)
         )
-        self._cat_columns = diff(self._cat_columns, self._grouping_columns)
+        self._cat_columns = diff(self._cat_columns, self._grouping_columns + suggested_group_cols)
 
         # real valued columns
         self._real_columns = input_metadata.list_columns_with_semantic_types(
@@ -412,9 +426,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self._real_columns, 
             [self._timestamp_column] + [self._target_column] + self._grouping_columns
         )
-        print(f'REAL COLUMNS: {self._real_columns}') 
-        print(f'CAT COLUMNS: {self._cat_columns}')
-        print(f'GRP COLUMNS: {self._grouping_columns}')
 
         # determine whether targets are count data
         self._target_semantic_types = input_metadata.query_column_field(
@@ -449,7 +460,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         self._get_cols(frame)
         frame = self._sort_by_timestamp(frame)
         self._set_freq(frame)
-        frame, self._max_trains, max_train_length = self._reindex(frame)
+        frame, self._max_trains, max_train_length, _ = self._reindex(frame)
         self._check_window_support(max_train_length)
 
         self._deepar_dataset = DeepARDataset(
@@ -462,7 +473,8 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self._freq,
             self.hyperparams['prediction_length'],
             self.hyperparams['context_length'],
-            self._target_semantic_types
+            self._target_semantic_types,
+            self.hyperparams['count_data']
         )
         self._train_data = self._deepar_dataset.get_data()
 
@@ -512,24 +524,22 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
         return CallResult(None, has_finished=has_finished)
 
-    def _get_pred_intervals(self, df):
+    def _get_pred_intervals(self, original_times):
         """ private util function that retrieves unevenly spaced prediction intervals from data frame 
         """
 
         if len(self._grouping_columns) == 0:
-            times = df.iloc[:, self._timestamp_column].dropna()
             intervals = discretize_time_difference(
-                times,
+                original_times,
                 self._max_trains,
                 self._freq, 
                 zero_index = True
             )
-            all_intervals = [np.array(intervals)] # -1 to account for 0 indexing
+            all_intervals = [np.array(intervals)]
         else:
             all_intervals = []
             g_cols = self._deepar_dataset.get_group_names()
-            for (group, frame), max_train in zip(df.groupby(g_cols), self._max_trains):
-                times = frame.iloc[:, self._timestamp_column].dropna()
+            for times, max_train in zip(original_times, self._max_trains):
                 intervals = discretize_time_difference(
                     times,
                     max_train,
@@ -543,10 +553,9 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         """ check if trained model supports called for prediction length """
 
         max_pred_length = max([np.max(interval) for interval in pred_intervals])
-        print(f'MAX PRED L: {max_pred_length + 1}')
         if max_pred_length >= self.hyperparams['prediction_length']:
             raise ValueError(
-                f"Asking for a prediction {max_pred_length} steps into the future from a model " + 
+                f"Asking for a prediction {max_pred_length + 1} steps into the future from a model " + 
                 f"that was trained to predict a maximum of {self.hyperparams['prediction_length']} " + 
                 f"steps into the future. Please train a model with a longer prediction horizon or " +
                 f"only ask for predictions <= {self.hyperparams['prediction_length']} into the future."
@@ -567,17 +576,17 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self.hyperparams['quantiles']
         )
     
+        test_frame = self._sort_by_timestamp(test_frame)
+        test_frame, _, _, original_times = self._reindex(test_frame)
+        pred_intervals = self._get_pred_intervals(original_times)
+
         st = time.time()
-        if test_frame.equals(self._input_frame):
+        if inputs.equals(self._input_frame):
             logger.info('Making in-sample predictions for all training observations. ' +
                 'This can take a while for training sets with a large number of series.')
             preds = deepar_forecast.predict_in_sample()
             logger.info(f'Making in-sample predictions took {time.time() - st}s')
-            pred_intervals = self._get_pred_intervals(test_frame)
         else:
-            test_frame = self._sort_by_timestamp(test_frame)
-            test_frame, _, _= self._reindex(test_frame)
-            pred_intervals = self._get_pred_intervals(test_frame)
             self._check_pred_support(pred_intervals)
             logger.info('Making out-of-sample predictions...')
             preds = deepar_forecast.predict_out_of_sample(test_frame)
@@ -613,8 +622,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             {self._output_column: point_estimates},
             generate_metadata=True,
         )
-        print(result_df.head())
-        print(result_df.shape)
 
         result_df.metadata = result_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 0),
@@ -662,8 +669,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},
             generate_metadata=True,
         )
-        print(result_df.head())
-        print(result_df.shape)
 
         result_df.metadata = result_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 0),
