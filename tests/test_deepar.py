@@ -91,7 +91,7 @@ class DeepArPrimitiveTestCase(unittest.TestCase):
         'LL1_736_stock_market_MIN_METADATA': 34,
         'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 100,
         'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 26,
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 30
+        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 117
     }
     grouping_cols = {
         '56_sunspots_MIN_METADATA': [],
@@ -118,32 +118,34 @@ class DeepArPrimitiveTestCase(unittest.TestCase):
         'LL1_736_stock_market_MIN_METADATA': StudentTOutput,
         'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': StudentTOutput,
         'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': NegativeBinomialOutput,
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': NegativeBinomialOutput
+        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': StudentTOutput
     }
 
-    # def test_sunspots(self):        
-    #     self._test_ts('56_sunspots_MIN_METADATA', 4)
+    def test_sunspots(self):        
+        self._test_ts('56_sunspots_MIN_METADATA', 4)
 
-    # def test_sunspots_monthly(self):        
-    #     self._test_ts('56_sunspots_monthly_MIN_METADATA', 2)
+    def test_sunspots_monthly(self):        
+        self._test_ts('56_sunspots_monthly_MIN_METADATA', 2)
 
-    # def test_pop_spawn(self):        
-    #     self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
-        # self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True)
+    def test_pop_spawn(self):        
+        self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
+        self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True)
 
-    # def test_stock(self):        
-    #     self._test_ts('LL1_736_stock_market_MIN_METADATA', 3)
-        # self._test_ts('LL1_736_stock_market_MIN_METADATA', 3, group_compose=True)
+    def test_stock(self):        
+        self._test_ts('LL1_736_stock_market_MIN_METADATA', 3)
 
-    # def test_terra_leaf(self):        
+    # def test_terra_leaf(self):   
+    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """      
     #     self._test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
     #     self._test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4, group_compose=True)
     
-    def test_phem_monthly(self):        
-        self._test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
+    # def test_phem_monthly(self):   
+    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """     
+    #     self._test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
     #     self._test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5, group_compose=True)
 
-    # def test_phem_weekly(self):        
+    # def test_phem_weekly(self):     
+    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """    
     #     self._test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
     #     self._test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose=True)
 
@@ -182,8 +184,8 @@ class DeepArPrimitiveTestCase(unittest.TestCase):
 
         # ------------ TRAIN PREDS CHECK ------------
         deepar.fit()
-        # preds = deepar.produce(inputs = inputs).value
-        # self.assertEqual(preds.shape[0], inputs.shape[0]) 
+        preds = deepar.produce(inputs = inputs).value
+        self.assertEqual(preds.shape[0], inputs.shape[0]) 
 
         # ------------ TEST PREDS CHECK ------------        
         dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
@@ -193,11 +195,11 @@ class DeepArPrimitiveTestCase(unittest.TestCase):
         self.assertEqual(preds.shape[0], inputs.shape[0])  
 
         # ------------ TEST CINTS CHECK ------------        
-        # confidence_intervals = deepar.produce_confidence_intervals(inputs = inputs).value
-        # self.assertEqual(confidence_intervals.shape[0], inputs.shape[0]) 
-        # self.assertEqual(confidence_intervals.shape[1], len(quantiles) + 1)
-        # self.assertTrue((confidence_intervals.iloc[:, 1] <= confidence_intervals.iloc[:, 0]).all())
-        # self.assertTrue((confidence_intervals.iloc[:, 2] >= confidence_intervals.iloc[:, 0]).all())
+        confidence_intervals = deepar.produce_confidence_intervals(inputs = inputs).value
+        self.assertEqual(confidence_intervals.shape[0], inputs.shape[0]) 
+        self.assertEqual(confidence_intervals.shape[1], len(quantiles) + 1)
+        self.assertTrue((confidence_intervals.iloc[:, 1] <= confidence_intervals.iloc[:, 0]).all())
+        self.assertTrue((confidence_intervals.iloc[:, 2] >= confidence_intervals.iloc[:, 0]).all())
 
 if __name__ == '__main__':
     unittest.main()

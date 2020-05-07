@@ -41,7 +41,7 @@ def calculate_time_frequency(time_diff, model = 'var'):
     """
 
     return_strings = {
-        'var': ["YS", "MS", "M", "W", "D", "H", "S"],
+        'var': ["YS", "MS", "M", "W-MON", "D", "H", "S"],
         'deep_ar': ["12M", "M", "M", "W", "D", "H", "S"],
     }
 

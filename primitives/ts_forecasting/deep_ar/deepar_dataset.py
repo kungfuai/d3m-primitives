@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 import logging
 
 import pandas as pd
@@ -23,7 +23,8 @@ class DeepARDataset:
         freq: str,
         prediction_length: int,
         context_length: int,
-        target_semantic_types: List[str]
+        target_semantic_types: List[str],
+        count_data: Union[None, bool]
     ):
         """initialize DeepARModel
         """
@@ -38,6 +39,7 @@ class DeepARDataset:
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.target_semantic_types = target_semantic_types
+        self.count_data = count_data
     
         if self.has_group_cols():
             g_cols = self.get_group_names()
@@ -48,7 +50,8 @@ class DeepARDataset:
         
         if self.has_cat_cols() or self.has_group_cols():
            self.enc = OrdinalEncoder().fit(self.frame.iloc[:, cat_cols + group_cols])
-
+        print(cat_cols)
+        print(group_cols)
 
     def get_targets(self, df):
         """ gets targets """
@@ -154,7 +157,11 @@ class DeepARDataset:
     def get_distribution_type(self):
         """ get distribution type of dataset """
 
-        if "http://schema.org/Integer" in self.target_semantic_types:
+        if self.count_data:
+            return NegativeBinomialOutput()
+        elif self.count_data == False:
+            return StudentTOutput()
+        elif "http://schema.org/Integer" in self.target_semantic_types:
             if np.min(self.frame.iloc[:, self.target_col]) >= 0:
                 return NegativeBinomialOutput()
             else:
