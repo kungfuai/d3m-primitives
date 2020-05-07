@@ -1,8 +1,11 @@
 import unittest
 import os
+
 import pandas as pd
-from primitives.remote_sensing.featurizer.pretrained_featurizer import RemoteSensingTransferPrimitive
-#from d3m.primitives.remote_sensing.remote_sensing_pretrained import RemoteSensingTransfer
+import numpy as np
+from rsp.data import load_patch
+
+from primitives.remote_sensing.featurizer.remote_sensing_pretrained import RemoteSensingPretrainedPrimitive
 
 class RemoteSensingTransferPrimitiveTestCase(unittest.TestCase):
 
@@ -19,16 +22,26 @@ class RemoteSensingTransferPrimitiveTestCase(unittest.TestCase):
     def test_moco(self):
         self._test_rsp('moco', self.moco_path, 2048)
     
+    def _load_frame(self):
+        img_paths = [
+            os.path.join(self.dataset_path, filename) 
+            for filename in os.listdir(self.dataset_path)
+        ]
+        imgs = [
+            load_patch(img_path).astype(np.float32) 
+            for img_path in img_paths
+        ]
+        return pd.DataFrame({'image_col': imgs})
+
     def _test_rsp(self, model, weight_path, output_dim):
 
-        test_frame = pd.DataFrame(os.listdir(self.dataset_path))
-        rs_hp = RemoteSensingTransferPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        rsp = RemoteSensingTransferPrimitive(
+        test_frame = self._load_frame()
+        rs_hp = RemoteSensingPretrainedPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+        rsp = RemoteSensingPretrainedPrimitive(
             hyperparams=rs_hp(
                 rs_hp.defaults(),
                 inference_model = model,
                 use_columns = [0],
-                base_path = self.dataset_path
             ),
             volumes = {'{}_weights'.format(model): weight_path},
         )

@@ -12,5 +12,6 @@ RUN rm -r /src/d3munsupervised
 RUN rm -r /src/sent2vec-wrapper
 RUN rm -r /src/goatd3mwrapper
 RUN pip uninstall -y Sloth
+RUN pip uninstall -y nk-imagenet
 
 #RUN pip install -e git+https://github.com/kungfuai/d3m-primitives#egg=primitives --exists-action s

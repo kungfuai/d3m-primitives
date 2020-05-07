@@ -1,5 +1,5 @@
 numpy==1.18.2
-pandas==1.0.3
+#pandas==1.0.3
 scipy==1.4.1
 scikit-learn==0.22.2.post1
 tensorflow-gpu == 2.1.0
@@ -11,8 +11,9 @@ pmdarima
 punk==3.0.0
 hdbscan
 requests
-shap
-git+https://github.com/awslabs/gluon-ts@master#egg=gluonts
-torchvision
+shap ## fix Distil's install
+git+https://github.com/awslabs/gluon-ts@ed06add54f64bcd067629b0f88349a56bf6df80a#egg=gluonts
+torchvision==0.6.0
 albumentations
 tifffile
+git+https://github.com/cfld/rs_pretrained@1191dd02d9916f17c0f24249cb2d762a91d1dee8#egg=rsp

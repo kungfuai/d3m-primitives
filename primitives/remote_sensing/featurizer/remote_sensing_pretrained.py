@@ -14,10 +14,10 @@ from common_primitives import utils as utils_cp, dataframe_utils
 
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from ..utils.data import load_patch
-from ..moco_r50.inference import moco_r50
-from ..moco_r50.data import load_patch_sentinel
-from ..amdim.inference import amdim
+from rsp.data import load_patch
+from rsp.moco_r50.inference import moco_r50
+from rsp.moco_r50.data import sentinel_augmentation_valid
+from rsp.amdim.inference import amdim
 
 
 __author__ = 'Distil'
@@ -33,14 +33,6 @@ class Hyperparams(hyperparams.Hyperparams):
         default=(),
         semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
         description="A set of column indices to force primitive to operate on. If any specified column cannot be parsed, it is skipped.",
-    )
-    # ------ CAN REMOVE THIS HP WHEN BASE PATH IS IN METADATA ---------
-    base_path = hyperparams.Hyperparameter[str](
-        default='/test_data/BigEarthNet-trimmed',
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="weights of trained model will be saved to this filepath",
     )
     inference_model = hyperparams.Enumeration(
         default = 'moco', 
@@ -67,7 +59,7 @@ class Hyperparams(hyperparams.Hyperparams):
         description="number of workers to do if using multiprocessing threading",
     )
 
-class RemoteSensingTransferPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
+class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     '''
         Primitive that applies a self-supervised, pretrained remote sensing featurizer. There are two 
         options for the inference model pretraining task: Augmented Multiscale Deep InfoMax (amdim),
@@ -78,24 +70,17 @@ class RemoteSensingTransferPrimitive(TransformerPrimitiveBase[Inputs, Outputs, H
     '''
 
     metadata = metadata_base.PrimitiveMetadata({
-        # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
         'id': "544bb61f-f354-48f5-b055-5c03de71c4fb",
         'version': __version__,
         'name': "RSPretrained",
-        # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
         'keywords': ['remote sensing', 'self-supervised', 'pretrained', 'featurizer', 'moco', 'momentum contrast'],
         'source': {
             'name': __author__,
             'contact': __contact__,
             "uris": [
-                # Unstructured URIs.
                 "https://github.com/kungfuai/d3m-primitives",
             ],
         },
-        # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
-        # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
-        # install a Python package first to be even able to run setup.py of another package. Or you have
-        # a dependency which is not on PyPi.
         "installation": [
             {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
             {
@@ -117,14 +102,10 @@ class RemoteSensingTransferPrimitive(TransformerPrimitiveBase[Inputs, Outputs, H
             "file_digest":"fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f"
             },
         ],
-        # The same path the primitive is registered with entry points in setup.py.
-        # TODO PR adding remote_sensing_pretrained to names, and two alg types
-        'python_path': 'd3m.primitives.remote_sensing.remote_sensing_pretrained.RemoteSensingTransfer',
-        # Choose these from a controlled vocabulary in the schema. If anything is missing which would
-        # best describe the primitive, make a merge request.
+        'python_path': 'd3m.primitives.remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained',
         'algorithm_types': [
             metadata_base.PrimitiveAlgorithmType.MUTUAL_INFORMATION,
-            #metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
+            metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
         ],
         'primitive_family': metadata_base.PrimitiveFamily.REMOTE_SENSING,
     })
@@ -139,33 +120,47 @@ class RemoteSensingTransferPrimitive(TransformerPrimitiveBase[Inputs, Outputs, H
         self, 
         volumes: typing.Dict[str, str] = None,
     ):
-
+        """ load either amdim or moco inference model
+        """
         if self.hyperparams['inference_model'] == 'amdim':
             return amdim(volumes['amdim_weights'], map_location=self.device)
         elif self.hyperparams['inference_model'] == 'moco':
             return moco_r50(volumes['moco_weights'], map_location=self.device)
 
-    def _get_image_paths(
+    def _load_patch_sentinel(
+        self,
+        img: np.ndarray
+    ):
+        """ load and transform sentinel image patch to prep for model """
+        img = img[:12].transpose(1, 2, 0) / 10_000
+        return sentinel_augmentation_valid()(image=img)['image']
+
+    def _load_dataset(
         self,
         inputs: d3m_DataFrame,
-        col: int
-    ) -> List[str]:
-        """ get image paths (potentially in multiple columns) that we want to featurize
-        """
-        #base_path = inputs.metadata.query((metadata_base.ALL_ELEMENTS, col))['location_base_uris'][0].replace('file:///', '/') 
-        base_path = self.hyperparams['base_path']
-        return [os.path.join(base_path, filename) for filename in inputs.iloc[:,col]]
-
-    def _load_images(
-        self,
-        image_paths: np.ndarray
-    ) -> List:
-        """ load images from array of image filepaths
-        """
-        imgs = [load_patch(img_path).astype(np.float32) for img_path in image_paths]
+        image_cols: List[int]
+    ) -> TensorDataset:
+        """ load image dataset from 1 or more columns of np arrays representing images """
+        imgs = [img for img_col in image_cols for img in inputs.iloc[:, img_col]]
         if self.hyperparams['inference_model'] == 'moco':
-            imgs = [load_patch_sentinel(img) for img in imgs]
+            imgs = [self._load_patch_sentinel(img) for img in imgs]
         return TensorDataset(torch.FloatTensor(np.stack(imgs)))
+
+    def _sort_multiple_img_cols(
+        self,
+        img_features: np.ndarray,
+        imgs_per_col: int
+    ) -> np.ndarray:
+        """ if multiple original columns of images were processed, sort generated feature vecs correctly
+        """
+
+        return np.concatenate(
+            [
+                img_features[i:i+imgs_per_col] 
+                for i in range(0, img_features.shape[0], imgs_per_col)
+            ],
+            axis=1
+        )
 
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
         """
@@ -184,29 +179,28 @@ class RemoteSensingTransferPrimitive(TransformerPrimitiveBase[Inputs, Outputs, H
         else:
             image_cols = self.hyperparams['use_columns']
 
-        image_paths = [self._get_image_paths(inputs, col) for col in image_cols] # bands in different rows?
-        image_datasets = [self._load_images(path) for path in image_paths]
-        image_loaders = [
-            DataLoader(
-                image_dataset, 
-                batch_size=self.hyperparams['batch_size'],
-                num_workers=self.hyperparams['num_workers'],
-            )
-            for image_dataset in image_datasets
-        ]
+        image_dataset = self._load_dataset(inputs, image_cols)
+        image_loader = DataLoader(
+            image_dataset, 
+            batch_size=self.hyperparams['batch_size'],
+            num_workers=self.hyperparams['num_workers'],
+        )
 
-        for image_loader, col in zip(image_loaders, image_cols):
-            all_img_features = []
-            for image_batch in image_loader:
-                image_batch = image_batch[0].to(self.device)
-                features = self.model(image_batch).data.numpy()
-                all_img_features.append(features)
+        all_img_features = []
+        for image_batch in image_loader:
+            image_batch = image_batch[0].to(self.device)
+            features = self.model(image_batch).data.numpy()
+            all_img_features.append(features)
+        all_img_features = np.vstack(all_img_features)
+
+        col_names = [
+            'img_{}_feat_{}'.format(i // all_img_features.shape[1], i % all_img_features.shape[1]) 
+            for i in range(0, all_img_features.shape[1])
+        ]
+        all_img_features = self._sort_multiple_img_cols(all_img_features, inputs.shape[0])
 
         feature_df = d3m_DataFrame(
-            pd.DataFrame(
-                np.stack(features), 
-                columns = ['v{}'.format(i) for i in range(0, features.shape[1])]
-            ),
+            pd.DataFrame(all_img_features, columns = col_names),
             generate_metadata = True
         )
 
