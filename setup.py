@@ -28,6 +28,7 @@ setup(
         "object_detection_retinanet @ git+https://github.com/uncharted-distil/object-detection-retinanet@beca7ff86faa2295408e46fe221a3c7437cfdc81#egg=object_detection_retinanet",
         "Simon @ git+https://github.com/uncharted-distil/simon@997a6a78a6bf920f05e68be6a052adf1348acce6#egg=Simon-1.2.4",
         "nk_sent2vec @ git+https://github.com/uncharted-distil/nk-sent2vec@85cdd7538c41ea8edf49d15ab749d258656eff00#egg=nk_sent2vec",
+        "git+https://github.com/cfld/rs_pretrained@1191dd02d9916f17c0f24249cb2d762a91d1dee8#egg=rsp"
     ],
     entry_points={
         "d3m.primitives": [

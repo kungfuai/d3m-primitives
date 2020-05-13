@@ -106,7 +106,7 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         'python_path': 'd3m.primitives.remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained',
         'algorithm_types': [
             metadata_base.PrimitiveAlgorithmType.MUTUAL_INFORMATION,
-            metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
+            #metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
         ],
         'primitive_family': metadata_base.PrimitiveFamily.REMOTE_SENSING,
     })
