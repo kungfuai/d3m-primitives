@@ -1,36 +1,41 @@
 """
-Utility to get primitives .json files
+Utility to generate primitives .json annotations
 """
 
 import os
 import json
 import importlib
-import inspect
 import glob
 
-ignore = ['PrimitiveBase', 'PrimitiveNotFittedError', 'UnsupervisedLearnerPrimitiveBase', 'SupervisedLearnerPrimitiveBase', 'TransformerPrimitiveBase', 'PrimitiveStep']
-#skip_modukles = ['primitives.ts_forecasting.deep_ar.forecasting_deepar']
+ignore = [
+    'PrimitiveBase', 
+    'PrimitiveNotFittedError', 
+    'UnsupervisedLearnerPrimitiveBase', 
+    'SupervisedLearnerPrimitiveBase', 
+    'TransformerPrimitiveBase', 
+    'PrimitiveStep'
+]
 
 # List all the primitives
-for p in glob.glob('primitives/*/*/*.py'):
-    if p in glob.glob('primitives/*/utils/*') or p in glob.glob('primitives/*/*/__.init__.py'):
+for p in glob.glob('kf-d3m-primitives/primitives/*/*/*.py'):
+    if p in glob.glob('kf-d3m-primitives/primitives/*/utils/*') or p in glob.glob('/kf-d3m-primitives/primitives/*/*/__.init__.py'):
         continue
-    f = p.replace('/', '.').replace('.py', '')
-    lib = importlib.import_module(f)
-    for l in dir(lib):
-        if 'Primitive' in l and l not in ignore:
-            pp = getattr(lib, l)
-            print(f'Extracting {l}')
-            md = pp.metadata.to_json_structure()
-            name = md['python_path']
-            os.chdir('/d3m-primitives/annotations')
-            if not os.path.isdir(name):
-                os.mkdir(name)
-            os.chdir(name)
-            v = getattr(lib, '__version__')
-            if not os.path.isdir(v):
-                os.mkdir(v)
-            os.chdir(v)
+    f = p.replace('kf-d3m-primitives/', '').replace('/', '.').replace('.py', '')
+    module = importlib.import_module(f)
+    for c in dir(module):
+        if 'Primitive' in c and c not in ignore:
+            primitive = getattr(module, c)
+            primitive_json = primitive.metadata.to_json_structure()
+            primitive_name = primitive_json['python_path']
+            os.chdir('/annotations')
+            if not os.path.isdir(primitive_name):
+                os.mkdir(primitive_name)
+            os.chdir(primitive_name)
+            version = getattr(module, '__version__')
+            if not os.path.isdir(version):
+                os.mkdir(version)
+            os.chdir(version)
             with open('primitive.json', 'w') as f:
-                f.write(json.dumps(md, indent=4))
+                f.write(json.dumps(primitive_json, indent=4))
                 f.write('\n')
+            print(f'Generated json annotation for {c}')

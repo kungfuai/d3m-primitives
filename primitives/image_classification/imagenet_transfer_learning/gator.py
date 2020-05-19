@@ -1,24 +1,24 @@
 import os
 import sys
 import typing
+import time
+import logging
+
 import numpy as np
 import pandas as pd
-import time
-from d3m.primitive_interfaces.base import CallResult, PrimitiveBase
-from ..utils.imagenet import ImagenetModel, ImageNetGen
-from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
+from sklearn.preprocessing import LabelEncoder 
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
-
 from d3m import container, utils
 from d3m.metadata import hyperparams, base as metadata_base, params
-from common_primitives import utils as utils_cp
-from sklearn.preprocessing import LabelEncoder 
-import logging
+from d3m.primitive_interfaces.base import CallResult
+from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m.exceptions import PrimitiveNotFittedError
+
+from ..utils.imagenet import ImagenetModel, ImageNetGen
 
 __author__ = 'Distil'
 __version__ = '1.0.2'
@@ -118,11 +118,9 @@ class GatorPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyp
     """
 
     metadata = metadata_base.PrimitiveMetadata({
-        # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
         'id': "475c26dc-eb2e-43d3-acdb-159b80d9f099",
         'version': __version__,
         'name': "gator",
-        # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
         'keywords': ['Image Recognition', 'transfer learning', 'classification', 'ImageNet', 'Convolutional Neural Network'],
         'source': {
             'name': __author__,
@@ -132,10 +130,6 @@ class GatorPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyp
                 "https://github.com/kungfuai/d3m-primitives",
             ],
         },
-        # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
-        # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
-        # install a Python package first to be even able to run setup.py of another package. Or you have
-        # a dependency which is not on PyPi.
         "installation": [
             {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
             {
@@ -151,14 +145,12 @@ class GatorPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyp
             "file_digest":"9617109a16463f250180008f9818336b767bdf5164315e8cd5761a8c34caa62a"
             },
         ],
-        # The same path the primitive is registered with entry points in setup.py.
         'python_path': 'd3m.primitives.classification.inceptionV3_image_feature.Gator',
-        # Choose these from a controlled vocabulary in the schema. If anything is missing which would
-        # best describe the primitive, make a merge request.
         "algorithm_types": [
             metadata_base.PrimitiveAlgorithmType.IMAGENET
         ],
-        "primitive_family": metadata_base.PrimitiveFamily.CLASSIFICATION
+        "primitive_family": metadata_base.PrimitiveFamily.CLASSIFICATION,
+        'can_use_gpus': True
     })
 
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0, volumes: typing.Dict[str,str]=None)-> None:

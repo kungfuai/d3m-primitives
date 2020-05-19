@@ -1,16 +1,12 @@
 import os.path
+import typing
+
 import numpy as np
 import pandas as pd
-import typing
-from typing import List
-import sys
-
 from nk_sent2vec import Sent2Vec as _Sent2Vec
-
 from d3m import container, utils
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult
-
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
 
@@ -129,7 +125,6 @@ class Sent2VecPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
 
         try:
             vectorizer = _Sent2Vec(path=self.volumes["sent2vec_model"])
-            #print('loaded sent2vec model', file = sys.__stdout__)
             output_vectors = []
             for col in range(frame.shape[1]):
                 text = frame.iloc[:, col].tolist()
@@ -140,8 +135,6 @@ class Sent2VecPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
             # just return inputs with file names deleted if vectorizing fails
             return CallResult(outputs) 
         
-        #print('successfully vectorized text\n', file = sys.__stdout__)
-
         # create df with vectorized columns and append to input df
         embedded_df = d3m_DataFrame(embedded_df)
         for col in range(embedded_df.shape[1]):

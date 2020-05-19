@@ -1,12 +1,12 @@
 version: '3'
 
 services:
-    d3m-primitives:
-        image: d3m-primitives
+    kf-d3m-primitives:
+        image: kf-d3m-primitives
         volumes:
-            #- ./all_primitives/:/all_primitives/
-            - .:/d3m-primitives
-            - ./annotations/:/annotations/
-            - ./datasets/:/datasets/
-            - ./static_volumes/:/static_volumes/
+            - .:/kf-d3m-primitives
+            - ./annotations/:/annotations
+            - ./datasets/:/datasets
+            - ./static_volumes/:/static_volumes
             - ./test_data:/test_data
+            - ./scratch_dir:/scratch_dir

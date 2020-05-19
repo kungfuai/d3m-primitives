@@ -1,10 +1,9 @@
 import os.path
-import pandas
 
+import pandas
 from punk.preppy import CleanStrings, CleanDates, CleanNumbers
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult
-
 from d3m import container, utils
 from d3m.metadata import hyperparams, base as metadata_base
 

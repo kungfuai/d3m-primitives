@@ -2,20 +2,20 @@ import os
 import sys
 import subprocess
 import collections
-import pandas as pd
-import requests
 import time
 import typing
 from json import JSONDecoder
-from typing import List, Tuple
+from typing import List
 
+import pandas as pd
+import requests
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult
 from d3m import container, utils
 from d3m.metadata import hyperparams, base as metadata_base, params
-
 from d3m.container import DataFrame as d3m_DataFrame
-from ..geocoding_forward.forward import check_geocoding_server
+
+from ..utils.geocoding import check_geocoding_server
 
 __author__ = "Distil"
 __version__ = "1.0.8"

@@ -1,19 +1,16 @@
 import sys
 import os.path
-import numpy as np
-import pandas
 import typing
 from typing import List
 
+import numpy as np
+import pandas
 from sklearn.manifold import TSNE
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import PrimitiveBase, CallResult
-
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
-from common_primitives import utils as utils_cp, dataframe_utils
-
 
 __author__ = 'Distil'
 __version__ = '1.0.0'
@@ -94,7 +91,7 @@ class TsnePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
        
         
         # store information on target, index variable
-        targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/TrueTarget')
+        targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/Target')
         if not len(targets):
             targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/TrueTarget')
         if not len(targets):

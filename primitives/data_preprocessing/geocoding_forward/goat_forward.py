@@ -1,24 +1,21 @@
 import os
 import sys
-import subprocess
 import collections
-import pandas as pd
-import requests
-import time
 import typing
-import logging
 import re
 from json import JSONDecoder
-from typing import List, Tuple
+from typing import List
 
+import pandas as pd
+import requests
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult
 from d3m import container, utils
 from d3m.metadata import hyperparams, base as metadata_base
-
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.container import List as d3m_List
 
+from ..utils.geocoding import check_geocoding_server
 
 __author__ = "Distil"
 __version__ = "1.0.8"
@@ -49,35 +46,6 @@ class LRUCache:
             if len(self.cache) >= self.capacity:
                 self.cache.popitem(last=False)
         self.cache[key] = value
-
-
-# helper function to check that server is running and responding correctly
-def check_geocoding_server(address, volumes, timeout=100, interval=10):
-    # confirm that server is responding before proceeding
-    # the `12g` in the following may become a hyper-parameter in the future
-    PopenObj = subprocess.Popen(
-        ["java", "-Xms12g", "-Xmx12g", "-jar", "photon-0.3.1.jar"],
-        cwd=volumes["photon-db-latest"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    counter = interval
-    while counter <= timeout:
-        time.sleep(interval)
-        try:
-            r = requests.get(address + "api?q=berlin")
-            if r.status_code == 200:
-                return PopenObj
-            else:
-                logging.debug(
-                    f"Basic request does not return status code 200, trying again in {interval} seconds"
-                )
-                counter += interval
-        except (ConnectionRefusedError, requests.exceptions.ConnectionError) as error:
-            logging.debug(f"Connected refused, trying again in {interval} seconds")
-            counter += interval
-    sys.exit("Connection has not been accepted and timeout setting expired, exiting...")
-
 
 class Hyperparams(hyperparams.Hyperparams):
     rampup_timeout = hyperparams.UniformInt(
@@ -156,7 +124,7 @@ class GoatForwardPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
                 },
                 {
                     "type": "UBUNTU",
-                    "package": "default-jre",
+                    "package": "default-jre-headless",
                     "version": "2:1.8-56ubuntu2",
                 },
                 {

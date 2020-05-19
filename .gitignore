@@ -142,7 +142,11 @@ static_volumes/
 all_primitives/
 simon/
 d3m-env/
-tests/deepar_weights/
-common_primitives/
+scratch_dir/
 gluon-ts/
 rs_pretrained/
+object-detection-retinanet/
+simon/
+nk-sent2vec/
+common-primitives/
+scratch_dir/

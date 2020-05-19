@@ -1,24 +1,21 @@
 import os
-import numpy as np
-import pandas as pd
+import copy
 import typing
 import sys
+import logging
+
+import numpy as np
+import pandas as pd
 from Simon import Simon
 from Simon.penny.guesser import guess
-from d3m.primitive_interfaces.unsupervised_learning import (
-    UnsupervisedLearnerPrimitiveBase,
-)
+from d3m.primitive_interfaces.unsupervised_learning import UnsupervisedLearnerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult
 from d3m.exceptions import PrimitiveNotFittedError
-
 from d3m import container, utils
 from d3m.base import utils as base_utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
-import copy
-
 import tensorflow as tf
-import logging
 
 __author__ = "Distil"
 __version__ = "1.2.3"

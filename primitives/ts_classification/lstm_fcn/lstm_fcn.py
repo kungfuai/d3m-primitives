@@ -1,27 +1,27 @@
 import sys
 import os
-import numpy as np
-import pandas as pd
 import time
 import logging
 
+import numpy as np
+import pandas as pd
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m import container, utils
 from d3m.metadata import hyperparams, base as metadata_base, params
 from d3m.exceptions import PrimitiveNotFittedError
-
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.preprocessing import LabelEncoder
+
 from ..utils.lstm_model_utils import (
     generate_lstmfcn,
     LSTMSequence,
     LSTMSequenceTest,
 )
-from sklearn.preprocessing import LabelEncoder
 
 __author__ = "Distil"
 __version__ = "1.2.0"
@@ -198,6 +198,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 metadata_base.PrimitiveAlgorithmType.CONVOLUTIONAL_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_CLASSIFICATION,
+            "can_use_gpus": True
         }
     )
 

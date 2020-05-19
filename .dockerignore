@@ -45,10 +45,14 @@ package-lock.json
 Dockerfile
 Jenkinsfile
 
-all_primitives/
-annotations/
-static_volumes/
-datasets/
-simon/
 d3m-env/
+annotations/
+datasets/
+static_volumes/
 test_data/
+gluon-ts/
+*.egg-info
+nk-sent2vec/
+objection-detection-retinanet/
+rs_pretrained/
+simon/

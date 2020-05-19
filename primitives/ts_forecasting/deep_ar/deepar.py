@@ -9,10 +9,8 @@ import collections
 import numpy as np
 import pandas as pd
 import mxnet as mx
-
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.trainer import Trainer
-
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m import container, utils
@@ -101,7 +99,7 @@ class Hyperparams(hyperparams.Hyperparams):
     epochs = hyperparams.UniformInt(
         lower=1,
         upper=sys.maxsize,
-        default=10,
+        default=50,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
@@ -231,15 +229,12 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 metadata_base.PrimitiveAlgorithmType.RECURRENT_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_FORECASTING,
+            "can_use_gpus": True
         }
     )
 
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0) -> None:
         super().__init__(hyperparams=hyperparams, random_seed=random_seed)
-
-        # set random seeds for reproducibility
-        mx.random.seed(random_seed)
-        np.random.seed(random_seed)
 
         self._freq = None
         self._is_fit = False
@@ -314,16 +309,14 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             if self._freq is None:
                 diff = frame.iloc[1, self._timestamp_column] - frame.iloc[0, self._timestamp_column]
                 #diff /= norm_value
-                self._freq = calculate_time_frequency(diff, model = 'deep_ar')
-                self._reind_freq = calculate_time_frequency(diff, model = 'var')
+                self._freq, self._reind_freq = calculate_time_frequency(diff, model = 'deep_ar')
         else:
             if self._freq is None:
                 g_cols = self._get_col_names(self._grouping_columns, frame.columns)
                 for g, df in frame.groupby(g_cols):
                     diff = df.iloc[1, self._timestamp_column] - df.iloc[0, self._timestamp_column]
                     break
-                self._freq = calculate_time_frequency(diff, model = 'deep_ar')
-                self._reind_freq = calculate_time_frequency(diff, model = 'var')
+                self._freq, self._reind_freq = calculate_time_frequency(diff, model = 'deep_ar')
 
     def _robust_reindex(self, frame):
         """ reindex dataframe IFF it has > 1 row, interpolate real-valued columns, forward-filling
@@ -663,7 +656,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             for i, quantile in enumerate(series):
                 all_quantiles[i].append(quantile[idxs])
         all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
-
+        print(f"Quantiles: {self.hyperparams['quantiles']}")
         col_names = [0.5] + self.hyperparams['quantiles']
         result_df = container.DataFrame(
             {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},

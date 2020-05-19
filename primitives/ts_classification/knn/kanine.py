@@ -1,15 +1,15 @@
 import sys
 import os
-import numpy as np
-import pandas as pd
 import typing
 import logging
+
+import numpy as np
+import pandas as pd
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m import container, utils
 from d3m.metadata import hyperparams, params, base as metadata_base
 from d3m.exceptions import PrimitiveNotFittedError
-
 from tslearn.neighbors import KNeighborsTimeSeriesClassifier
 from tslearn.preprocessing import TimeSeriesScalerMinMax
 

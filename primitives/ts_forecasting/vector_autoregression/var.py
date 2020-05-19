@@ -1,20 +1,19 @@
 import sys
 import os
 import collections
+from datetime import timedelta
+import typing
+import logging
+
 import numpy as np
 import pandas as pd
-import typing
 from sklearn.preprocessing import OneHotEncoder
-from datetime import timedelta
-
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m.exceptions import PrimitiveNotFittedError
-
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
-
 from statsmodels.tsa.api import VAR as vector_ar
 from statsmodels.tsa.vector_ar.var_model import VARResultsWrapper
 import statsmodels.api as sm
@@ -22,10 +21,9 @@ import scipy.stats as stats
 
 from ..utils.time_utils import calculate_time_frequency, discretize_time_difference
 from ..utils.arima import Arima
-import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 __author__ = "Distil"
 __version__ = "1.2.0"

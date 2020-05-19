@@ -6,16 +6,16 @@ import functools
 from typing import List, Union, Optional, Tuple
 import logging
 
-from ..utils.cluster import KMeans
+import numpy as np
+import pandas as pd
 from tslearn import utils as ts_utils
-
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import PrimitiveBase, CallResult
-
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
-from common_primitives import utils as utils_cp, dataframe_utils
+
+from ..utils.cluster import KMeans
 
 __author__ = 'Distil'
 __version__ = '2.0.5'
