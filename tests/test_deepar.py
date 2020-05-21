@@ -1,12 +1,13 @@
-import unittest
 import os
+import subprocess
+
 import pandas as pd
 from gluonts.distribution import NegativeBinomialOutput, StudentTOutput
-
-from primitives.ts_forecasting.deep_ar.deepar import DeepArPrimitive
 from d3m.primitives.schema_discovery import profiler
 from d3m.primitives.data_transformation import column_parser, extract_columns_by_semantic_types, grouping_field_compose
 
+from primitives.ts_forecasting.deep_ar.deepar import DeepArPrimitive
+from primitives.ts_forecasting.deep_ar.pipelines.deepar_pipeline import DeepARPipeline
 import utils as test_utils
 
 class PreProcessPipeline():
@@ -64,142 +65,151 @@ class PreProcessPipeline():
             self.extract_targ.produce(inputs = df).value
         )
 
-class DeepArPrimitiveTestCase(unittest.TestCase):
-    """ for each time series dataset want to check:
+freqs = {
+    '56_sunspots_MIN_METADATA': '12M',
+    '56_sunspots_monthly_MIN_METADATA': 'M', 
+    'LL1_736_population_spawn_MIN_METADATA': 'D',
+    'LL1_736_stock_market_MIN_METADATA': 'D',
+    'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 'D',
+    'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 'M',
+    'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 'W'
+}
+min_pred_lengths = {
+    '56_sunspots_MIN_METADATA': 21,
+    '56_sunspots_monthly_MIN_METADATA': 38, 
+    'LL1_736_population_spawn_MIN_METADATA': 60,
+    'LL1_736_stock_market_MIN_METADATA': 34,
+    'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 100,
+    'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 26,
+    'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 117
+}
+grouping_cols = {
+    '56_sunspots_MIN_METADATA': [],
+    '56_sunspots_monthly_MIN_METADATA': [], 
+    'LL1_736_population_spawn_MIN_METADATA': [0,1],
+    'LL1_736_stock_market_MIN_METADATA': [0],
+    'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [0,1],
+    'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [0,1,2],
+    'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [0,1,2],
+}
+real_cols = {
+    '56_sunspots_MIN_METADATA': [1,2],
+    '56_sunspots_monthly_MIN_METADATA': [], 
+    'LL1_736_population_spawn_MIN_METADATA': [],
+    'LL1_736_stock_market_MIN_METADATA': [],
+    'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [],
+    'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [],
+    'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [],
+}
+distr = {
+    '56_sunspots_MIN_METADATA': StudentTOutput,
+    '56_sunspots_monthly_MIN_METADATA': StudentTOutput, 
+    'LL1_736_population_spawn_MIN_METADATA': NegativeBinomialOutput,
+    'LL1_736_stock_market_MIN_METADATA': StudentTOutput,
+    'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': StudentTOutput,
+    'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': NegativeBinomialOutput,
+    'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': StudentTOutput
+}
 
-            -grouping columns correctly identified
-            -additional real/cat columns correctly identified
-            -count data correctly identified
-            -frequency correctly identified
-            -identified prediction intervals same length as test frame
-            -shape of predictions make sense before slicing on in-sample and test frame        
-    """
+def _test_set_training_data(dataset_name, target_col, group_compose = False):
+    dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TRAIN/dataset_TRAIN')
+    df = test_utils.get_dataframe(dataset, 'learningData', target_col)
+    preprocess = PreProcessPipeline(group_compose=group_compose)
+    preprocess.fit(df)
+    inputs, outputs = preprocess.produce(df)
 
-    freqs = {
-        '56_sunspots_MIN_METADATA': '12M',
-        '56_sunspots_monthly_MIN_METADATA': 'M', 
-        'LL1_736_population_spawn_MIN_METADATA': 'D',
-        'LL1_736_stock_market_MIN_METADATA': 'D',
-        'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 'D',
-        'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 'M',
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 'W'
-    }
-    min_pred_lengths = {
-        '56_sunspots_MIN_METADATA': 21,
-        '56_sunspots_monthly_MIN_METADATA': 38, 
-        'LL1_736_population_spawn_MIN_METADATA': 60,
-        'LL1_736_stock_market_MIN_METADATA': 34,
-        'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 100,
-        'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 26,
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 117
-    }
-    grouping_cols = {
-        '56_sunspots_MIN_METADATA': [],
-        '56_sunspots_monthly_MIN_METADATA': [], 
-        'LL1_736_population_spawn_MIN_METADATA': [0,1],
-        'LL1_736_stock_market_MIN_METADATA': [0],
-        'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [0,1],
-        'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [0,1,2],
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [0,1,2],
-    }
-    real_cols = {
-        '56_sunspots_MIN_METADATA': [1,2],
-        '56_sunspots_monthly_MIN_METADATA': [], 
-        'LL1_736_population_spawn_MIN_METADATA': [],
-        'LL1_736_stock_market_MIN_METADATA': [],
-        'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [],
-        'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [],
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [],
-    }
-    distr = {
-        '56_sunspots_MIN_METADATA': StudentTOutput,
-        '56_sunspots_monthly_MIN_METADATA': StudentTOutput, 
-        'LL1_736_population_spawn_MIN_METADATA': NegativeBinomialOutput,
-        'LL1_736_stock_market_MIN_METADATA': StudentTOutput,
-        'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': StudentTOutput,
-        'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': NegativeBinomialOutput,
-        'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': StudentTOutput
-    }
-
-    def test_sunspots(self):        
-        self._test_ts('56_sunspots_MIN_METADATA', 4)
-
-    def test_sunspots_monthly(self):        
-        self._test_ts('56_sunspots_monthly_MIN_METADATA', 2)
-
-    def test_pop_spawn(self):        
-        self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
-        self._test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True)
-
-    def test_stock(self):        
-        self._test_ts('LL1_736_stock_market_MIN_METADATA', 3)
-
-    # def test_terra_leaf(self):   
-    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """      
-    #     self._test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
-    #     self._test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4, group_compose=True)
-    
-    # def test_phem_monthly(self):   
-    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """     
-    #     self._test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
-    #     self._test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5, group_compose=True)
-
-    # def test_phem_weekly(self):     
-    #     """ ASKS FOR UNSUPPORTED PREDICTION HORIZON """    
-    #     self._test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
-    #     self._test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose=True)
-
-    def _test_ts(self, dataset_name, target_col, group_compose = False, quantiles = [0.1,0.9]):
-        
-        # train
-        dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TRAIN/dataset_TRAIN')
-        df = test_utils.get_dataframe(dataset, 'learningData', target_col)
-        preprocess = PreProcessPipeline(group_compose=group_compose)
-        preprocess.fit(df)
-        inputs, outputs = preprocess.produce(df)
-
-        deepar_hp = DeepArPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        deepar = DeepArPrimitive(
-            hyperparams = deepar_hp(
-                deepar_hp.defaults(),
-                epochs = 1,
-                steps_per_epoch = 1,
-                number_samples = 10,
-                prediction_length = self.min_pred_lengths[dataset_name],
-                context_length = self.min_pred_lengths[dataset_name],
-                quantiles = quantiles,
-                output_mean = False
-            )
+    deepar_hp = DeepArPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+    deepar = DeepArPrimitive(
+        hyperparams = deepar_hp(
+            deepar_hp.defaults(),
+            epochs = 1,
+            steps_per_epoch = 1,
+            number_samples = 10,
+            prediction_length = min_pred_lengths[dataset_name],
+            context_length = min_pred_lengths[dataset_name],
+            quantiles = [0.1, 0.9],
+            output_mean = False
         )
+    )
+    deepar.set_training_data(inputs=inputs, outputs=outputs)
+    if group_compose:
+        assert deepar._grouping_columns == [inputs.shape[1]-1]
+    else:
+        assert grouping_cols[dataset_name] == deepar._grouping_columns
+    assert freqs[dataset_name] == deepar._freq
+    assert real_cols[dataset_name] == deepar._real_columns
+    assert isinstance(deepar._deepar_dataset.get_distribution_type(), distr[dataset_name])
+    return deepar, preprocess, inputs
 
-        # ------------ PARSING CHECK ------------
-        deepar.set_training_data(inputs=inputs, outputs=outputs)
-        if group_compose:
-            self.assertEqual(deepar._grouping_columns, [inputs.shape[1]-1])
-        else:
-            self.assertEqual(self.grouping_cols[dataset_name], deepar._grouping_columns)
-        self.assertEqual(self.freqs[dataset_name], deepar._freq)
-        self.assertEqual(self.real_cols[dataset_name], deepar._real_columns)
-        self.assertIsInstance(deepar._deepar_dataset.get_distribution_type(), self.distr[dataset_name]) 
+def _test_produce_train_data(deepar, inputs):
+    deepar.fit()
+    preds = deepar.produce(inputs = inputs).value
+    assert preds.shape[0] == inputs.shape[0] 
 
-        # ------------ TRAIN PREDS CHECK ------------
-        deepar.fit()
-        preds = deepar.produce(inputs = inputs).value
-        self.assertEqual(preds.shape[0], inputs.shape[0]) 
+def _test_produce_test_data(deepar, preprocess, dataset_name, target_col):
+    dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
+    df = test_utils.get_dataframe(dataset, 'learningData', target_col)
+    inputs, _ = preprocess.produce(df)
+    preds = deepar.produce(inputs = inputs).value
+    assert preds.shape[0] == inputs.shape[0] 
+    return inputs
 
-        # ------------ TEST PREDS CHECK ------------        
-        dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
-        df = test_utils.get_dataframe(dataset, 'learningData', target_col)
-        inputs, _ = preprocess.produce(df)
-        preds = deepar.produce(inputs = inputs).value
-        self.assertEqual(preds.shape[0], inputs.shape[0])  
+def _test_produce_confidence_intervals(deepar, inputs):
+    confidence_intervals = deepar.produce_confidence_intervals(inputs = inputs).value
+    assert confidence_intervals.shape[0] == inputs.shape[0]
+    assert confidence_intervals.shape[1] == 3
+    assert (confidence_intervals.iloc[:, 1] <= confidence_intervals.iloc[:, 0]).all()
+    assert (confidence_intervals.iloc[:, 2] >= confidence_intervals.iloc[:, 0]).all()
 
-        # ------------ TEST CINTS CHECK ------------        
-        confidence_intervals = deepar.produce_confidence_intervals(inputs = inputs).value
-        self.assertEqual(confidence_intervals.shape[0], inputs.shape[0]) 
-        self.assertEqual(confidence_intervals.shape[1], len(quantiles) + 1)
-        self.assertTrue((confidence_intervals.iloc[:, 1] <= confidence_intervals.iloc[:, 0]).all())
-        self.assertTrue((confidence_intervals.iloc[:, 2] >= confidence_intervals.iloc[:, 0]).all())
+def _test_ts(dataset_name, target_col, group_compose = False):
+    deepar, preprocess, inputs_train = _test_set_training_data(
+        dataset_name,
+        target_col, 
+        group_compose=group_compose
+    )
+    _test_produce_train_data(deepar, inputs_train)
+    inputs_test = _test_produce_test_data(deepar, preprocess, dataset_name, target_col)
+    _test_produce_confidence_intervals(deepar, inputs_test)
 
-if __name__ == '__main__':
-    unittest.main()
+def _test_serialize(dataset):
+    
+    pipeline = DeepARPipeline(
+        epochs = 1,
+        steps_per_epoch = 1,
+        number_samples = 10,
+        prediction_length = min_pred_lengths[dataset],
+        context_length = min_pred_lengths[dataset],
+    )
+    pipeline.write_pipeline()
+    pipeline.fit_serialize(dataset)
+    pipeline.deserialize_score(dataset)
+    pipeline.delete_pipeline()
+    pipeline.delete_serialized_pipeline()
+
+# def test_fit_produce_dataset_sunspots():
+#     _test_ts('56_sunspots_MIN_METADATA', 4)
+
+# def test_fit_produce_dataset_sunspots_monthly():
+#     _test_ts('56_sunspots_monthly_MIN_METADATA', 2)
+
+# def test_fit_produce_dataset_pop_spawn():
+#     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
+
+# def test_fit_produce_dataset_pop_spawn_group_compose():
+#     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True)
+
+def test_fit_produce_dataset_stock():        
+    _test_ts('LL1_736_stock_market_MIN_METADATA', 3)
+
+def test_serialization_dataset_sunspots():
+    _test_serialize('56_sunspots_MIN_METADATA')
+
+def test_serialization_dataset_sunspots_monthly():
+    _test_serialize('56_sunspots_monthly_MIN_METADATA')
+
+def test_serialization_dataset_pop_spawn():
+    _test_serialize('LL1_736_population_spawn_MIN_METADATA')
+
+def test_serialization_dataset_stock():
+    _test_serialize('LL1_736_stock_market_MIN_METADATA')
+

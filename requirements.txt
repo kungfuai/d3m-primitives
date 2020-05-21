@@ -1,19 +1,20 @@
-numpy==1.18.2
-#pandas==1.0.3
-scipy==1.4.1
-scikit-learn==0.22.2.post1
-tensorflow-gpu == 2.1.0
-torch==1.4.0
-mxnet==1.6.0
+d3m
 tslearn
 statsmodels
 pmdarima
 punk==3.0.0
 hdbscan
 requests
-shap ## fix Distil's install
-git+https://github.com/awslabs/gluon-ts@ed06add54f64bcd067629b0f88349a56bf6df80a#egg=gluonts
-torchvision==0.6.0
+shap
+gluonts
+torchvision==0.5.0
+scikit-image==0.16.1
 albumentations
 tifffile
-git+https://github.com/cfld/rs_pretrained@1191dd02d9916f17c0f24249cb2d762a91d1dee8#egg=rsp
+git+https://github.com/uncharted-distil/object-detection-retinanet@f02652a00b3cd81a5c37f5c34da0daaa541dffb1#egg=object_detection_retinanet
+git+https://github.com/uncharted-distil/simon@df0d6e149608b1a57d7ebebef661cfc04f368f94#egg=Simon-1.2.4
+git+https://github.com/uncharted-distil/nk-sent2vec@08a74ce1aff98e81eda2f3211ad7f7015bfa8124#egg=nk_sent2vec
+git+https://github.com/uncharted-distil/duke@c56416e959b52ff5077c5a54c329e2f6e83bbd97#egg=duke
+git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp
+pytest
+pytest-icdiff

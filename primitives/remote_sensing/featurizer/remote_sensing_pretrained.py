@@ -1,17 +1,14 @@
-import sys
 import os.path
-import numpy as np
-import pandas as pd
 import typing
 from typing import List
 
+import numpy as np
+import pandas as pd
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
-from d3m.primitive_interfaces.base import PrimitiveBase, CallResult
+from d3m.primitive_interfaces.base import CallResult
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
-from d3m.metadata import hyperparams, base as metadata_base, params
-from common_primitives import utils as utils_cp, dataframe_utils
-
+from d3m.metadata import hyperparams, base as metadata_base
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from rsp.data import load_patch
@@ -106,9 +103,10 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         'python_path': 'd3m.primitives.remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained',
         'algorithm_types': [
             metadata_base.PrimitiveAlgorithmType.MUTUAL_INFORMATION,
-            #metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
+            metadata_base.PrimitiveAlgorithmType.MOMENTUM_CONTRAST,
         ],
         'primitive_family': metadata_base.PrimitiveFamily.REMOTE_SENSING,
+        'can_use_gpus': True
     })
 
     def __init__(self, *, hyperparams: Hyperparams, random_seed: int = 0, volumes: typing.Dict[str, str] = None)-> None:
@@ -127,41 +125,6 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
             return amdim(volumes['amdim_weights'], map_location=self.device)
         elif self.hyperparams['inference_model'] == 'moco':
             return moco_r50(volumes['moco_weights'], map_location=self.device)
-
-    def _load_patch_sentinel(
-        self,
-        img: np.ndarray
-    ):
-        """ load and transform sentinel image patch to prep for model """
-        img = img[:12].transpose(1, 2, 0) / 10_000
-        return sentinel_augmentation_valid()(image=img)['image']
-
-    def _load_dataset(
-        self,
-        inputs: d3m_DataFrame,
-        image_cols: List[int]
-    ) -> TensorDataset:
-        """ load image dataset from 1 or more columns of np arrays representing images """
-        imgs = [img for img_col in image_cols for img in inputs.iloc[:, img_col]]
-        if self.hyperparams['inference_model'] == 'moco':
-            imgs = [self._load_patch_sentinel(img) for img in imgs]
-        return TensorDataset(torch.FloatTensor(np.stack(imgs)))
-
-    def _sort_multiple_img_cols(
-        self,
-        img_features: np.ndarray,
-        imgs_per_col: int
-    ) -> np.ndarray:
-        """ if multiple original columns of images were processed, sort generated feature vecs correctly
-        """
-
-        return np.concatenate(
-            [
-                img_features[i:i+imgs_per_col] 
-                for i in range(0, img_features.shape[0], imgs_per_col)
-            ],
-            axis=1
-        )
 
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
         """
@@ -207,3 +170,37 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
 
         return CallResult(feature_df)
 
+    def _load_patch_sentinel(
+        self,
+        img: np.ndarray
+    ):
+        """ load and transform sentinel image patch to prep for model """
+        img = img[:12].transpose(1, 2, 0) / 10_000
+        return sentinel_augmentation_valid()(image=img)['image']
+
+    def _load_dataset(
+        self,
+        inputs: d3m_DataFrame,
+        image_cols: List[int]
+    ) -> TensorDataset:
+        """ load image dataset from 1 or more columns of np arrays representing images """
+        imgs = [img for img_col in image_cols for img in inputs.iloc[:, img_col]]
+        if self.hyperparams['inference_model'] == 'moco':
+            imgs = [self._load_patch_sentinel(img) for img in imgs]
+        return TensorDataset(torch.FloatTensor(np.stack(imgs)))
+
+    def _sort_multiple_img_cols(
+        self,
+        img_features: np.ndarray,
+        imgs_per_col: int
+    ) -> np.ndarray:
+        """ if multiple original columns of images were processed, sort generated feature vecs correctly
+        """
+
+        return np.concatenate(
+            [
+                img_features[i:i+imgs_per_col] 
+                for i in range(0, img_features.shape[0], imgs_per_col)
+            ],
+            axis=1
+        )

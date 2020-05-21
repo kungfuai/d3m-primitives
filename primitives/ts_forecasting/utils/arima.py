@@ -1,6 +1,10 @@
+import logging
+
 from pmdarima.arima import auto_arima
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 class Arima:
     def __init__(

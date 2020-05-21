@@ -1,34 +1,22 @@
 import os
-import sys
-import warnings
 import typing
 import time
+from collections import OrderedDict
 
 import keras
-import keras.preprocessing.image
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-
-from object_detection_retinanet import layers
-from object_detection_retinanet import losses
-from object_detection_retinanet import models
-
-from collections import OrderedDict
-
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import base as metadata_base, hyperparams, params
 from d3m.primitive_interfaces.base import PrimitiveBase, CallResult
-
-from object_detection_retinanet.callbacks import RedirectModel
-from object_detection_retinanet.callbacks.eval import Evaluate
-from object_detection_retinanet.utils.eval import evaluate
+from object_detection_retinanet import losses
+from object_detection_retinanet import models
 from object_detection_retinanet.models.retinanet import retinanet_bbox
 from object_detection_retinanet.preprocessing.csv_generator import CSVGenerator
 from object_detection_retinanet.utils.anchors import make_shapes_callback
 from object_detection_retinanet.utils.model import freeze as freeze_model
-from object_detection_retinanet.utils.gpu import setup_gpu
 from object_detection_retinanet.utils.image import read_image_bgr, preprocess_image, resize_image
 
 __author__ = 'Distil'
@@ -63,12 +51,12 @@ class Hyperparams(hyperparams.Hyperparams):
                       "require a weights file downloaded for use during runtime."
     )
     batch_size = hyperparams.Hyperparameter[int](
-        default = 1,
+        default = 32,
         semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
         description = "Size of the batches as input to the model."
     )
     n_epochs = hyperparams.Hyperparameter[int](
-        default = 1,
+        default = 10,
         semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
         description = "Number of epochs to train."
     )
@@ -125,7 +113,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         'id': 'd921be1e-b158-4ab7-abb3-cb1b17f42639',
         'version': __version__,
         'name': 'retina_net',
-        'python_path': 'd3m.primitives.object_detection.retinanet',
+        'python_path': 'd3m.primitives.object_detection.retina_net.ObjectDetectionRN',
         'keywords': ['object detection', 'convolutional neural network', 'digital image processing', 'RetinaNet'],
         'source': {
             'name': __author__,
@@ -151,6 +139,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         ],
         'algorithm_types': [metadata_base.PrimitiveAlgorithmType.RETINANET],
         'primitive_family': metadata_base.PrimitiveFamily.OBJECT_DETECTION,
+        'can_use_gpus': True
         }
     )
 
@@ -369,7 +358,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             weights = self.volumes[self.hyperparams['backbone']]
 
         ## Create model
-        print('Creating model...', file = sys.__stdout__)
+        logger.info('Creating model...')
 
         model, training_model, prediction_model = self._create_models(
             backbone_retinanet = self.backbone.retinanet,
@@ -396,7 +385,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         )
 
         start_time = time.time()
-        print('Starting training...', file = sys.__stdout__)
+        logger.info('Starting training...')
 
         training_model.fit_generator(
             generator = train_generator,
@@ -411,7 +400,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
 
         training_model.save_weights(self.hyperparams['weights_path'] + 'model_weights.h5')
 
-        print(f'Training complete. Training took {time.time()-start_time} seconds.', file = sys.__stdout__)
+        logger.info(f'Training complete. Training took {time.time()-start_time} seconds.')
         return CallResult(None)
 
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
@@ -474,7 +463,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         image_list = [x for i, x in enumerate(self.image_paths.tolist()) if self.image_paths.tolist().index(x) == i]
 
         start_time = time.time()
-        print('Starting testing...', file = sys.__stdout__)
+        logger.info('Starting testing...')
 
         for i in image_list:
             image = read_image_bgr(i)
@@ -497,7 +486,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
                 score_list.append(score)
                 image_name_list.append(i * len(b))
 
-        print(f'Testing complete. Testing took {time.time()-start_time} seconds.', file = sys.__stdout__)
+        logger.info(f'Testing complete. Testing took {time.time()-start_time} seconds.')
 
         ## Convert predicted boxes from a list of arrays to a list of strings
         boxes = np.array(box_list).tolist()

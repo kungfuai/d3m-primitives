@@ -1,7 +1,8 @@
-import pandas as pd
-import numpy as np
 import logging
 import typing
+
+import pandas as pd
+import numpy as np
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
@@ -41,8 +42,16 @@ def calculate_time_frequency(time_diff, model = 'var'):
     """
 
     return_strings = {
-        'var': ["YS", "MS", "M", "W-MON", "D", "H", "S"],
-        'deep_ar': ["12M", "M", "M", "W", "D", "H", "S"],
+        'var': ["YS", "MS", "M", "W", "D", "H", "S"],
+        'deep_ar': [
+            ("12M", "YS"), 
+            ("M", "MS"),
+            ("M", "M"),
+            ("W", "W-MON"),
+            ("D", "D"),
+            ("H", "H"),
+            ("S", "S")
+        ],
     }
 
     # convert to seconds representation

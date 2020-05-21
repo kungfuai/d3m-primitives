@@ -1,13 +1,10 @@
 import sys
 import os.path
+import logging
+
 import numpy as np
 import pandas as pd
-import typing
-import logging
 import shap
-import xgboost as xgb
-
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans
 
 logger = logging.getLogger(__name__)
@@ -187,22 +184,22 @@ class Tree:
         return pd.DataFrame(shap_values, columns=df.columns, index=df.index)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    train_path = "file:///home/alexmably/datasets/seed_datasets_current/SEMI_1217_click_prediction_small/TRAIN/dataset_TRAIN/tables/learningData.csv"
-    test_path = "file:///home/alexmably/datasets/seed_datasets_current/SEMI_1217_click_prediction_small/SCORE/dataset_SCORE/tables/learningData.csv"
-    target = "click"
-    train = pd.read_csv(train_path)
-    test = pd.read_csv(test_path)
-    train.dropna(inplace=True)
+#     train_path = "file:///home/alexmably/datasets/seed_datasets_current/SEMI_1217_click_prediction_small/TRAIN/dataset_TRAIN/tables/learningData.csv"
+#     test_path = "file:///home/alexmably/datasets/seed_datasets_current/SEMI_1217_click_prediction_small/SCORE/dataset_SCORE/tables/learningData.csv"
+#     target = "click"
+#     train = pd.read_csv(train_path)
+#     test = pd.read_csv(test_path)
+#     train.dropna(inplace=True)
 
     # train = train.drop(columns = ['state','state2','basement','windoor','county'])
     # test = test.drop(columns = ['state','state2','basement','windoor','county'])
 
     ##RF
-    X_train = train.drop(columns=["d3mIndex", target])
-    y_train = train[target]
-    X_test = test.drop(columns=["d3mIndex", target])
+    # X_train = train.drop(columns=["d3mIndex", target])
+    # y_train = train[target]
+    # X_test = test.drop(columns=["d3mIndex", target])
 
     # rf = RandomForestClassifier(n_estimators=50, max_depth=5)
     # rf = RandomForestRegressor(n_estimators=50, max_depth=5)
@@ -210,16 +207,16 @@ if __name__ == "__main__":
 
     ##XGBOOST
 
-    xgtrain = xgb.DMatrix(X_train.values, y_train.values)
-    xgtest = xgb.DMatrix(X_test.values)
-    param = {"max_depth": 2, "eta": 1}
+    # xgtrain = xgb.DMatrix(X_train.values, y_train.values)
+    # xgtest = xgb.DMatrix(X_test.values)
+    # param = {"max_depth": 2, "eta": 1}
     # xgb = xgboost.XGBRegressor().fit(X_train, y_train)
-    model = xgb.train(params=param, dtrain=xgtrain)
+    # model = xgb.train(params=param, dtrain=xgtrain)
     # model = xgb.fit(X_train,y_train)
 
-    exp = Tree(model=model, X=X_test, task_type="classification")
-    print(exp.produce_global())
-    print(exp.produce_sample([12]))
+    # exp = Tree(model=model, X=X_test, task_type="classification")
+    # print(exp.produce_global())
+    # print(exp.produce_sample([12]))
     # print(X_test.shape[0])
     # print(exp.produce_sample(samples = [10, 44]))
     # shap.summary_plot(exp.produce_global()[1][0], exp.produce_global()[0])

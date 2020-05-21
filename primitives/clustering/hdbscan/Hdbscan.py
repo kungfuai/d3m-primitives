@@ -1,19 +1,19 @@
 import sys
 import os.path
-import numpy as np
-import pandas
 import typing
 from typing import List
 
+import numpy as np
+import pandas
 import hdbscan
 from sklearn.cluster import DBSCAN
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.base import PrimitiveBase, CallResult
-
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, base as metadata_base, params
-from common_primitives import utils as utils_cp, dataframe_utils
+
+from ..utils.dataframe_utils import select_rows
 
 __author__ = 'Distil'
 __version__ = '1.0.2'
@@ -137,9 +137,9 @@ class HdbscanPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
         # special semi-supervised case - during training, only produce rows with labels
         series = inputs[target_names] != ''
         if series.any().any():
-            inputs = dataframe_utils.select_rows(inputs, np.flatnonzero(series))
+            inputs = select_rows(inputs, np.flatnonzero(series))
             X_test = X_test[np.flatnonzero(series)]
-        
+
         if self.hyperparams['required_output'] == 'feature':
 
             hdb_df = d3m_DataFrame(pandas.DataFrame(self.clf.fit_predict(X_test), columns=['cluster_labels']))
