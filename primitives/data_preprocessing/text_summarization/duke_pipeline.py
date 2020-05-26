@@ -13,18 +13,6 @@ class DukePipeline(PipelineBase):
         pipeline_description = Pipeline()
         pipeline_description.add_input(name="inputs")
 
-        # Denormalize primitive
-        step = PrimitiveStep(
-            primitive = index.get_primitive(
-                'd3m.primitives.data_transformation.denormalize.Common'
-            )
-        )
-        step.add_argument(
-            name = 'inputs', argument_type = ArgumentType.CONTAINER, data_reference = 'inputs.0'
-        )
-        step.add_output('produce')
-        pipeline_description.add_step(step)
-
         # DS to DF on input DS
         step = PrimitiveStep(
             primitive=index.get_primitive(
@@ -32,7 +20,21 @@ class DukePipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="steps.0.produce"
+            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+        )
+        step.add_output("produce")
+        pipeline_description.add_step(step)
+
+        # column parser 
+        step = PrimitiveStep(
+            primitive=index.get_primitive(
+                "d3m.primitives.data_transformation.column_parser.Common"
+            )
+        )
+        step.add_argument(
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.0.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -47,7 +49,7 @@ class DukePipeline(PipelineBase):
             name = 'inputs', argument_type = ArgumentType.CONTAINER, data_reference = 'steps.1.produce'
         )
         step.add_output('produce')
-        pipeline_description.add_step(step_2) 
+        pipeline_description.add_step(step) 
 
         # Final Output
         pipeline_description.add_output(

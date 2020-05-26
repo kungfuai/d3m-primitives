@@ -42,7 +42,7 @@ class ObjectDetectionRNPipeline(PipelineBase):
         # RetinaNet primitive
         step = PrimitiveStep(
             primitive = index.get_primitive(
-                'd3m.primitives.object_detection.retinanet.ObjectDetectionRN'
+                'd3m.primitives.object_detection.retina_net.ObjectDetectionRN'
             )
         )
         step.add_argument(

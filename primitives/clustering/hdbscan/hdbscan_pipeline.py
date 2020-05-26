@@ -87,83 +87,66 @@ class HdbscanPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.2.produce",
+            data_reference="steps.3.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
-        # XGBoost
+        # parse attribute semantic types
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.classification.xgboost_gbtree.Common'
+                "d3m.primitives.data_transformation.extract_columns_by_semantic_types.Common"
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.4.produce",
+        )
+        step.add_hyperparameter(
+            name="semantic_types",
+            argument_type=ArgumentType.VALUE,
+            data=["https://metadata.datadrivendiscovery.org/types/Attribute"],
+        )
+        step.add_output("produce")
+        pipeline_description.add_step(step)
+        
+        # parse target semantic types
+        step = PrimitiveStep(
+            primitive=index.get_primitive(
+                "d3m.primitives.data_transformation.extract_columns_by_semantic_types.Common"
+            )
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.4.produce",
         )
-        step.add_output('produce')
         step.add_hyperparameter(
-            name='add_index_columns', argument_type=ArgumentType.VALUE,data=True
+            name="semantic_types",
+            argument_type=ArgumentType.VALUE,
+            data=[
+                "https://metadata.datadrivendiscovery.org/types/Target",
+            ],
         )
+        step.add_output("produce")
         pipeline_description.add_step(step)
 
-        # # parse attribute semantic types
-        # step = PrimitiveStep(
-        #     primitive=index.get_primitive(
-        #         "d3m.primitives.data_transformation.extract_columns_by_semantic_types.Common"
-        #     )
-        # )
-        # step.add_argument(
-        #     name="inputs",
-        #     argument_type=ArgumentType.CONTAINER,
-        #     data_reference="steps.3.produce",
-        # )
-        # step.add_hyperparameter(
-        #     name="semantic_types",
-        #     argument_type=ArgumentType.VALUE,
-        #     data=["https://metadata.datadrivendiscovery.org/types/Attribute"],
-        # )
-        # step.add_output("produce")
-        # pipeline_description.add_step(step)
-        
-        # # parse target semantic types
-        # step = PrimitiveStep(
-        #     primitive=index.get_primitive(
-        #         "d3m.primitives.data_transformation.extract_columns_by_semantic_types.Common"
-        #     )
-        # )
-        # step.add_argument(
-        #     name="inputs",
-        #     argument_type=ArgumentType.CONTAINER,
-        #     data_reference="steps.3.produce",
-        # )
-        # step.add_hyperparameter(
-        #     name="semantic_types",
-        #     argument_type=ArgumentType.VALUE,
-        #     data=[
-        #         "https://metadata.datadrivendiscovery.org/types/Target",
-        #     ],
-        # )
-        # step.add_output("produce")
-        # pipeline_description.add_step(step)
+        # Ensemble forest
+        step = PrimitiveStep(
+            primitive=index.get_primitive(
+                'd3m.primitives.learner.random_forest.DistilEnsembleForest'
+            )
+        )
+        step.add_argument(
+            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
+        )
+        step.add_argument(
+            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.6.produce'
+        )
+        step.add_output('produce')
+        pipeline_description.add_step(step)
 
-        # # R Forest
-        # step = PrimitiveStep(
-        #     primitive=index.get_primitive(
-        #         'd3m.primitives.learner.random_forest.DistilEnsembleForest'
-        #     )
-        # )
-        # step.add_argument(
-        #     name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.4.produce'
-        # )
-        # step.add_argument(
-        #     name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
-        # )
-        # step.add_output('produce')
-        # pipeline_description.add_step(step)
         
         # construct predictions
         step = PrimitiveStep(
@@ -174,19 +157,19 @@ class HdbscanPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.4.produce",
+            data_reference="steps.7.produce",
         )
         step.add_argument(
             name="reference",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.0.produce",
+            data_reference="steps.4.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Final Output
         pipeline_description.add_output(
-            name="output predictions", data_reference="steps.5.produce"
+            name="output predictions", data_reference="steps.8.produce"
         )
 
         self.pipeline = pipeline_description

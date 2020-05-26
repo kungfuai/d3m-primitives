@@ -25,6 +25,7 @@ __contact__ = "mailto:jeffrey.gleason@kungfu.ai"
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
 
+
 # LRU Cache helper class
 class LRUCache:
     def __init__(self, capacity):
@@ -52,12 +53,12 @@ class LRUCache:
 
 class Hyperparams(hyperparams.Hyperparams):
     geocoding_resolution = hyperparams.Enumeration(
-        default="city",
+        default="country",
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
         values=["city", "country", "state", "postcode"],
-        description="type of clustering algorithm to use",
+        description="granularity of geocoding resolution",
     )
     rampup_timeout = hyperparams.UniformInt(
         lower=1,
@@ -190,9 +191,13 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
         )
 
         # find location columns, real columns, and real-vector columns
-        targets = inputs.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/Location"
+        latitude = inputs.metadata.get_columns_with_semantic_type(
+            "http://schema.org/latitude", 
         )
+        longitude = inputs.metadata.get_columns_with_semantic_type(
+            "http://schema.org/longitude", 
+        )
+        targets = list(set(latitude + longitude))
         real_values = inputs.metadata.get_columns_with_semantic_type(
             "http://schema.org/Float"
         )
@@ -212,7 +217,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
                 target_column_idxs.append(target)
                 target_columns.append(target_col)
             # pair of individual lat / lon columns already in list
-            elif list(inputs)[target - 1] in target_columns:
+            elif target - 1 in target_column_idxs:
                 continue
             elif target in real_values:
                 if target + 1 in real_values:
@@ -226,14 +231,12 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
                     target_column_idxs.append(target + 1)
                     target_column_idxs.append(inputs.shape[1] - 1)
 
-        # make sure columns are structured as 1) lat , 2) lon pairs
-        for col in target_columns:
-            if inputs[col].apply(lambda x: x[0]).max() > 90:
-                inputs[col] = inputs[col].apply(lambda x: x[::-1])
-
-        # delete columns with path names of nested media files
         outputs = inputs.remove_columns(target_column_idxs)
-
+        # make sure columns are structured as 1) lat , 2) lon pairs
+        # for col in target_columns:
+        #     if inputs[col].apply(lambda x: x[0]).max() > 90:
+        #         inputs[col] = inputs[col].apply(lambda x: x[::-1])
+        
         # reverse-geocode each requested location
         output_data = []
         for i, ith_column in enumerate(target_columns):

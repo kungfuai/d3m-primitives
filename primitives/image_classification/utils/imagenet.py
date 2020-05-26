@@ -136,7 +136,6 @@ class ImagenetModel:
                 optimizer_top = 'rmsprop',
                 optimizer_full = 'sgd',
                 callbacks = None, 
-                num_workers = 8,
                 load_weights_path = None,
                 save_weights_path = None,
         ):
@@ -155,7 +154,6 @@ class ImagenetModel:
                     * suggest to use lower learning rate / more conservative optimizer for this step to 
                       prevent catastrophic forgetting 
                 :param callbacks: optional list of callbacks to use for each round of finetuning
-                :param num_workers: number of workers to use for multiprocess data loading
                 :param load_weights_path: optional filepath from which to try to load weights
                 :param save_weights_path: optional filepath to which to store weights
         '''
@@ -180,18 +178,16 @@ class ImagenetModel:
                 validation_data = val_dataset,
                 epochs = top_layer_epochs,
                 class_weight = class_weight, 
-                shuffle = True, 
-                use_multiprocessing = True, 
-                workers = num_workers, 
+                shuffle = False, 
                 callbacks = callbacks
             )
         )
 
         # iteratively unfreeze specified proportion of later ImageNet base layers and finetune
         finetune_model.compile(
-            # SGD(lr=0.0001, momentum=0.9)
             optimizer=optimizer_full, 
             loss='categorical_crossentropy')
+
         for p in unfreeze_proportions:
             freeze_count = int(len(self.model.layers) * p)
             for layer in finetune_model.layers[:freeze_count]:
@@ -205,9 +201,7 @@ class ImagenetModel:
                     validation_data = val_dataset,
                     epochs = all_layer_epochs,
                     class_weight = class_weight, 
-                    shuffle = True, 
-                    use_multiprocessing = True, 
-                    workers = num_workers, 
+                    shuffle = False, 
                     callbacks = callbacks
                 )
             )
@@ -221,14 +215,12 @@ class ImagenetModel:
     def finetune_classify(self, 
         test_dataset, 
         nclasses = 2,
-        num_workers = 8,
         load_weights_path = None,
     ):
 
         ''' Uses the finetuned model to predict on a test dataset. 
                 :param test_dataset: X, tf.constant tensor for inference
                 :param nclasses: number of classes 
-                :param num_workers: number of workers to use for multiprocess data loading
                 :return: array of softmaxed prediction probabilities
                 :param load_weights_path: optional filepath from which to try to load weights
         '''    
@@ -238,10 +230,7 @@ class ImagenetModel:
             weights_path = load_weights_path
         )
 
-        return finetune_model.predict_generator(test_dataset, 
-            use_multiprocessing = True, 
-            workers = num_workers
-        )
+        return finetune_model.predict(test_dataset)
 
 class ImageNetGen(Sequence):
     """ Tf.Keras Sequence for ImageNet input data """

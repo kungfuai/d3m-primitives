@@ -90,13 +90,13 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
             {
             "type": "FILE",
             "key": "amdim_weights",
-            "file_uri": "http://public.datadrivendiscovery.org/",
+            "file_uri": "http://public.datadrivendiscovery.org/amdim_weights.pth",
             "file_digest":"8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46"
             },
             {
             "type": "FILE",
             "key": "moco_weights",
-            "file_uri": "http://public.datadrivendiscovery.org/",
+            "file_uri": "http://public.datadrivendiscovery.org/moco_sentinel_v0.pth.tar",
             "file_digest":"fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f"
             },
         ],

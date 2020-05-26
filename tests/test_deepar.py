@@ -7,7 +7,7 @@ from d3m.primitives.schema_discovery import profiler
 from d3m.primitives.data_transformation import column_parser, extract_columns_by_semantic_types, grouping_field_compose
 
 from primitives.ts_forecasting.deep_ar.deepar import DeepArPrimitive
-from primitives.ts_forecasting.deep_ar.pipelines.deepar_pipeline import DeepARPipeline
+from primitives.ts_forecasting.deep_ar.deepar_pipeline import DeepARPipeline
 import utils as test_utils
 
 class PreProcessPipeline():
@@ -198,8 +198,8 @@ def _test_serialize(dataset):
 # def test_fit_produce_dataset_pop_spawn_group_compose():
 #     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True)
 
-def test_fit_produce_dataset_stock():        
-    _test_ts('LL1_736_stock_market_MIN_METADATA', 3)
+# def test_fit_produce_dataset_stock():        
+#     _test_ts('LL1_736_stock_market_MIN_METADATA', 3)
 
 def test_serialization_dataset_sunspots():
     _test_serialize('56_sunspots_MIN_METADATA')

@@ -9,14 +9,14 @@ def _test_serialize(dataset):
     pipeline.delete_pipeline()
     pipeline.delete_serialized_pipeline()
     
-def test_serialization_dataset_cifar():
-    _test_serialize('124_174_cifar10_MIN_METADATA')
+# def test_serialization_dataset_cifar():
+#     _test_serialize('124_174_cifar10_MIN_METADATA')
 
-def test_serialization_dataset_usps():
-    _test_serialize('124_188_usps_MIN_METADATA')
+# def test_serialization_dataset_usps():
+#     _test_serialize('124_188_usps_MIN_METADATA')
 
-def test_serialization_dataset_coil():
-    _test_serialize('124_214_coil20_MIN_METADATA')
+# def test_serialization_dataset_coil():
+#     _test_serialize('124_214_coil20_MIN_METADATA')
 
 def test_serialization_dataset_object_categories():
     _test_serialize('uu_101_object_categories_MIN_METADATA')

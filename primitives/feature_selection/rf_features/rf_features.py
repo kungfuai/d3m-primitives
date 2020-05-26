@@ -83,6 +83,7 @@ class RfFeaturesPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
         self.rff_features = None
         self.num_features = None
         self.bestFeatures = None
+        self.seed = random_seed
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         '''
@@ -126,7 +127,14 @@ class RfFeaturesPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
             inputs_cols = [x for x in range(inputs.shape[1]) if x not in inputs_primary_key and x not in inputs_target]
 
         # generate feature ranking
-        self.rff_features = pandas.DataFrame(RFFeatures().rank_features(inputs = inputs.iloc[:, inputs_cols], targets = pandas.DataFrame(inputs.iloc[:, inputs_target])), columns=['features'])
+        self.rff_features = pandas.DataFrame(
+            RFFeatures().rank_features(
+                inputs = inputs.iloc[:, inputs_cols], 
+                targets = inputs.iloc[:, inputs_target],
+                seed = self.seed
+            ), 
+            columns=['features']
+        )
 
 
     def produce_metafeatures(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:

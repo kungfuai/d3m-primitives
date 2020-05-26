@@ -6,11 +6,12 @@ import os
 import subprocess
 
 large_file_primitives = [
-    #"d3m.primitives.data_cleaning.column_type_profiler.Simon",
+    "d3m.primitives.data_cleaning.column_type_profiler.Simon",
     "d3m.primitives.data_cleaning.geocoding.Goat_forward",
-    #"d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
-    #"d3m.primitives.object_detection.retinanet.ObjectDetectionRN",
-    #"d3m.primitives.classification.inceptionV3_image_feature.Gator",
+    "d3m.primitives.data_cleaning.text_summarization.Duke",
+    "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
+    "d3m.primitives.object_detection.retinanet.ObjectDetectionRN",
+    "d3m.primitives.classification.inceptionV3_image_feature.Gator",
 ]
 
 for large_file_primitive in large_file_primitives:
