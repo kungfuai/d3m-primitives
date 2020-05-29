@@ -18,3 +18,4 @@ git+https://github.com/uncharted-distil/duke@c56416e959b52ff5077c5a54c329e2f6e83
 git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp
 pytest
 pytest-icdiff
+fire

@@ -33,7 +33,6 @@ Inputs = container.DataFrame
 Outputs = container.DataFrame
 
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
 
 class Params(params.Params):
     deepar_dataset: DeepARDataset
@@ -229,7 +228,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 metadata_base.PrimitiveAlgorithmType.RECURRENT_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_FORECASTING,
-            "can_use_gpus": True
         }
     )
 

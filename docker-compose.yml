@@ -4,9 +4,9 @@ services:
     kf-d3m-primitives:
         image: kf-d3m-primitives
         volumes:
-            - .:/kf-d3m-primitives
             - ./annotations/:/annotations
             - ./datasets/:/datasets
             - ./static_volumes/:/static_volumes
             - ./test_data:/test_data
             - ./scratch_dir:/scratch_dir
+            - ./pipeline_scores:/pipeline_scores

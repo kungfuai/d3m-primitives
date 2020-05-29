@@ -2,6 +2,7 @@ import os
 import typing
 import time
 from collections import OrderedDict
+import logging
 
 import keras
 import tensorflow as tf
@@ -25,6 +26,8 @@ __contact__ = "mailto:jeffrey.gleason@kungfu.ai"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
+
+logger = logging.getLogger(__name__)
 
 class Hyperparams(hyperparams.Hyperparams):
     backbone = hyperparams.Union(
@@ -143,17 +146,14 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         }
     )
 
-    def __init__(self, *, hyperparams: Hyperparams, volumes: typing.Dict[str,str] = None) -> None:
-        super().__init__(hyperparams = hyperparams, volumes = volumes)
+    def __init__(self, *, hyperparams: Hyperparams, volumes: typing.Dict[str,str] = None, random_seed: int = 0) -> None:
+        super().__init__(hyperparams = hyperparams, volumes = volumes, random_seed = random_seed)
         self.image_paths = None
         self.annotations = None
         self.base_dir = None
         self.classes = None
         self.backbone = None
         self.y_true = None
-        self.workers = 1
-        self.multiprocessing = 1
-        self.max_queue_size = 10
 
     def get_params(self) -> Params:
         return Params(
@@ -262,7 +262,11 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         anchor_params = None
         num_anchors   = None
 
-        model = self._model_with_weights(backbone_retinanet(num_classes, num_anchors = num_anchors, modifier = modifier), weights = weights, skip_mismatch = True)
+        model = self._model_with_weights(
+            backbone_retinanet(num_classes, num_anchors = num_anchors, modifier = modifier),
+            weights = weights, 
+            skip_mismatch = True
+        )
         training_model = model
         prediction_model = retinanet_bbox(model = model, anchor_params = anchor_params)
         training_model.compile(
@@ -305,7 +309,14 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         Create generator for evaluation.
         """
 
-        validation_generator = CSVGenerator(self.annotations, self.classes, self.base_dir, self.hyperparams['batch_size'], self.backbone.preprocess_image, shuffle_groups = False)
+        validation_generator = CSVGenerator(
+            self.annotations, 
+            self.classes, 
+            self.base_dir, 
+            self.hyperparams['batch_size'], 
+            self.backbone.preprocess_image, 
+            shuffle_groups = False
+        )
         return validation_generator
 
     def _fill_empty_predictions(self, empty_predictions_image_names, d3mIdx_image_mapping):
@@ -348,7 +359,14 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         self.backbone = models.backbone(self.hyperparams['backbone'])
 
         # Create the generators
-        train_generator = CSVGenerator(self.annotations, self.classes, self.base_dir, self.hyperparams['batch_size'], self.backbone.preprocess_image)
+        train_generator = CSVGenerator(
+            self.annotations, 
+            self.classes, 
+            self.base_dir, 
+            self.hyperparams['batch_size'], 
+            self.backbone.preprocess_image, 
+            shuffle_groups = False
+        )
 
         # Running the model
         ## Assign weights
@@ -367,8 +385,6 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             freeze_backbone = self.hyperparams['freeze_backbone'],
             lr = self.hyperparams['learning_rate']
         )
-
-        model.summary()
 
         ### !!! vgg AND densenet BACKBONES CURRENTLY NOT IMPLEMENTED !!!
         ## Let the generator compute the backbone layer shapes using the actual backbone model
@@ -393,9 +409,6 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             epochs = self.hyperparams['n_epochs'],
             verbose = 1,
             callbacks = callbacks,
-            workers = self.workers,
-            use_multiprocessing = self.multiprocessing,
-            max_queue_size = self.max_queue_size
         )
 
         training_model.save_weights(self.hyperparams['weights_path'] + 'model_weights.h5')
@@ -425,7 +438,14 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         backbone = models.backbone(self.hyperparams['backbone'])
 
         # Create the generators
-        train_generator = CSVGenerator(self.annotations, self.classes, self.base_dir, self.hyperparams['batch_size'], backbone.preprocess_image)
+        train_generator = CSVGenerator(
+            self.annotations, 
+            self.classes, 
+            self.base_dir, 
+            self.hyperparams['batch_size'], 
+            backbone.preprocess_image, 
+            shuffle_groups = False
+        )
 
         # Assign weights
         if self.hyperparams['weights'] is False:
