@@ -46,7 +46,6 @@ class Hyperparams(hyperparams.Hyperparams):
         values = ['prediction','feature'],
         description = 'Determines whether the output is a dataframe with just predictions,\
             or an additional feature added to the input dataframe.') 
-    pass
 
 class HdbscanPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     '''

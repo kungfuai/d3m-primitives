@@ -142,6 +142,15 @@ class GatorPipeline(PipelineBase):
             argument_type=ArgumentType.CONTAINER,
             data_reference="steps.5.produce",
         )
+        step.add_hyperparameter(
+            name='unfreeze_proportions', argument_type=ArgumentType.VALUE, data=[0.5]
+        )
+        step.add_hyperparameter(
+            name='top_layer_epochs', argument_type=ArgumentType.VALUE, data=top_layer_epochs
+        )
+        step.add_hyperparameter(
+            name='all_layer_epochs', argument_type=ArgumentType.VALUE, data=all_layer_epochs
+        )
         step.add_output("produce")
         pipeline_description.add_step(step)
         
@@ -160,15 +169,6 @@ class GatorPipeline(PipelineBase):
             name="reference",
             argument_type=ArgumentType.CONTAINER,
             data_reference="steps.2.produce",
-        )
-        step.add_hyperparameter(
-            name='unfreeze_proportions', argument_type=ArgumentType.VALUE, data=[0.5]
-        )
-        step.add_hyperparameter(
-            name='top_layer_epochs', argument_type=ArgumentType.VALUE, data=top_layer_epochs
-        )
-        step.add_hyperparameter(
-            name='all_layer_epochs', argument_type=ArgumentType.VALUE, data=all_layer_epochs
         )
         step.add_output("produce")
         pipeline_description.add_step(step)

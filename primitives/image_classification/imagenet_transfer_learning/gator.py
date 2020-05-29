@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 class Params(params.Params):
     label_encoder: LabelEncoder
     output_columns: pd.Index
-    weights_path: str
 
 class Hyperparams(hyperparams.Hyperparams):
     weights_filepath = hyperparams.Hyperparameter[str](
@@ -61,7 +60,7 @@ class Hyperparams(hyperparams.Hyperparams):
         lower = 1, 
         upper = 256,
         upper_inclusive=True, 
-        default = 32, 
+        default = 128, 
         semantic_types=['https://metadata.datadrivendiscovery.org/types/TuningParameter'], 
         description = 'batch size'
     )
@@ -158,7 +157,7 @@ class GatorPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyp
         super().__init__(hyperparams=hyperparams, random_seed=random_seed, volumes=volumes)
 
         # set seed for reproducibility
-        tf.random.set_seed(random_seed)
+        #tf.random.set_seed(random_seed)
 
         self.class_weights = None
         self.targets = None

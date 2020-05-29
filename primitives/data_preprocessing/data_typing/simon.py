@@ -271,6 +271,7 @@ class SimonPrimitive(UnsupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         self._X_train: Inputs = None
         self._add_semantic_types: typing.List[typing.List[str]] = None
         self._remove_semantic_types: typing.List[typing.List[str]] = None
+        self.random_seed = random_seed
 
     def set_training_data(self, *, inputs: Inputs) -> None:
         """ Sets primitive's training data
@@ -573,7 +574,11 @@ class SimonPrimitive(UnsupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         config = Classifier.load_config(execution_config, checkpoint_dir)
         encoder = config["encoder"]
         checkpoint = config["checkpoint"]
-        model = Classifier.generate_model(20, self.hyperparams["max_rows"], len(Categories))
+        model = Classifier.generate_model(
+            20, 
+            self.hyperparams["max_rows"], 
+            len(Categories)
+        )
         Classifier.load_weights(checkpoint, None, model, checkpoint_dir)
         model.compile(
             loss="binary_crossentropy", optimizer="adam", metrics=["binary_accuracy"]

@@ -1,5 +1,6 @@
 import os.path
 import typing
+import logging
 
 import numpy as np
 import pandas
@@ -20,11 +21,17 @@ __contact__ = 'mailto:jeffrey.gleason@kungfu.ai'
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
 
+logger = logging.getLogger(__name__)
+
 class Hyperparams(hyperparams.Hyperparams):
-    records = hyperparams.Uniform(lower = 0, upper = 1, default = 1, upper_inclusive = True,
-    semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
-    description = 'percentage of records to sub-sample from the data frame')
-    pass
+    records_fraction = hyperparams.Uniform(
+        lower = 0, 
+        upper = 1, 
+        default = 1, 
+        upper_inclusive = True,
+        semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
+        description = 'percentage of records to sub-sample from the data frame'
+    )
 
 class DukePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     """
@@ -81,6 +88,7 @@ class DukePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
         super().__init__(hyperparams=hyperparams, random_seed=random_seed, volumes=volumes)
 
         self.volumes = volumes
+        self.random_seed = random_seed
 
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
         """
@@ -100,32 +108,17 @@ class DukePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
         """
 
         # sub-sample percentage of records from data frame
-        records = self.hyperparams['records']
-        frame = inputs.sample(frac = records)
+        frame = inputs.sample(frac = self.hyperparams['records_fraction'], random_state = self.random_seed)
 
-        # cast frame data type back to original, if numeric, to ensure
-        # that duke can drop them, and not skew results (since d3m
-        #  preprocessing prims turn everything into str/object)
         tmp = frame
         for i in range(frame.shape[1]):
-            if (frame.metadata.query_column(i)['semantic_types'][0]=='http://schema.org/Integer'):
-                tmp.ix[:,frame.columns[i]].replace('',0,inplace=True)
-                tmp[frame.columns[i]] = pandas.to_numeric(tmp[frame.columns[i]],errors='coerce')
-                # converting a string value like '32.0' to an int directly results in an error, so we first
-                # convert everything to a float
-                tmp = tmp.astype({frame.columns[i]:float})
-                tmp = tmp.astype({frame.columns[i]:int})
-            elif (frame.metadata.query_column(i)['semantic_types'][0]=='http://schema.org/Float'):
-                tmp.ix[:,frame.columns[i]].replace('',0,inplace=True)
-                tmp[frame.columns[i]] = pandas.to_numeric(tmp[frame.columns[i]],errors='coerce')
-                tmp = tmp.astype({frame.columns[i]:float})
             # not yet sure if dropping CategoticalData is ideal, but it appears to work...
             # some categorical data may contain useful information, but the d3m transformation is not reversible
             # and not aware of a way to distinguish numerical from non-numerical CategoricalData
-            elif (frame.metadata.query_column(i)['semantic_types'][0]=='https://metadata.datadrivendiscovery.org/types/CategoricalData'):
+            if (frame.metadata.query_column(i)['semantic_types'][0]=='https://metadata.datadrivendiscovery.org/types/CategoricalData'):
                 tmp = tmp.drop(columns=[frame.columns[i]])
 
-        # print('beginning summarization... \n')
+        logger.info('beginning summarization... \n')
 
         # get the path to the ontology class tree
         resource_package = "Duke"
@@ -149,11 +142,11 @@ class DukePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
             verbose=verbose,
             )
 
-        print('initialized duke dataset descriptor \n')
+        logger.info('initialized duke dataset descriptor \n')
 
         N = 5
         out_tuple = duke.get_top_n_words(N)
-        print('finished summarization \n')
+        logger.info('finished summarization \n')
         out_df_duke = pandas.DataFrame.from_records(list(out_tuple)).T
         out_df_duke.columns = ['subject tags','confidences']
 

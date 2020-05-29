@@ -61,33 +61,33 @@ class SpectralClusteringPipeline(PipelineBase):
         pipeline_description.add_step(step)
 
         # imputer
-        # step = PrimitiveStep(
-        #     primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
-        # )
-        # step.add_argument(
-        #     name="inputs",
-        #     argument_type=ArgumentType.CONTAINER,
-        #     data_reference="steps.2.produce",
-        # )
-        # step.add_output("produce")
-        # step.add_hyperparameter(
-        #     name="return_result", argument_type=ArgumentType.VALUE, data="replace"
-        # )
-        # step.add_hyperparameter(
-        #     name="use_semantic_types", argument_type=ArgumentType.VALUE, data=True
-        # )
-        # pipeline_description.add_step(step)
-
-        # Spectral clustering
         step = PrimitiveStep(
-            primitive=index.get_primitive(
-                'd3m.primitives.clustering.spectral_graph_clustering.SpectralClustering'
-            )
+            primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
         )
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
             data_reference="steps.2.produce",
+        )
+        step.add_output("produce")
+        step.add_hyperparameter(
+            name="return_result", argument_type=ArgumentType.VALUE, data="replace"
+        )
+        step.add_hyperparameter(
+            name="use_semantic_types", argument_type=ArgumentType.VALUE, data=True
+        )
+        pipeline_description.add_step(step)
+
+        # Spectral clustering
+        step = PrimitiveStep(
+            primitive=index.get_primitive(
+                'd3m.primitives.clustering.spectral_graph.SpectralClustering'
+            )
+        )
+        step.add_argument(
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
         step.add_hyperparameter(
             name='n_clusters', argument_type=ArgumentType.VALUE,data=3
@@ -110,7 +110,7 @@ class SpectralClusteringPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.3.produce",
+            data_reference="steps.4.produce",
         )
         step.add_hyperparameter(
             name="semantic_types",
@@ -129,7 +129,7 @@ class SpectralClusteringPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.3.produce",
+            data_reference="steps.4.produce",
         )
         step.add_hyperparameter(
             name="semantic_types",
@@ -148,10 +148,10 @@ class SpectralClusteringPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.4.produce'
+            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
+            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.6.produce'
         )
         step.add_output('produce')
         pipeline_description.add_step(step)
@@ -165,7 +165,7 @@ class SpectralClusteringPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.6.produce",
+            data_reference="steps.7.produce",
         )
         step.add_argument(
             name="reference",
@@ -177,7 +177,7 @@ class SpectralClusteringPipeline(PipelineBase):
 
         # Final Output
         pipeline_description.add_output(
-            name="output predictions", data_reference="steps.7.produce"
+            name="output predictions", data_reference="steps.8.produce"
         )
 
         self.pipeline = pipeline_description
