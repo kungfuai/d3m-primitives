@@ -53,10 +53,16 @@ To generate `json` annotations for all primitives with the required directory st
 make annotations
 ```
 
-To generate `yml.gz` pipeline run documents for all pipelines with the required directory structure for D3M submission run:
+To generate `yml.gz` pipeline run documents for all CPU-dependent pipelines with the required directory structure for D3M submission run:
 
 ```bash
-make pipelines
+make pipelines-cpu
+```
+
+To generate `yml.gz` pipeline run documents for all GPU-dependent pipelines with the required directory structure for D3M submission run:
+
+```bash
+make pipelines-gpu
 ```
 
 ## Primitives

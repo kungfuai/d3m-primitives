@@ -9,6 +9,7 @@ class LstmFcnPipeline(PipelineBase):
     def __init__(
         self,
         epochs: int = 5000,
+        attention_lstm: bool = True,
     ):
 
         pipeline_description = Pipeline()
@@ -115,6 +116,9 @@ class LstmFcnPipeline(PipelineBase):
         )
         step.add_hyperparameter(
             name='epochs', argument_type=ArgumentType.VALUE, data=epochs
+        )  
+        step.add_hyperparameter(
+            name='attention_lstm', argument_type=ArgumentType.VALUE, data=attention_lstm
         )  
         step.add_output("produce")
         pipeline_description.add_step(step)

@@ -52,13 +52,13 @@ class ObjectDetectionRNPipeline(PipelineBase):
             name = 'outputs', argument_type = ArgumentType.CONTAINER, data_reference = 'steps.1.produce'
         )
         step.add_hyperparameter(
-            name='epochs', argument_type=ArgumentType.VALUE, data=epochs
+            name='n_epochs', argument_type=ArgumentType.VALUE, data=epochs
         )
         step.add_hyperparameter(
             name='n_steps', argument_type=ArgumentType.VALUE, data=n_steps
         )
         step.add_output('produce')
-        pipeline_description.add_step(step_2) 
+        pipeline_description.add_step(step) 
 
         # Final Output
         pipeline_description.add_output(
