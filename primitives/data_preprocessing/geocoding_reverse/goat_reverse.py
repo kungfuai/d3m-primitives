@@ -129,7 +129,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
                 },
                 {
                     "type": "UBUNTU",
-                    "package": "default-jre",
+                    "package": "default-jre-headless",
                     "version": "2:1.8-56ubuntu2",
                 },
                 {

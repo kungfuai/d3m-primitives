@@ -34,6 +34,7 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.classification.inceptionV3_image_feature.Gator",
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
         "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
+        "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
     ]
 
     prims_to_pipelines = {

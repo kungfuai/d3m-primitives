@@ -24,8 +24,9 @@ pipelines-cpu:
 pipelines-gpu:
 	@echo "Generating pipeline run documents for all primitives"
 	docker run --rm --runtime nvidia \
-		--mount type=bind,source=./annotations, target=/annotations \
-		--mount type=bind,source=./datasets, target=/datasets \
-		--mount type=bind,source=./static_volumes, target=/static_volumes \
-		--mount type=bind,source=./scratch_dir, target=/scratch_dir \
+		--mount type=bind,source=/home/ubuntu/d3m-primitives/annotations,target=/annotations \
+		--mount type=bind,source=/home/ubuntu/d3m-primitives/datasets,target=/datasets \
+		--mount type=bind,source=/home/ubuntu/d3m-primitives/static_volumes,target=/static_volumes \
+		--mount type=bind,source=/home/ubuntu/d3m-primitives/scratch_dir,target=/scratch_dir \
+		--mount type=bind,source=/home/ubuntu/d3m-primitives/pipeline_scores,target=/pipeline_scores \
 		kf-d3m-primitives python3 kf-d3m-primitives/generate_pipelines.py --gpu=True
