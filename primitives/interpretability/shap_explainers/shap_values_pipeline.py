@@ -141,7 +141,7 @@ class ShapPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.4.produce",
+            data_reference="steps.6.produce",
         )
         step.add_argument(
             name="outputs",
@@ -156,3 +156,4 @@ class ShapPipeline(PipelineBase):
             name="output", data_reference="steps.7.produce_shap_values"
         )
 
+        self.pipeline = pipeline_description

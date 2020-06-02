@@ -42,16 +42,26 @@ class Params(params.Params):
     target_indices: typing.List[int]
     target_types: typing.List[str]
     X_train: typing.Union[typing.List[d3m_DataFrame], typing.List[pd.DataFrame]]
+    X_train_names: typing.Any
 
     filter_idxs: typing.List[str]
     interpolation_ranges: typing.Union[pd.Series, None, pd.DataFrame]
     freq: str
     is_fit: bool
 
-    fits: typing.Union[typing.List[VARResultsWrapper], typing.List[Arima], typing.List[typing.Union[VARResultsWrapper, Arima]]]
+    fits: typing.Union[
+        typing.List[VARResultsWrapper], 
+        typing.List[Arima], 
+        typing.List[typing.Union[VARResultsWrapper, Arima]]
+    ]
     values: typing.List[np.ndarray]
     values_diff: typing.List[np.ndarray]
-    lag_order: typing.Union[typing.List[np.int64], typing.List[None], typing.List[typing.Union[np.int64, None]], typing.List[typing.Union[np.int64, int, None]]]
+    lag_order: typing.Union[
+        typing.List[np.int64], 
+        typing.List[None], 
+        typing.List[typing.Union[np.int64, None]], 
+        typing.List[typing.Union[np.int64, int, None]]
+    ]
     positive: typing.List[bool]
 
 
@@ -246,7 +256,8 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                 filter_idxs=None,
                 interpolation_ranges=None,
                 freq=None,
-                is_fit=None
+                is_fit=None,
+                X_train_names=None
             )
         
         return Params(
@@ -265,7 +276,8 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             filter_idxs=self.filter_idxs,
             interpolation_ranges=self.interpolation_ranges,
             freq=self.freq,
-            is_fit=self._is_fit
+            is_fit=self._is_fit,
+            X_train_names=self._X_train_names
         )
 
     def set_params(self, *, params: Params) -> None:
@@ -285,15 +297,7 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         self.interpolation_ranges = params['interpolation_ranges']
         self.freq = params['freq']
         self._is_fit = params['is_fit']
-
-    def __getstate__(self) -> dict:
-        state = SupervisedLearnerPrimitiveBase.__getstate__(self)
-        state["X_train_names"] = self._X_train_names
-        return state
-
-    def __setstate__(self, state: dict) -> None:
-        SupervisedLearnerPrimitiveBase.__setstate__(self, state)
-        self._X_train_names = state["X_train_names"]
+        self._X_train_names = params['X_train_names']
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -488,13 +492,13 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         ## DEBUGGING for produce_confidence_intervals() serialization
         # for train_list in self._X_train_names:
         #     if train_list is None:
-        #         logger.info(f'list is NoneType')
+        #         logger.debug(f'list is NoneType')
         #     elif type(train_list) != list: 
-        #         logger.info(f'train list entry not list: {type(train_list)}')
+        #         logger.debug(f'train list entry not list: {type(train_list)}')
         #     elif type(train_list[0]) != tuple: 
-        #         logger.info(f'train list entry not tuple: {type(train_list[0])}')
+        #         logger.debug(f'train list entry not tuple: {type(train_list[0])}')
         #     elif type(train_list[0][0]) != str: 
-        #         logger.info(f'train list entry not str: {type(train_list[0][0])}')
+        #         logger.debug(f'train list entry not str: {type(train_list[0][0])}')
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ If there are multiple endogenous series, primitive will fit VAR model. Otherwise it will fit an ARIMA 
@@ -960,7 +964,23 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         series_names = [
             [name for sub_name_list in name_list for name in sub_name_list] 
             for name_list in series_names
-        ]        
+        ]
+        print(confidence_intervals)    
+        print(series_names)
+
+        for interval, names in zip(confidence_intervals, series_names):
+            df = pd.DataFrame(
+                    np.concatenate(
+                    [
+                        point_estimate.flatten(order = 'F').reshape(-1, 1)    
+                        for point_estimate in interval
+                    ], 
+                    axis = 1
+                ), 
+                index = names, 
+                columns = ['mean', str(alpha / 2), str(1 - alpha / 2)]
+            ) 
+            print(df.head())    
         confidence_intervals = [
             pd.DataFrame(
                     np.concatenate(
@@ -976,6 +996,7 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             for interval, names in zip(confidence_intervals, series_names)
         ]
 
+        print(confidence_intervals)
         # apply invariances (real, positive data AND rounding NA / INF values)
         confidence_intervals = [
             ci.clip(lower = 0)#.replace(np.inf, np.nan)
@@ -984,11 +1005,12 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             for ci, positive in zip(confidence_intervals, self._positive) if not positive 
         ]
         #confidence_intervals = [ci.fillna(ci.mean()) for ci in confidence_intervals]
-
+        print(confidence_intervals)
         interval_df = pd.concat(confidence_intervals)
 
         # add index column
         interval_df['horizon_index'] = np.tile(np.arange(horizon), len(interval_df.index.unique()))
+        print(interval_df.head())
         return CallResult(
             container.DataFrame(interval_df, generate_metadata=True),
             has_finished=self._is_fit,

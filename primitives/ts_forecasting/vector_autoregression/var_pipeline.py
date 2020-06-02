@@ -157,14 +157,16 @@ class VarPipeline(PipelineBase):
         )
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
+            data_ref = "steps.6.produce_confidence_intervals" if group_compose else "steps.5.produce_confidence_intervals"
         elif produce_weights:
             step.add_output("produce_weights")
+            data_ref = "steps.6.produce_weights" if group_compose else "steps.5.produce_weights"
         else:
             step.add_output("produce")
+            data_ref = "steps.6.produce" if group_compose else "steps.5.produce"
         pipeline_description.add_step(step)
         
         # Final Output
-        data_ref = "steps.6.produce" if group_compose else "steps.5.produce"
         pipeline_description.add_output(
             name="output predictions", data_reference=data_ref
         )

@@ -11,7 +11,7 @@ run:
 
 test:
 	@echo "Running tests for Kung Fu D3M Primitives Image"
-	docker-compose run --rm --entrypoint python3 kf-d3m-primitives -m pytest -s kf-d3m-primitives/test
+	docker-compose run --rm --entrypoint python3 kf-d3m-primitives -m pytest -s kf-d3m-primitives/tests
 
 annotations:
 	@echo "Generating json annotations for all primitives"
