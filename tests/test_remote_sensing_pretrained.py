@@ -8,9 +8,9 @@ from rsp.amdim.inference import AMDIM
 
 from primitives.remote_sensing.featurizer.remote_sensing_pretrained import RemoteSensingPretrainedPrimitive
 
-dataset_path = '/d3m-primitives/test_data/BigEarthNet-trimmed'
-amdim_path = '/d3m-primitives/static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
-moco_path = '/d3m-primitives/static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
+dataset_path = 'test_data/BigEarthNet-trimmed'
+amdim_path = 'static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
+moco_path = 'static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
 
 def load_frame():
     img_paths = [

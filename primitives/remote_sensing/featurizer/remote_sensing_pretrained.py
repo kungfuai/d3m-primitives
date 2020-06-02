@@ -113,7 +113,7 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         super().__init__(hyperparams=hyperparams, random_seed=random_seed, volumes=volumes)
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = self._load_inference_model(volumes)
+        self.model = self._load_inference_model(volumes).to(self.device)
 
     def _load_inference_model(
         self, 
@@ -153,7 +153,7 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         all_img_features = []
         for image_batch in image_loader:
             image_batch = image_batch[0].to(self.device)
-            features = self.model(image_batch).data.numpy()
+            features = self.model(image_batch).cpu().data.numpy()
             all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
 
