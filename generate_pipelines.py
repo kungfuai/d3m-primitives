@@ -34,7 +34,6 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.classification.inceptionV3_image_feature.Gator",
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
         "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
-        "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec"
     ]
 
     prims_to_pipelines = {
@@ -50,57 +49,57 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec": [
             (Sent2VecPipeline(), ('LL1_TXT_CLS_apple_products_sentiment_MIN_METADATA',))
         ],
-        # "d3m.primitives.clustering.k_means.Sloth": [
-        #     (StorcPipeline(), ('66_chlorineConcentration_MIN_METADATA',))
-        # ],
-        # "d3m.primitives.clustering.hdbscan.Hdbscan": [
-        #     (HdbscanPipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
-        # ],
-        # "d3m.primitives.clustering.spectral_graph.SpectralClustering": [
-        #     (SpectralClusteringPipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
-        # ],
-        # "d3m.primitives.dimensionality_reduction.t_distributed_stochastic_neighbor_embedding.Tsne": [
-        #     (TsnePipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
-        # ],
-        # "d3m.primitives.time_series_classification.k_neighbors.Kanine": [
-        #     (KaninePipeline(), ('66_chlorineConcentration_MIN_METADATA',))
-        # ],
-        # "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN": [
-        #     (LstmFcnPipeline(), (
-        #         '66_chlorineConcentration_MIN_METADATA',
-        #         "LL1_Adiac_MIN_METADATA",
-        #         "LL1_ArrowHead_MIN_METADATA",
-        #         "LL1_CinC_ECG_torso_MIN_METADATA",
-        #         "LL1_Cricket_Y_MIN_METADATA",
-        #         "LL1_ECG200_MIN_METADATA",
-        #         "LL1_ElectricDevices_MIN_METADATA",
-        #         "LL1_FISH_MIN_METADATA",
-        #         "LL1_FaceFour_MIN_METADATA",
-        #         "LL1_FordA_MIN_METADATA",
-        #         "LL1_HandOutlines_MIN_METADATA",
-        #         "LL1_Haptics_MIN_METADATA",
-        #         "LL1_ItalyPowerDemand_MIN_METADATA",
-        #         "LL1_Meat_MIN_METADATA",
-        #         "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
-        #     )),
-        #     (LstmFcnPipeline(attention_lstm=True), (
-        #         '66_chlorineConcentration_MIN_METADATA',
-        #         "LL1_Adiac_MIN_METADATA",
-        #         "LL1_ArrowHead_MIN_METADATA",
-        #         "LL1_CinC_ECG_torso_MIN_METADATA",
-        #         "LL1_Cricket_Y_MIN_METADATA",
-        #         "LL1_ECG200_MIN_METADATA",
-        #         "LL1_ElectricDevices_MIN_METADATA",
-        #         "LL1_FISH_MIN_METADATA",
-        #         "LL1_FaceFour_MIN_METADATA",
-        #         "LL1_FordA_MIN_METADATA",
-        #         "LL1_HandOutlines_MIN_METADATA",
-        #         "LL1_Haptics_MIN_METADATA",
-        #         "LL1_ItalyPowerDemand_MIN_METADATA",
-        #         "LL1_Meat_MIN_METADATA",
-        #         "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
-        #     ))
-        # ],
+        "d3m.primitives.clustering.k_means.Sloth": [
+            (StorcPipeline(), ('66_chlorineConcentration_MIN_METADATA',))
+        ],
+        "d3m.primitives.clustering.hdbscan.Hdbscan": [
+            (HdbscanPipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
+        ],
+        "d3m.primitives.clustering.spectral_graph.SpectralClustering": [
+            (SpectralClusteringPipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
+        ],
+        "d3m.primitives.dimensionality_reduction.t_distributed_stochastic_neighbor_embedding.Tsne": [
+            (TsnePipeline(), ('SEMI_1044_eye_movements_MIN_METADATA',))
+        ],
+        "d3m.primitives.time_series_classification.k_neighbors.Kanine": [
+            (KaninePipeline(), ('66_chlorineConcentration_MIN_METADATA',))
+        ],
+        "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN": [
+            (LstmFcnPipeline(), (
+                '66_chlorineConcentration_MIN_METADATA',
+                "LL1_Adiac_MIN_METADATA",
+                "LL1_ArrowHead_MIN_METADATA",
+                "LL1_CinC_ECG_torso_MIN_METADATA",
+                "LL1_Cricket_Y_MIN_METADATA",
+                "LL1_ECG200_MIN_METADATA",
+                "LL1_ElectricDevices_MIN_METADATA",
+                "LL1_FISH_MIN_METADATA",
+                "LL1_FaceFour_MIN_METADATA",
+                "LL1_FordA_MIN_METADATA",
+                "LL1_HandOutlines_MIN_METADATA",
+                "LL1_Haptics_MIN_METADATA",
+                "LL1_ItalyPowerDemand_MIN_METADATA",
+                "LL1_Meat_MIN_METADATA",
+                "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
+            )),
+            (LstmFcnPipeline(attention_lstm=True), (
+                '66_chlorineConcentration_MIN_METADATA',
+                "LL1_Adiac_MIN_METADATA",
+                "LL1_ArrowHead_MIN_METADATA",
+                "LL1_CinC_ECG_torso_MIN_METADATA",
+                "LL1_Cricket_Y_MIN_METADATA",
+                "LL1_ECG200_MIN_METADATA",
+                "LL1_ElectricDevices_MIN_METADATA",
+                "LL1_FISH_MIN_METADATA",
+                "LL1_FaceFour_MIN_METADATA",
+                "LL1_FordA_MIN_METADATA",
+                "LL1_HandOutlines_MIN_METADATA",
+                "LL1_Haptics_MIN_METADATA",
+                "LL1_ItalyPowerDemand_MIN_METADATA",
+                "LL1_Meat_MIN_METADATA",
+                "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
+            ))
+        ],
         "d3m.primitives.time_series_forecasting.vector_autoregression.VAR": [
             (VarPipeline(), (
                 '56_sunspots_MIN_METADATA',
@@ -119,8 +118,8 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.time_series_forecasting.lstm.DeepAR": [
             (DeepARPipeline(prediction_length = 21, context_length = 21), ('56_sunspots_MIN_METADATA',)), 
             (DeepARPipeline(prediction_length = 38, context_length = 38), ('56_sunspots_monthly_MIN_METADATA',)),
-            (DeepARPipeline(prediction_length = 60, context_length = 60), ('LL1_736_population_spawn_MIN_METADATA',)),
-            (DeepARPipeline(prediction_length = 34, context_length = 34), ('LL1_736_stock_market_MIN_METADATA',)),
+            (DeepARPipeline(prediction_length = 60, context_length = 30), ('LL1_736_population_spawn_MIN_METADATA',)),
+            (DeepARPipeline(prediction_length = 34, context_length = 17), ('LL1_736_stock_market_MIN_METADATA',)),
         ],
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN": [
             (ObjectDetectionRNPipeline(), (
@@ -175,12 +174,19 @@ def generate_pipelines(gpu = False):
             pipeline.write_pipeline(output_dir = './pipelines')
             for dataset in datasets:
                 print(f'Generating pipeline for {primitive.split(".")[-1]} on {dataset}')
-                pipeline.fit_score(
-                    dataset,
-                    output_yml_dir = './pipeline_runs',
-                    output_score_dir = f'/pipeline_scores/{primitive.split(".")[-1]}',
-                    submission = True
-                )
+                if primitive.split(".")[-1] == 'Duke':
+                    pipeline.fit_produce(
+                        dataset,
+                        output_yml_dir = './pipeline_runs',
+                        submission = True
+                    )
+                else:
+                    pipeline.fit_score(
+                        dataset,
+                        output_yml_dir = './pipeline_runs',
+                        output_score_dir = f'/pipeline_scores/{primitive.split(".")[-1]}',
+                        submission = True
+                    )
         os.system('gzip -r pipeline_runs')
 
 if __name__ == '__main__':

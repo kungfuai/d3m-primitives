@@ -152,3 +152,4 @@ common-primitives/
 scratch_dir/
 punk/
 pipeline_scores/
+distil-primitives/

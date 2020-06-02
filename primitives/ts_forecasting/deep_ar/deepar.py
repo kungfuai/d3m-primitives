@@ -654,7 +654,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             for i, quantile in enumerate(series):
                 all_quantiles[i].append(quantile[idxs])
         all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
-        print(f"Quantiles: {self.hyperparams['quantiles']}")
         col_names = [0.5] + self.hyperparams['quantiles']
         result_df = container.DataFrame(
             {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},

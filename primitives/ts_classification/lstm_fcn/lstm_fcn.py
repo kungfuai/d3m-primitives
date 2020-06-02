@@ -122,23 +122,6 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="number of epochs to wait before invoking early stopping criterion",
     )
-    use_multiprocessing = hyperparams.UniformBool(
-        default=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="whether to use multiprocessing in training",
-    )
-    num_workers = hyperparams.UniformInt(
-        lower=1,
-        upper=16,
-        default=8,
-        upper_inclusive=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="number of workers to do if using multiprocessing threading",
-    )
 
 
 class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
@@ -372,9 +355,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 epochs=iterations,
                 validation_data=val_dataset,
                 class_weight=self._class_weights,
-                shuffle=True,
-                use_multiprocessing=self.hyperparams["use_multiprocessing"],
-                workers=self.hyperparams["num_workers"],
+                shuffle=False,
             )
             epoch_time_estimate = time.time() - start_time
             timeout_epochs = (
@@ -394,9 +375,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             epochs=iters,
             validation_data=val_dataset,
             class_weight=self._class_weights,
-            shuffle=True,
-            use_multiprocessing=self.hyperparams["use_multiprocessing"],
-            workers=self.hyperparams["num_workers"],
+            shuffle=False,
             callbacks=callbacks,
             initial_epoch=start_epoch,
         )
@@ -466,11 +445,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         test_dataset = LSTMSequenceTest(x_vals, self.hyperparams['batch_size'])
 
         # make predictions
-        preds = clf.predict_generator(
-            test_dataset,
-            use_multiprocessing=self.hyperparams["use_multiprocessing"],
-            workers=self.hyperparams["num_workers"],
-        )
+        preds = clf.predict(test_dataset)
         preds = self._label_encoder.inverse_transform(np.argmax(preds, axis=1))
 
         # create output frame

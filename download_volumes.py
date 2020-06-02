@@ -10,7 +10,7 @@ large_file_primitives = [
     "d3m.primitives.data_cleaning.geocoding.Goat_forward",
     "d3m.primitives.data_cleaning.text_summarization.Duke",
     "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
-    "d3m.primitives.object_detection.retinanet.ObjectDetectionRN",
+    "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
     "d3m.primitives.classification.inceptionV3_image_feature.Gator",
 ]
 

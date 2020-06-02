@@ -18,6 +18,7 @@ class DeepARPipeline(PipelineBase):
         quantiles: List[float] = [0.1, 0.9],
         group_compose: bool = False,
         confidence_intervals: bool = False,
+        count_data: bool = None
     ):
 
         pipeline_description = Pipeline()
@@ -107,24 +108,6 @@ class DeepARPipeline(PipelineBase):
         step.add_output("produce")
         pipeline_description.add_step(step)
 
-        # # Step 4: imputer
-        # step = PrimitiveStep(
-        #     primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
-        # )
-        # step.add_argument(
-        #     name="inputs",
-        #     argument_type=ArgumentType.CONTAINER,
-        #     data_reference="steps.3.produce",
-        # )
-        # step.add_output("produce")
-        # step.add_hyperparameter(
-        #     name="return_result", argument_type=ArgumentType.VALUE, data="replace"
-        # )
-        # step.add_hyperparameter(
-        #     name="use_semantic_types", argument_type=ArgumentType.VALUE, data=True
-        # )
-        # pipeline_description.add_step(step)
-
         # parse target semantic types
         step = PrimitiveStep(
             primitive=index.get_primitive(
@@ -197,7 +180,11 @@ class DeepARPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=quantiles,
         )
-        
+        step.add_hyperparameter(
+            name="count_data",
+            argument_type=ArgumentType.VALUE,
+            data=count_data,
+        )
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
             pipeline_description.add_step(step)
