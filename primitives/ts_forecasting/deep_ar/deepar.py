@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class Params(params.Params):
     deepar_dataset: DeepARDataset
     is_fit: bool
-    input_frame: pd.DataFrame
+    input_times: pd.Series
     timestamp_column: int
     freq: str
     reind_freq: str
@@ -241,7 +241,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
     def get_params(self) -> Params:
         return Params(
             deepar_dataset = self._deepar_dataset,
-            input_frame = self._input_frame,
+            input_times = self._input_times,
             timestamp_column = self._timestamp_column,
             real_cols = self._real_columns,
             group_cols = self._grouping_columns,
@@ -255,7 +255,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
     def set_params(self, *, params: Params) -> None:
         self._deepar_dataset = params['deepar_dataset']
-        self._input_frame = params['input_frame']
+        self._input_times = params['input_times']
         self._timestamp_column = params['timestamp_column']
         self._real_columns = params['real_cols']
         self._grouping_columns = params['group_cols']
@@ -296,7 +296,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         else:
             frame[time_name] = pd.to_datetime(frame[time_name], unit = 's')
 
-        return frame.sort_values(by = time_name)
+        return frame.sort_values(by = time_name), frame[time_name]
 
     def _set_freq(self, frame, norm_value = 10e8):
         """ sets frequency using differences in timestamp column in data frame
@@ -445,11 +445,10 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         """
 
         self._output_column = outputs.columns[0]
-        self._input_frame = inputs.copy()
 
         frame = inputs.append_columns(outputs)
         self._get_cols(frame)
-        frame = self._sort_by_timestamp(frame)
+        frame, self._input_times = self._sort_by_timestamp(frame)
         self._set_freq(frame)
         frame, self._max_trains, max_train_length, _ = self._reindex(frame)
         self._check_window_support(max_train_length)
@@ -567,12 +566,12 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self.hyperparams['quantiles']
         )
     
-        test_frame = self._sort_by_timestamp(test_frame)
+        test_frame, test_times = self._sort_by_timestamp(test_frame)
         test_frame, _, _, original_times = self._reindex(test_frame)
         pred_intervals = self._get_pred_intervals(original_times)
 
         st = time.time()
-        if inputs.equals(self._input_frame):
+        if test_times.equals(self._input_times):
             logger.info('Making in-sample predictions for all training observations. ' +
                 'This can take a while for training sets with a large number of series.')
             preds = deepar_forecast.predict_in_sample()
@@ -654,7 +653,9 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             for i, quantile in enumerate(series):
                 all_quantiles[i].append(quantile[idxs])
         all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
-        col_names = [0.5] + self.hyperparams['quantiles']
+
+        col_names = (0.5,) + self.hyperparams['quantiles']
+
         result_df = container.DataFrame(
             {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},
             generate_metadata=True,

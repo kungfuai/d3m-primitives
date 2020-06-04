@@ -125,9 +125,9 @@ def _test_set_training_data(dataset_name, target_col, group_compose = False):
             epochs = 1,
             steps_per_epoch = 1,
             number_samples = 10,
-            prediction_length = min_pred_lengths[dataset_name],
-            context_length = min_pred_lengths[dataset_name],
-            quantiles = [0.1, 0.9],
+            prediction_length = min_pred_lengths[dataset_name] + 5,
+            context_length = min_pred_lengths[dataset_name] - 5,
+            quantiles = (0.1, 0.9),
             output_mean = False
         )
     )
@@ -171,7 +171,7 @@ def _test_ts(dataset_name, target_col, group_compose = False):
     inputs_test = _test_produce_test_data(deepar, preprocess, dataset_name, target_col)
     _test_produce_confidence_intervals(deepar, inputs_test)
 
-def _test_serialize(dataset):
+def _test_serialize(dataset, group_compose = False):
     
     pipeline = DeepARPipeline(
         epochs = 1,
@@ -179,12 +179,28 @@ def _test_serialize(dataset):
         number_samples = 10,
         prediction_length = min_pred_lengths[dataset],
         context_length = min_pred_lengths[dataset],
+        group_compose = group_compose,
     )
     pipeline.write_pipeline()
     pipeline.fit_serialize(dataset)
     pipeline.deserialize_score(dataset)
     pipeline.delete_pipeline()
     pipeline.delete_serialized_pipeline()
+
+def _test_confidence_intervals(dataset, group_compose = False):
+    
+    pipeline = DeepARPipeline(
+        epochs = 1,
+        steps_per_epoch = 1,
+        number_samples = 10,
+        prediction_length = min_pred_lengths[dataset],
+        context_length = min_pred_lengths[dataset],
+        group_compose = group_compose,
+        confidence_intervals = True
+    )    
+    pipeline.write_pipeline()
+    pipeline.fit_produce(dataset)
+    pipeline.delete_pipeline()
 
 # def test_fit_produce_dataset_sunspots():
 #     _test_ts('56_sunspots_MIN_METADATA', 4)
@@ -212,4 +228,16 @@ def test_serialization_dataset_pop_spawn():
 
 def test_serialization_dataset_stock():
     _test_serialize('LL1_736_stock_market_MIN_METADATA')
+
+def test_confidence_intervals_dataset_sunspots():
+    _test_confidence_intervals('56_sunspots_MIN_METADATA')
+
+def test_confidence_intervals_dataset_sunspots_monthly():
+    _test_confidence_intervals('56_sunspots_monthly_MIN_METADATA')
+
+def test_confidence_intervals_dataset_pop_spawn():
+    _test_confidence_intervals('LL1_736_population_spawn_MIN_METADATA', group_compose=True)
+
+def test_confidence_intervals_dataset_stock():
+    _test_confidence_intervals('LL1_736_stock_market_MIN_METADATA')
 

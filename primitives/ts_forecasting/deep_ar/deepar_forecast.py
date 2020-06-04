@@ -45,7 +45,6 @@ class DeepARForecast:
         ) as it, np.errstate(invalid='ignore'):
             for forecast in it:
                 point_estimate = forecast.mean if self.mean else forecast.quantile(0.5)
-                #print(point_estimate.shape)
                 quantiles = np.vstack(
                     [point_estimate] + 
                     [forecast.quantile(q) for q in self.quantiles]
@@ -61,7 +60,6 @@ class DeepARForecast:
             (np.zeros((forecasts.shape[0], self.context_length)), forecasts), 
             axis = 1
         ) # Quantiles, In-Sample Horizon
-        #print(forecasts.shape)
         return forecasts 
 
     def _iterate_in_sample(self, df):
@@ -72,7 +70,7 @@ class DeepARForecast:
             df.shape[0], 
             self.prediction_length
         ):
-            logger.debug(f'stop i: {stop_idx}, start i: {stop_idx - self.context_length}')
+            #print(f'stop i: {stop_idx}, start i: {stop_idx - self.context_length}')
             data.append(
                 self.train_dataset.get_series(
                     self.train_dataset.get_targets(df),
@@ -84,7 +82,6 @@ class DeepARForecast:
 
         data = ListDataset(data, freq = self.train_dataset.get_freq())
         forecasts = self._forecast(data)
-        #print(forecasts.shape)
         return self._resize_in_sample(forecasts, df.shape[0])
 
     def predict_in_sample(self):
@@ -107,5 +104,5 @@ class DeepARForecast:
         
         train_feat = self.train_dataset.get_features(self.train_frame)
         all_feat = pd.concat((train_feat, future_feat))
-        test_data = self.train_dataset.get_data(all_feat)
+        test_data = self.train_dataset.get_data(all_feat, test = True)
         return self._forecast(test_data) # Num Series, Quantiles, Horizon

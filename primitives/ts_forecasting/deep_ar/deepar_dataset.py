@@ -50,8 +50,6 @@ class DeepARDataset:
         
         if self.has_cat_cols() or self.has_group_cols():
            self.enc = OrdinalEncoder().fit(self.frame.iloc[:, cat_cols + group_cols])
-        print(cat_cols)
-        print(group_cols)
 
     def get_targets(self, df):
         """ gets targets """
@@ -99,7 +97,7 @@ class DeepARDataset:
 
         return features
 
-    def get_data(self, feat_df = None):
+    def get_data(self, feat_df = None, test = False):
         """ creates train or test dataset object """
 
         if feat_df is None:
@@ -109,9 +107,9 @@ class DeepARDataset:
             data = []
             g_cols = self.get_group_names()
             for (_, features), (_, targets) in zip(feat_df.groupby(g_cols), self.targets):
-                data.append(self.get_series(targets, features)) 
+                data.append(self.get_series(targets, features, test = test)) 
         else:
-            data = [self.get_series(self.targets, feat_df)]
+            data = [self.get_series(self.targets, feat_df, test = test)]
 
         return ListDataset(data, freq=self.freq)
 

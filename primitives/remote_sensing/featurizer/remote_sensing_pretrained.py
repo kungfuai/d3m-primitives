@@ -151,10 +151,11 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         )
 
         all_img_features = []
-        for image_batch in image_loader:
-            image_batch = image_batch[0].to(self.device)
-            features = self.model(image_batch).cpu().data.numpy()
-            all_img_features.append(features)
+        with torch.no_grad():
+            for image_batch in image_loader:
+                image_batch = image_batch[0].to(self.device)
+                features = self.model(image_batch).cpu().data.numpy()
+                all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
 
         col_names = [
@@ -187,7 +188,7 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         imgs = [img for img_col in image_cols for img in inputs.iloc[:, img_col]]
         if self.hyperparams['inference_model'] == 'moco':
             imgs = [self._load_patch_sentinel(img) for img in imgs]
-        return TensorDataset(torch.FloatTensor(np.stack(imgs)))
+        return TensorDataset(torch.stack(imgs))
 
     def _sort_multiple_img_cols(
         self,

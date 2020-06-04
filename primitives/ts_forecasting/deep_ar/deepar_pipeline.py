@@ -103,7 +103,10 @@ class DeepARPipeline(PipelineBase):
         step.add_hyperparameter(
             name="semantic_types",
             argument_type=ArgumentType.VALUE,
-            data=["https://metadata.datadrivendiscovery.org/types/Attribute"],
+            data=[
+                "https://metadata.datadrivendiscovery.org/types/Attribute",
+                'https://metadata.datadrivendiscovery.org/types/GroupingKey'
+            ],
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -189,7 +192,7 @@ class DeepARPipeline(PipelineBase):
             step.add_output("produce_confidence_intervals")
             pipeline_description.add_step(step)
             
-            data_ref = "steps.6.produce" if group_compose else "steps.5.produce"
+            data_ref = "steps.6.produce_confidence_intervals" if group_compose else "steps.5.produce_confidence_intervals"
             pipeline_description.add_output(
                 name="output predictions", data_reference=data_ref
             )

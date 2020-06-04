@@ -57,9 +57,11 @@ class Params(params.Params):
     values: typing.List[np.ndarray]
     values_diff: typing.List[np.ndarray]
     lag_order: typing.Union[
+        typing.List[None],
         typing.List[np.int64], 
-        typing.List[None], 
+        typing.List[int], 
         typing.List[typing.Union[np.int64, None]], 
+        typing.List[typing.Union[int, None]], 
         typing.List[typing.Union[np.int64, int, None]]
     ]
     positive: typing.List[bool]
@@ -965,25 +967,10 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             [name for sub_name_list in name_list for name in sub_name_list] 
             for name_list in series_names
         ]
-        print(confidence_intervals)    
-        print(series_names)
 
-        for interval, names in zip(confidence_intervals, series_names):
-            df = pd.DataFrame(
-                    np.concatenate(
-                    [
-                        point_estimate.flatten(order = 'F').reshape(-1, 1)    
-                        for point_estimate in interval
-                    ], 
-                    axis = 1
-                ), 
-                index = names, 
-                columns = ['mean', str(alpha / 2), str(1 - alpha / 2)]
-            ) 
-            print(df.head())    
         confidence_intervals = [
             pd.DataFrame(
-                    np.concatenate(
+                np.concatenate(
                     [
                         point_estimate.flatten(order = 'F').reshape(-1, 1)    
                         for point_estimate in interval
@@ -996,7 +983,6 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             for interval, names in zip(confidence_intervals, series_names)
         ]
 
-        print(confidence_intervals)
         # apply invariances (real, positive data AND rounding NA / INF values)
         confidence_intervals = [
             ci.clip(lower = 0)#.replace(np.inf, np.nan)
@@ -1005,12 +991,12 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             for ci, positive in zip(confidence_intervals, self._positive) if not positive 
         ]
         #confidence_intervals = [ci.fillna(ci.mean()) for ci in confidence_intervals]
-        print(confidence_intervals)
         interval_df = pd.concat(confidence_intervals)
 
-        # add index column
+        # add timestep column and series index column
         interval_df['horizon_index'] = np.tile(np.arange(horizon), len(interval_df.index.unique()))
-        print(interval_df.head())
+        interval_df['series'] = interval_df.index
+
         return CallResult(
             container.DataFrame(interval_df, generate_metadata=True),
             has_finished=self._is_fit,

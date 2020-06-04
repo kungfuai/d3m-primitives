@@ -100,6 +100,7 @@ class VarPipeline(PipelineBase):
             data=[
                 "https://metadata.datadrivendiscovery.org/types/Attribute",
                 "https://metadata.datadrivendiscovery.org/types/PrimaryKey",
+                'https://metadata.datadrivendiscovery.org/types/GroupingKey',
             ],
         )
         step.add_output("produce")
@@ -168,7 +169,7 @@ class VarPipeline(PipelineBase):
         
         # Final Output
         pipeline_description.add_output(
-            name="output predictions", data_reference=data_ref
+            name="output", data_reference=data_ref
         )
 
         self.pipeline = pipeline_description
