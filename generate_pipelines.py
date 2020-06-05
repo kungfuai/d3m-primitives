@@ -70,35 +70,31 @@ def generate_pipelines(gpu = False):
                 '66_chlorineConcentration_MIN_METADATA',
                 "LL1_Adiac_MIN_METADATA",
                 "LL1_ArrowHead_MIN_METADATA",
-                "LL1_CinC_ECG_torso_MIN_METADATA",
                 "LL1_Cricket_Y_MIN_METADATA",
                 "LL1_ECG200_MIN_METADATA",
                 "LL1_ElectricDevices_MIN_METADATA",
                 "LL1_FISH_MIN_METADATA",
                 "LL1_FaceFour_MIN_METADATA",
-                "LL1_FordA_MIN_METADATA",
                 "LL1_HandOutlines_MIN_METADATA",
                 "LL1_Haptics_MIN_METADATA",
                 "LL1_ItalyPowerDemand_MIN_METADATA",
                 "LL1_Meat_MIN_METADATA",
-                "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
+                "LL1_OSULeaf_MIN_METADATA",
             )),
             (LstmFcnPipeline(attention_lstm=True), (
                 '66_chlorineConcentration_MIN_METADATA',
                 "LL1_Adiac_MIN_METADATA",
                 "LL1_ArrowHead_MIN_METADATA",
-                "LL1_CinC_ECG_torso_MIN_METADATA",
                 "LL1_Cricket_Y_MIN_METADATA",
                 "LL1_ECG200_MIN_METADATA",
                 "LL1_ElectricDevices_MIN_METADATA",
                 "LL1_FISH_MIN_METADATA",
                 "LL1_FaceFour_MIN_METADATA",
-                "LL1_FordA_MIN_METADATA",
                 "LL1_HandOutlines_MIN_METADATA",
                 "LL1_Haptics_MIN_METADATA",
                 "LL1_ItalyPowerDemand_MIN_METADATA",
                 "LL1_Meat_MIN_METADATA",
-                "LL1_OSULeaf_MIN_METADATA_MIN_METADATA",
+                "LL1_OSULeaf_MIN_METADATA",
             ))
         ],
         "d3m.primitives.time_series_forecasting.vector_autoregression.VAR": [
@@ -175,7 +171,7 @@ def generate_pipelines(gpu = False):
             pipeline.write_pipeline(output_dir = './pipelines')
             for dataset in datasets:
                 print(f'Generating pipeline for {primitive.split(".")[-1]} on {dataset}')
-                if primitive.split(".")[-1] == 'Duke':
+                if primitive.split(".")[-1] in ['Duke', 'Sloth']:
                     pipeline.fit_produce(
                         dataset,
                         output_yml_dir = './pipeline_runs',

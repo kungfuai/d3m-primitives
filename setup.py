@@ -10,7 +10,7 @@ setup(
         "d3m",
         "tslearn",
         "statsmodels",
-        "pmdarima",
+        "pmdarima>=1.6.1",
         "hdbscan",
         "requests",
         "shap>=0.35.0",
