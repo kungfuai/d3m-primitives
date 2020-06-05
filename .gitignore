@@ -153,3 +153,4 @@ scratch_dir/
 punk/
 pipeline_scores/
 distil-primitives/
+pipeline_annotations/

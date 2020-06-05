@@ -46,6 +46,7 @@ Dockerfile
 Jenkinsfile
 
 d3m-env/
+pipeline_annotations/
 annotations/
 datasets/
 static_volumes/

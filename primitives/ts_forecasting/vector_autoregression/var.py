@@ -996,7 +996,9 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         # add timestep column and series index column
         interval_df['horizon_index'] = np.tile(np.arange(horizon), len(interval_df.index.unique()))
         interval_df['series'] = interval_df.index
-
+        if isinstance((interval_df['series'][0]), typing.Tuple):
+            interval_df['series'] = interval_df['series'].apply(lambda s: '|'.join(s))
+   
         return CallResult(
             container.DataFrame(interval_df, generate_metadata=True),
             has_finished=self._is_fit,

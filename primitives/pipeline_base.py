@@ -106,13 +106,11 @@ class PipelineBase:
         subprocess.run(proc_cmd, check=True)
         print(f'Fitting and producing pipeline took {(time.time() - st) / 60} mins')
 
-    def fit_score(self, dataset, output_yml_dir = '.', output_score_dir = '.', submission = False):
+    def fit_score(self, dataset, output_yml_dir = '.', output_score_dir = '.', submission = False, suffix = None):
         
         if not os.path.isfile(self.outfile_string):
             raise ValueError("Must call 'write_pipeline()' method first")
-        
-        self.scorefile = f"{output_score_dir}/{dataset}_scores.csv"
-        
+                
         proc_cmd = [
             "python3",
             "-m",
@@ -137,7 +135,12 @@ class PipelineBase:
             f"/datasets/seed_datasets_current/{dataset}/SCORE/dataset_SCORE/datasetDoc.json",
         ]
         if submission:
-            proc_cmd += ["-O", f"{output_yml_dir}/{dataset}.yml", "-c", self.scorefile]
+            if suffix:
+                self.scorefile = f"{output_score_dir}/{dataset}_{suffix}_scores.csv"
+                proc_cmd += ["-O", f"{output_yml_dir}/{dataset}_{suffix}.yml", "-c", self.scorefile]
+            else:
+                self.scorefile = f"{output_score_dir}/{dataset}_scores.csv"
+                proc_cmd += ["-O", f"{output_yml_dir}/{dataset}.yml", "-c", self.scorefile]
         
         st = time.time()
         subprocess.run(proc_cmd, check=True)
