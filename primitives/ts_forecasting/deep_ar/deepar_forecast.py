@@ -90,7 +90,7 @@ class DeepARForecast:
         if self.train_dataset.has_group_cols():
             all_series = []
             for _, df in self.train_frame.groupby(
-                self.train_dataset.get_group_names()
+                self.train_dataset.get_group_names(), sort = False
             ):
                 series_forecast = self._iterate_in_sample(df)
                 all_series.append(series_forecast)

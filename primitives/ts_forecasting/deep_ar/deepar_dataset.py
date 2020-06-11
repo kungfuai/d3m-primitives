@@ -43,7 +43,7 @@ class DeepARDataset:
     
         if self.has_group_cols():
             g_cols = self.get_group_names()
-            self.targets = frame.groupby(g_cols)[frame.columns[target_col]]
+            self.targets = frame.groupby(g_cols, sort = False)[frame.columns[target_col]]
         else:
             self.targets = self.get_targets(frame)
         self.train_feat_df = self.get_features(frame)
@@ -106,7 +106,7 @@ class DeepARDataset:
         if self.has_group_cols():            
             data = []
             g_cols = self.get_group_names()
-            for (_, features), (_, targets) in zip(feat_df.groupby(g_cols), self.targets):
+            for (_, features), (_, targets) in zip(feat_df.groupby(g_cols, sort = False), self.targets):
                 data.append(self.get_series(targets, features, test = test)) 
         else:
             data = [self.get_series(self.targets, feat_df, test = test)]
