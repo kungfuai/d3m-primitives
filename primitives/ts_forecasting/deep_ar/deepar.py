@@ -523,7 +523,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                     max_train_length = df.shape[0]
                 all_dfs.append(df)
                 min_trains[grp] = df.index[0]
-                print(f'min train grp: {grp}, val: {df.index[0]}')
+                #print(f'min train grp: {grp}, val: {df.index[0]}')
                 original_times[grp] = orig_times
             return pd.concat(all_dfs), min_trains, max_train_length, original_times
 
@@ -619,7 +619,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             all_intervals = []
             for grp, times in original_times.items():
                 if grp in self._min_trains.keys():
-                    print(f'grp: {grp}, times 0: {times.iloc[0]}, min train: {self._min_trains[grp]}')
+                    #print(f'grp: {grp}, times 0: {times.iloc[0]}, min train: {self._min_trains[grp]}')
                     intervals = discretize_time_difference(
                         times,
                         self._min_trains[grp],

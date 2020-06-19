@@ -100,8 +100,8 @@ class DeepARForecast:
         """ iterate over a single series to make forecasts using min_interval and max_interval"""
 
         data = []
-        print(f'context: {self.context_length}, pred: {self.prediction_length}')
-        print(f'min: {min_interval}, max: {max_interval}, total_in_sample: {targets.shape[0]}')
+        #print(f'context: {self.context_length}, pred: {self.prediction_length}')
+        #print(f'min: {min_interval}, max: {max_interval}, total_in_sample: {targets.shape[0]}')
         if max_interval < targets.shape[0]: # all in-sample
             start = 0
             stop = targets.shape[0] - self.context_length
@@ -116,10 +116,10 @@ class DeepARForecast:
         else: # out-of-sample
             start = targets.shape[0] - self.context_length
             stop = targets.shape[0]
-        print(f'start: {start}, stop: {stop}')
+        #print(f'start: {start}, stop: {stop}')
         if start >= 0 and stop > start:
             for start_idx in range(start, stop, self.prediction_length):
-                print(f'context start: {start_idx} context end: {start_idx + self.context_length}, pred end: {start_idx + self.context_length + self.prediction_length}')
+                #print(f'context start: {start_idx} context end: {start_idx + self.context_length}, pred end: {start_idx + self.context_length + self.prediction_length}')
                 data.append(
                     self.train_dataset.get_series(
                         targets,
@@ -134,10 +134,6 @@ class DeepARForecast:
         else:
             forecasts = np.empty((1, len(self.quantiles) + 1, self.prediction_length))
             forecasts[:] = np.nan
-            print(
-                f"This model was trained to use a context length of {self.context_length}, but there are " + 
-                f"only {targets.shape[0]} in this series. These predictions will be returned as np.nan"
-            )
             logger.info(
                 f"This model was trained to use a context length of {self.context_length}, but there are " + 
                 f"only  {targets.shape[0]} in this series. These predictions will be returned as np.nan"
@@ -182,11 +178,6 @@ class DeepARForecast:
             padding = np.empty((forecasts.shape[0], max_interval - forecasts.shape[1] + 1))
             padding[:] = np.nan
             forecasts = np.concatenate((forecasts, padding), axis = 1) # Quantiles, Context Length + Horizon + Post Padding
-            print(
-                f"Asking for a prediction {max_interval - total_in_sample} steps into the future " + 
-                f"from a model that was trained to predict a maximum of {self.prediction_length} steps " +
-                "into the future. This prediction will be returned as np.nan"
-            )
             logger.info(
                 f"Asking for a prediction {max_interval - total_in_sample} steps into the future " + 
                 f"from a model that was trained to predict a maximum of {self.prediction_length} steps " +

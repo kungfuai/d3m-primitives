@@ -41,7 +41,7 @@ class DeepARDataset:
             g_cols = self.get_group_names()
             self.targets = frame.groupby(g_cols, sort = False)[frame.columns[target_col]]
             for grp, targ in self.targets:
-                print(f'grp: {grp} target len: {targ.shape[0]} # na: {targ.shape[0] - targ.count()}')
+                #print(f'grp: {grp} target len: {targ.shape[0]} # na: {targ.shape[0] - targ.count()}')
         else:
             self.targets = self.get_targets(frame)
         self.train_feat_df = self.get_features(frame)
