@@ -128,7 +128,7 @@ def discretize_time_difference(
     if frequency == "YS" or frequency == "12M":
         time_differences = [round(x / S_PER_YEAR_0) for x in time_differences]
     elif frequency == "MS" or frequency == 'M':
-        time_differences = [round(x / S_PER_MONTH_31) for x in time_differences]
+        time_differences = [round(x * 2 / (S_PER_MONTH_30 + S_PER_MONTH_31)) for x in time_differences]
     elif frequency == "W":
         time_differences = [round(x / S_PER_WEEK) for x in time_differences]
     elif frequency == "D":

@@ -188,6 +188,11 @@ class DeepARPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=count_data,
         )
+        step.add_hyperparameter(
+            name="/scratch_dir",
+            argument_type=ArgumentType.VALUE,
+            data=count_data,
+        )
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
             pipeline_description.add_step(step)

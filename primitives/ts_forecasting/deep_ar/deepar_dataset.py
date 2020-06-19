@@ -1,5 +1,4 @@
 from typing import List, Union
-import logging
 
 import pandas as pd
 import numpy as np
@@ -7,9 +6,6 @@ from sklearn.preprocessing import OrdinalEncoder
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import NegativeBinomialOutput, StudentTOutput
-
-logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
 
 class DeepARDataset:
     def __init__(
@@ -26,7 +22,7 @@ class DeepARDataset:
         target_semantic_types: List[str],
         count_data: Union[None, bool]
     ):
-        """initialize DeepARModel
+        """initialize DeepARDataset object
         """
 
         self.frame = frame
@@ -44,6 +40,8 @@ class DeepARDataset:
         if self.has_group_cols():
             g_cols = self.get_group_names()
             self.targets = frame.groupby(g_cols, sort = False)[frame.columns[target_col]]
+            for grp, targ in self.targets:
+                print(f'grp: {grp} target len: {targ.shape[0]} # na: {targ.shape[0] - targ.count()}')
         else:
             self.targets = self.get_targets(frame)
         self.train_feat_df = self.get_features(frame)
@@ -52,30 +50,33 @@ class DeepARDataset:
            self.enc = OrdinalEncoder().fit(self.frame.iloc[:, cat_cols + group_cols])
 
     def get_targets(self, df):
-        """ gets targets """
+        """ gets targets from df using target_col of object """
         return df.iloc[:, self.target_col]
 
     def get_features(self, df):
-        """ gets feature df from training frame (all cols but target col) """
+        """ gets features from df using target col of object (all cols but) """
         return df.drop(df.columns[self.target_col], axis=1)
-
-    def _pad_future_features(self, df, pad_length):
-        """ pads feature df for test predictions that extend past support"""
-        return df.append(df.iloc[[-1] * pad_length])
 
     def get_series(
         self,
         targets: pd.Series,
         feat_df: pd.DataFrame,
+        test = False,
         start_idx = 0, 
-        test = False
     ):
-        """returns features for one individual time series in dataset from start to stop idx"""
+        """ creates dictionary of start time, features, targets for one individual time series
         
+            if test, creates dictionary from subset of indices using start_idx
+        """
+        
+        if not test:
+            start_idx = 0
+
         assert feat_df.index[start_idx] == targets.index[start_idx]
         features = {FieldName.START: feat_df.index[start_idx]}
         
         if test:
+            #print(f'target idxs: {start_idx}:{start_idx+self.context_length}')
             features[FieldName.TARGET] = targets.iloc[start_idx:start_idx+self.context_length].values
         else:
             features[FieldName.TARGET] = targets.values
@@ -83,6 +84,7 @@ class DeepARDataset:
         if self.has_real_cols():
             if test:
                 total_length = self.context_length+self.prediction_length
+                #print(f'real features idxs: {start_idx}:{start_idx+total_length}')
                 real_features = feat_df.iloc[start_idx:start_idx+total_length, self.real_cols]
                 if real_features.shape[0] < total_length:
                     real_features = self._pad_future_features(real_features, total_length - real_features.shape[0])    
@@ -97,19 +99,19 @@ class DeepARDataset:
 
         return features
 
-    def get_data(self, feat_df = None, test = False):
-        """ creates train or test dataset object """
-
-        if feat_df is None:
-            feat_df = self.train_feat_df
+    def get_data(self):
+        """ creates train dataset object """
 
         if self.has_group_cols():            
             data = []
             g_cols = self.get_group_names()
-            for (_, features), (_, targets) in zip(feat_df.groupby(g_cols, sort = False), self.targets):
-                data.append(self.get_series(targets, features, test = test)) 
+            for (_, features), (_, targets) in zip(
+                self.train_feat_df.groupby(g_cols, sort = False), 
+                self.targets
+            ):
+                data.append(self.get_series(targets, features)) 
         else:
-            data = [self.get_series(self.targets, feat_df, test = test)]
+            data = [self.get_series(self.targets, self.train_feat_df)]
 
         return ListDataset(data, freq=self.freq)
 
@@ -118,31 +120,35 @@ class DeepARDataset:
         return [self.frame.columns[i] for i in self.group_cols]
 
     def has_group_cols(self):
+        """ does this DeepAR dataset have grouping columns """ 
         return len(self.group_cols) != 0
 
     def has_cat_cols(self):
-        """ does this DeepAR dataset have categorical columns
-        """
+        """ does this DeepAR dataset have categorical columns """
         return len(self.cat_cols) != 0
 
     def has_real_cols(self):
-        """ does this DeepAR dataset have real valued columns
-        """
+        """ does this DeepAR dataset have real valued columns """
         return len(self.real_cols) != 0
 
     def get_frame(self):
+        """ get data frame associated with this DeepAR dataset """
         return self.frame
 
     def get_freq(self):
+        """ get frequency associated with this DeepAR dataset """
         return self.freq
 
     def get_pred_length(self):
+        """ get prediction length associated with this DeepAR dataset """
         return self.prediction_length
 
     def get_context_length(self):
+        """ get context length associated with this DeepAR dataset """
         return self.context_length
 
     def get_time_col(self):
+        """ get time column associated with this DeepAR dataset """
         return self.time_col
 
     def get_cardinality(self):
@@ -154,7 +160,6 @@ class DeepARDataset:
 
     def get_distribution_type(self):
         """ get distribution type of dataset """
-
         if self.count_data:
             return NegativeBinomialOutput()
         elif self.count_data == False:
@@ -168,3 +173,7 @@ class DeepARDataset:
             return StudentTOutput()
         else:
             raise ValueError("Target column is not of type 'Integer' or 'Float'")
+
+    def _pad_future_features(self, df, pad_length):
+        """ pads feature df for test predictions that extend past support"""
+        return df.append(df.iloc[[-1] * pad_length])
