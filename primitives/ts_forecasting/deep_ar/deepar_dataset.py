@@ -40,8 +40,6 @@ class DeepARDataset:
         if self.has_group_cols():
             g_cols = self.get_group_names()
             self.targets = frame.groupby(g_cols, sort = False)[frame.columns[target_col]]
-            for grp, targ in self.targets:
-                #print(f'grp: {grp} target len: {targ.shape[0]} # na: {targ.shape[0] - targ.count()}')
         else:
             self.targets = self.get_targets(frame)
         self.train_feat_df = self.get_features(frame)
@@ -76,7 +74,6 @@ class DeepARDataset:
         features = {FieldName.START: feat_df.index[start_idx]}
         
         if test:
-            #print(f'target idxs: {start_idx}:{start_idx+self.context_length}')
             features[FieldName.TARGET] = targets.iloc[start_idx:start_idx+self.context_length].values
         else:
             features[FieldName.TARGET] = targets.values
@@ -84,7 +81,6 @@ class DeepARDataset:
         if self.has_real_cols():
             if test:
                 total_length = self.context_length+self.prediction_length
-                #print(f'real features idxs: {start_idx}:{start_idx+total_length}')
                 real_features = feat_df.iloc[start_idx:start_idx+total_length, self.real_cols]
                 if real_features.shape[0] < total_length:
                     real_features = self._pad_future_features(real_features, total_length - real_features.shape[0])    
