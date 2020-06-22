@@ -124,7 +124,6 @@ distr = {
 def _test_set_training_data(dataset_name, target_col, group_compose = False, split_train = False):
     dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TRAIN/dataset_TRAIN')
     df = test_utils.get_dataframe(dataset, 'learningData', target_col)
-    print(df.head())
     time_col = df.metadata.list_columns_with_semantic_types(
         (
             "https://metadata.datadrivendiscovery.org/types/Time",
@@ -221,8 +220,8 @@ def _test_serialize(dataset, group_compose = False):
         epochs = 1,
         steps_per_epoch = 1,
         number_samples = 10,
-        prediction_length = min_pred_lengths[dataset],
-        context_length = min_pred_lengths[dataset],
+        prediction_length = min_pred_lengths[dataset][0],
+        context_length = min_pred_lengths[dataset][0],
         group_compose = group_compose,
     )
     pipeline.write_pipeline()
@@ -237,8 +236,8 @@ def _test_confidence_intervals(dataset, group_compose = False):
         epochs = 1,
         steps_per_epoch = 1,
         number_samples = 10,
-        prediction_length = min_pred_lengths[dataset],
-        context_length = min_pred_lengths[dataset],
+        prediction_length = min_pred_lengths[dataset][0],
+        context_length = min_pred_lengths[dataset][0],
         group_compose = group_compose,
         confidence_intervals = True
     )    
@@ -246,45 +245,59 @@ def _test_confidence_intervals(dataset, group_compose = False):
     pipeline.fit_produce(dataset)
     pipeline.delete_pipeline()
 
-def test_fit_produce_dataset_sunspots():
-    _test_ts('56_sunspots_MIN_METADATA', 4, split_train=True)
-    _test_ts('56_sunspots_MIN_METADATA', 4)
+# def test_fit_produce_dataset_sunspots():
+#     _test_ts('56_sunspots_MIN_METADATA', 4)
 
-def test_fit_produce_dataset_sunspots_monthly():
-    _test_ts('56_sunspots_monthly_MIN_METADATA', 2, split_train=True)
-    _test_ts('56_sunspots_monthly_MIN_METADATA', 2)
+# def test_fit_produce_dataset_sunspots_monthly():
+#     _test_ts('56_sunspots_monthly_MIN_METADATA', 2)
 
-def test_fit_produce_dataset_stock():        
-    _test_ts('LL1_736_stock_market_MIN_METADATA', 3, split_train=True)
-    _test_ts('LL1_736_stock_market_MIN_METADATA', 3)
+# def test_fit_produce_dataset_stock():        
+#     _test_ts('LL1_736_stock_market_MIN_METADATA', 3)
 
-def test_fit_produce_dataset_pop_spawn():
-    _test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True, split_train=True)
-    _test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
+# def test_fit_produce_dataset_pop_spawn():
+#     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
 
-def test_fit_produce_dataset_terra():      
-    _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4, group_compose = True, split_train=True)
-    _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
+# def test_fit_produce_dataset_terra():      
+#     _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
 
-def test_fit_produce_dataset_phem_monthly():     
-    _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
-    _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
+# def test_fit_produce_dataset_phem_monthly():     
+#     _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
 
-def test_fit_produce_dataset_phem_weekly():     
-    _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
-    _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
+# def test_fit_produce_dataset_phem_weekly():     
+#     _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
 
-# def test_serialization_dataset_sunspots():
-#     _test_serialize('56_sunspots_MIN_METADATA')
+# def test_fit_produce_split_dataset_sunspots():
+#     _test_ts('56_sunspots_MIN_METADATA', 4, split_train=True)
 
-# def test_serialization_dataset_sunspots_monthly():
-#     _test_serialize('56_sunspots_monthly_MIN_METADATA')
+# def test_fit_produce_split_dataset_sunspots_monthly():
+#     _test_ts('56_sunspots_monthly_MIN_METADATA', 2, split_train=True)
 
-# def test_serialization_dataset_pop_spawn():
-#     _test_serialize('LL1_736_population_spawn_MIN_METADATA')
+# def test_fit_produce_split_dataset_stock():        
+#     _test_ts('LL1_736_stock_market_MIN_METADATA', 3, split_train=True)
 
-# def test_serialization_dataset_stock():
-#     _test_serialize('LL1_736_stock_market_MIN_METADATA')
+# def test_fit_produce_split_dataset_pop_spawn():
+#     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4, group_compose=True, split_train=True)
+
+# def test_fit_produce_split_dataset_terra():      
+#     _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4, group_compose = True, split_train=True)
+
+# def test_fit_produce_split_dataset_phem_monthly():     
+#     _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
+
+# def test_fit_produce_split_dataset_phem_weekly():     
+#     _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
+
+def test_serialization_dataset_sunspots():
+    _test_serialize('56_sunspots_MIN_METADATA')
+
+def test_serialization_dataset_sunspots_monthly():
+    _test_serialize('56_sunspots_monthly_MIN_METADATA')
+
+def test_serialization_dataset_pop_spawn():
+    _test_serialize('LL1_736_population_spawn_MIN_METADATA')
+
+def test_serialization_dataset_stock():
+    _test_serialize('LL1_736_stock_market_MIN_METADATA')
 
 # def test_confidence_intervals_dataset_sunspots():
 #     _test_confidence_intervals('56_sunspots_MIN_METADATA')
