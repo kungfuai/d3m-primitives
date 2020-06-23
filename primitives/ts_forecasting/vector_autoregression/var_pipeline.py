@@ -99,7 +99,6 @@ class VarPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=[
                 "https://metadata.datadrivendiscovery.org/types/Attribute",
-                "https://metadata.datadrivendiscovery.org/types/PrimaryKey",
                 'https://metadata.datadrivendiscovery.org/types/GroupingKey',
             ],
         )
@@ -158,18 +157,47 @@ class VarPipeline(PipelineBase):
         )
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
+            pipeline_description.add_step(step)
+            
             data_ref = "steps.6.produce_confidence_intervals" if group_compose else "steps.5.produce_confidence_intervals"
+            pipeline_description.add_output(
+                name="output", data_reference=data_ref
+            )
         elif produce_weights:
             step.add_output("produce_weights")
+            pipeline_description.add_step(step)
+            
             data_ref = "steps.6.produce_weights" if group_compose else "steps.5.produce_weights"
+            pipeline_description.add_output(
+                name="output", data_reference=data_ref
+            )
         else:
             step.add_output("produce")
+            pipeline_description.add_step(step)
+
+            # construct predictions
+            step = PrimitiveStep(
+                primitive=index.get_primitive(
+                    "d3m.primitives.data_transformation.construct_predictions.Common"
+                )
+            )
             data_ref = "steps.6.produce" if group_compose else "steps.5.produce"
-        pipeline_description.add_step(step)
-        
-        # Final Output
-        pipeline_description.add_output(
-            name="output", data_reference=data_ref
-        )
+            step.add_argument(
+                name="inputs",
+                argument_type=ArgumentType.CONTAINER,
+                data_reference=data_ref,
+            )
+            step.add_argument(
+                name="reference",
+                argument_type=ArgumentType.CONTAINER,
+                data_reference="steps.1.produce",
+            )
+            step.add_output("produce")
+            pipeline_description.add_step(step)
+
+            data_ref = "steps.7.produce" if group_compose else "steps.6.produce"
+            pipeline_description.add_output(
+                name="output predictions", data_reference=data_ref
+            )
 
         self.pipeline = pipeline_description

@@ -2,7 +2,7 @@ import sys
 import os
 import collections
 from datetime import timedelta
-import typing
+from typing import List, Union, Any, Tuple
 import logging
 
 import numpy as np
@@ -20,7 +20,7 @@ import statsmodels.api as sm
 import scipy.stats as stats
 
 from ..utils.time_utils import calculate_time_frequency, discretize_time_difference
-from ..utils.arima import Arima
+from .arima import Arima
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
@@ -37,38 +37,35 @@ MAX_INT = np.finfo('d').max - 1
 class Params(params.Params):
     integer_time: bool
     time_column: str
-    key: typing.List[int]
-    targets: typing.List[str]
-    target_indices: typing.List[int]
-    target_types: typing.List[str]
-    X_train: typing.Union[typing.List[d3m_DataFrame], typing.List[pd.DataFrame]]
-    X_train_names: typing.Any
+    targets: List[str]
+    target_indices: List[int]
+    X_train: Union[List[d3m_DataFrame], List[pd.DataFrame]]
+    X_train_names: Any
 
-    filter_idxs: typing.List[str]
-    interpolation_ranges: typing.Union[pd.Series, None, pd.DataFrame]
+    filter_idxs: List[str]
+    interpolation_ranges: Union[pd.Series, None, pd.DataFrame]
     freq: str
     is_fit: bool
 
-    fits: typing.Union[
-        typing.List[VARResultsWrapper], 
-        typing.List[Arima], 
-        typing.List[typing.Union[VARResultsWrapper, Arima]]
+    fits: Union[
+        List[VARResultsWrapper], 
+        List[Arima], 
+        List[Union[VARResultsWrapper, Arima]]
     ]
-    values: typing.List[np.ndarray]
-    values_diff: typing.List[np.ndarray]
-    lag_order: typing.Union[
-        typing.List[None],
-        typing.List[np.int64], 
-        typing.List[int], 
-        typing.List[typing.Union[np.int64, None]], 
-        typing.List[typing.Union[int, None]], 
-        typing.List[typing.Union[np.int64, int, None]]
+    values: List[np.ndarray]
+    values_diff: List[np.ndarray]
+    lag_order: Union[
+        List[None],
+        List[np.int64], 
+        List[int], 
+        List[Union[np.int64, None]], 
+        List[Union[int, None]], 
+        List[Union[np.int64, int, None]]
     ]
-    positive: typing.List[bool]
 
 
 class Hyperparams(hyperparams.Hyperparams):
-    max_lag_order = hyperparams.Union[typing.Union[int, None]](
+    max_lag_order = hyperparams.Union[Union[int, None]](
         configuration=collections.OrderedDict(
             user_selected=hyperparams.UniformInt(lower=0, upper=100, default=1),
             auto_selected=hyperparams.Hyperparameter[None](
@@ -94,7 +91,7 @@ class Hyperparams(hyperparams.Hyperparams):
         description="default lag order to use if matrix decomposition errors",
     )
     seasonal = hyperparams.UniformBool(
-        default=True,
+        default=False,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
@@ -214,22 +211,15 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         super().__init__(hyperparams=hyperparams, random_seed=random_seed)
 
         # track metadata about times, targets, indices, grouping keys
-        self.filter_idxs = None
-        self._target_types = None
+        self._filter_idxs = None
         self._targets = None
-        self.times = None
-        self.key = None
-        self.integer_time = False
-        self.target_indices = None
-
-        # encodings of categorical variables
-        self._cat_indices = []
-        self._encoders = []
-        self.categories = None
+        self._key = None
+        self._integer_time = False
+        self._target_indices = None
 
         # information about interpolation
-        self.freq = None
-        self.interpolation_ranges = None
+        self._freq = None
+        self._interpolation_ranges = None
 
         # data needed to fit model and reconstruct predictions
         self._X_train_names = []
@@ -245,10 +235,8 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             return Params(
                 integer_time=None,
                 time_column=None,
-                key=None,
                 targets=None,
                 target_indices=None,
-                target_types=None,
                 X_train=None,
                 fits=None,
                 values=None,
@@ -263,41 +251,35 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             )
         
         return Params(
-            integer_time=self.integer_time,
-            time_column=self.time_column,
-            key=self.key,
+            integer_time=self._integer_time,
+            time_column=self._time_column,
             targets=self._targets,
-            target_indices=self.target_indices,
-            target_types=self._target_types,
+            target_indices=self._target_indices,
             X_train=self._X_train,
             fits=self._fits,
             values=self._values,
             values_diff=self._values_diff,
             lag_order=self._lag_order,
-            positive=self._positive,
-            filter_idxs=self.filter_idxs,
-            interpolation_ranges=self.interpolation_ranges,
-            freq=self.freq,
+            filter_idxs=self._filter_idxs,
+            interpolation_ranges=self._interpolation_ranges,
+            freq=self._freq,
             is_fit=self._is_fit,
             X_train_names=self._X_train_names
         )
 
     def set_params(self, *, params: Params) -> None:
-        self.integer_time = params['integer_time']
-        self.time_column = params['time_column']
-        self.key = params['key']
+        self._integer_time = params['integer_time']
+        self._time_column = params['time_column']
         self._targets = params['targets']
-        self.target_indices = params['target_indices']
-        self._target_types = params['target_types']
+        self._target_indices = params['target_indices']
         self._X_train = params['X_train']
         self._fits = params['fits']
         self._values = params['values']
         self._values_diff = params['values_diff']
         self._lag_order = params['lag_order']
-        self._positive = params['positive']
-        self.filter_idxs = params['filter_idxs']
-        self.interpolation_ranges = params['interpolation_ranges']
-        self.freq = params['freq']
+        self._filter_idxs = params['filter_idxs']
+        self._interpolation_ranges = params['interpolation_ranges']
+        self._freq = params['freq']
         self._is_fit = params['is_fit']
         self._X_train_names = params['X_train_names']
 
@@ -311,196 +293,18 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             Raises:
                 ValueError: If multiple columns are annotated with 'Time' or 'DateTime' metadata
         """
-        # make copy of input data!
-        inputs_copy = inputs.copy()
+
+        inputs_copy = inputs.append_columns(outputs)
+
+        times = self._get_cols(inputs_copy)
+        inputs_copy = self._convert_times(inputs_copy, times)
+        num_group_keys, drop_list = self._get_grouping_keys(inputs_copy)
         
-        # combine inputs and outputs 
-        inputs_copy = inputs_copy.append_columns(outputs)
+        inputs_copy = inputs_copy.drop(
+            columns=[list(inputs_copy)[i] for i in drop_list + self._key]
+        ) # drop index and extraneous grouping keys
 
-        # mark datetime column
-        times = inputs_copy.metadata.list_columns_with_semantic_types(
-            (
-                "https://metadata.datadrivendiscovery.org/types/Time",
-                "http://schema.org/DateTime",
-            )
-        )
-        if len(times) != 1:
-            raise ValueError(
-                f"There are {len(times)} indices marked as datetime values. Please only specify one"
-            )
-        self.time_column = list(inputs_copy)[times[0]]
-
-        # if datetime columns are integers, parse as # of days
-        if (
-            "http://schema.org/Integer"
-            in inputs.metadata.query_column(times[0])["semantic_types"]
-        ):
-            self.integer_time = True
-            inputs_copy[self.time_column] = pd.to_datetime(
-                inputs_copy[self.time_column] - 1, unit="D"
-            )
-        else:
-            inputs_copy[self.time_column] = pd.to_datetime(
-                inputs_copy[self.time_column], unit="s"
-            )
-
-        # sort by time column
-        inputs_copy = inputs_copy.sort_values(by = [self.time_column])
-
-        # mark key and grp variables
-        self.key = inputs_copy.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/PrimaryKey"
-        )
-
-        # mark target variables
-        self._targets = inputs_copy.metadata.list_columns_with_semantic_types(
-            (
-                "https://metadata.datadrivendiscovery.org/types/TrueTarget",
-                "https://metadata.datadrivendiscovery.org/types/Target",
-            )
-        )
-        self._target_types = [
-            "i"
-            if "http://schema.org/Integer"
-            in inputs_copy.metadata.query_column(t)["semantic_types"]
-            else "c"
-            if "https://metadata.datadrivendiscovery.org/types/CategoricalData"
-            in inputs_copy.metadata.query_column(t)["semantic_types"]
-            else "f"
-            for t in self._targets
-        ]
-        self._targets = [list(inputs_copy)[t] for t in self._targets]
-
-        # see if 'GroupingKey' has been marked
-        # otherwise fall through to use 'SuggestedGroupingKey' to intelligently calculate grouping key order
-        # we sort keys so that VAR can operate on as many series as possible simultaneously (reverse order)
-        grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/GroupingKey"
-        )
-        suggested_grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey"
-        )
-        if len(grouping_keys) == 0:
-            grouping_keys = suggested_grouping_keys
-            drop_list = []
-        else:
-            drop_list = suggested_grouping_keys
-
-        grouping_keys_counts = [
-            inputs_copy.iloc[:, key_idx].nunique() for key_idx in grouping_keys
-        ]
-        grouping_keys = [
-            group_key
-            for count, group_key in sorted(zip(grouping_keys_counts, grouping_keys))
-        ]
-        self.filter_idxs = [list(inputs_copy)[key] for key in grouping_keys]
-
-        # drop index
-        inputs_copy.drop(
-            columns=[list(inputs_copy)[i] for i in drop_list + self.key], inplace=True
-        )
-
-        # check whether no grouping keys are labeled
-        if len(grouping_keys) == 0:
-
-            # avg across duplicated time indices if necessary and re-index
-            if sum(inputs_copy[self.time_column].duplicated()) > 0:
-                inputs_copy = inputs_copy.groupby(self.time_column).mean()
-            else:
-                inputs_copy = inputs_copy.set_index(self.time_column)
-
-            # interpolate
-            self.freq = calculate_time_frequency(inputs_copy.index[1] - inputs_copy.index[0])
-            inputs_copy = inputs_copy.interpolate(method="time", limit_direction="both")
-
-            # set X train and target idxs
-            self.target_indices = [
-                i
-                for i, col_name in enumerate(list(inputs_copy))
-                if col_name in self._targets
-            ]
-            self._X_train = [inputs_copy]
-            self._X_train_names = [inputs_copy.columns]
-
-        else:
-            # find interpolation range from outermost grouping key
-            if len(grouping_keys) == 1:
-                date_ranges = inputs_copy.agg({self.time_column: ["min", "max"]})
-                indices = inputs[self.filter_idxs[0]].unique()
-                self.interpolation_ranges = pd.Series(
-                    [date_ranges] * len(indices), index=indices
-                )
-                self._X_train = [None]
-                self._X_train_names = [None]
-            else:
-                self.interpolation_ranges = inputs_copy.groupby(
-                    self.filter_idxs[:-1]
-                ).agg({self.time_column: ["min", "max"]})
-                self._X_train = [None for i in range(self.interpolation_ranges.shape[0])]
-                self._X_train_names = [None for i in range(self.interpolation_ranges.shape[0])]
-
-            for name, group in inputs_copy.groupby(self.filter_idxs):
-                if len(grouping_keys) > 2:
-                    group_value = tuple([group[self.filter_idxs[i]].values[0] for i in range(len(self.filter_idxs) - 1)])
-                else:
-                    group_value = group[self.filter_idxs[0]].values[0]
-                if len(grouping_keys) > 1:
-                    training_idx = np.where(
-                            self.interpolation_ranges.index.to_flat_index() == group_value
-                        )[0][0]
-                else:
-                    training_idx = 0
-                group = group.drop(columns=self.filter_idxs)
-
-                # avg across duplicated time indices if necessary and re-index
-                if sum(group[self.time_column].duplicated()) > 0:
-                    group = group.groupby(self.time_column).mean()
-                else:
-                    group = group.set_index(self.time_column)
-
-                # interpolate
-                min_date = self.interpolation_ranges.loc[group_value][self.time_column][
-                    "min"
-                ]
-                max_date = self.interpolation_ranges.loc[group_value][self.time_column][
-                    "max"
-                ]
-                # assume frequency is the same across all time series
-                if self.freq is None:
-                    self.freq = calculate_time_frequency(group.index[1] - group.index[0])
-                group = group.reindex(
-                    pd.date_range(min_date, max_date, freq = self.freq), 
-                    tolerance = '1' + self.freq, 
-                    method = 'nearest')
-                group = group.interpolate(method="time", limit_direction="both")
-
-                # add to training data under appropriate top-level grouping key
-                self.target_indices = [
-                    i
-                    for i, col_name in enumerate(list(group))
-                    if col_name in self._targets
-                ]
-                if self._X_train[training_idx] is None:
-                    self._X_train[training_idx] = group
-                else:
-                    self._X_train[training_idx] = pd.concat(
-                        [self._X_train[training_idx], group], axis=1
-                    )
-                if self._X_train_names[training_idx] is None:
-                    self._X_train_names[training_idx] = [name]
-                else:
-                    self._X_train_names[training_idx].append(name)
-
-        ## DEBUGGING for produce_confidence_intervals() serialization
-        # for train_list in self._X_train_names:
-        #     if train_list is None:
-        #         logger.debug(f'list is NoneType')
-        #     elif type(train_list) != list: 
-        #         logger.debug(f'train list entry not list: {type(train_list)}')
-        #     elif type(train_list[0]) != tuple: 
-        #         logger.debug(f'train list entry not tuple: {type(train_list[0])}')
-        #     elif type(train_list[0][0]) != str: 
-        #         logger.debug(f'train list entry not str: {type(train_list[0][0])}')
+        self._prepare_collections(inputs_copy, num_group_keys)
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ If there are multiple endogenous series, primitive will fit VAR model. Otherwise it will fit an ARIMA 
@@ -515,23 +319,22 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             Returns:
                 CallResult[None]
         """
-
+ 
         # mark if data is exclusively positive
         self._values = [sequence.values for sequence in self._X_train]
-        self._positive = [True if np.min(vals) < 0 else False for vals in self._values]
+        #self._positive = [True if np.min(vals) < 0 else False for vals in self._values]
 
         # difference data - VAR assumes data is stationary
         self._values_diff = [np.diff(sequence,axis=0) for sequence in self._X_train]
-
-        # TODO always handle potential redundant columns
 
         # define models
         if self.hyperparams["max_lag_order"] is None:
             arima_max_order = 5
         else:
             arima_max_order = self.hyperparams["max_lag_order"]
+        
         self.models = [
-            vector_ar(vals, dates=original.index)
+            vector_ar(vals, dates=original.index, freq = self._freq)
             if vals.shape[1] > 1
             else Arima(
                 seasonal=self.hyperparams["seasonal"],
@@ -542,110 +345,9 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             for vals, original in zip(self._values_diff, self._X_train)
         ]
 
-        # fit models
-        for vals, model, original in zip(self._values_diff, self.models, self._X_train):
-            # VAR
-            if vals.shape[1] > 1:
-                try:
-                    lags = model.select_order(
-                        maxlags=self.hyperparams["max_lag_order"]
-                    ).bic
-                    logger.info(
-                        "Successfully performed model order selection. Optimal order = {} lags".format(
-                            lags
-                        )
-                    )
-                except np.linalg.LinAlgError:
-                    lags = self.hyperparams["default_lag_order"]
-                    logger.debug(
-                        f"Matrix decomposition error. Using default lag order of {lags}"
-                    )
-                except ValueError as e:
-                    lags = 0
-                    logger.debug('ValueError: ' + str(e) + '. Using lag order of 0')
-                self._lag_order.append(lags)
-                self._fits.append(model.fit(maxlags=lags))
+        self._robust_fit(self.models, self._values_diff, self._X_train)
 
-            # ARIMA
-            else:
-                X_train = pd.Series(
-                    data=vals.reshape((-1,)), index=original.index[: vals.shape[0]]
-                )
-                model.fit(X_train)
-                self._lag_order.append(None)
-                self._fits.append(model)
-
-        self._is_fit = True
         return CallResult(None, has_finished=self._is_fit)
-
-    def _calculate_prediction_intervals(
-        self, inputs: Inputs, grouping_key_ct: int
-    ) -> typing.Tuple[
-        typing.Sequence[int],
-        typing.Sequence[typing.Sequence[int]],
-        typing.Sequence[typing.Sequence[typing.Any]],
-    ]:
-        """ private util function that uses learned grouping keys to extract horizon, 
-            horizon intervals and d3mIndex information
-
-            Arguments:
-                inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
-                grouping_key_ct {int} -- number of grouping keys
-
-            Returns:
-                tuple(Sequence[int]) -- number of periods to predict (per forecast)
-                Sequence[Sequence[int]] -- prediction slices (per forecast)
-                Sequence(Sequence[Any]] -- indices of predictions (per forecast)
-        """
-
-        # check whether no grouping keys are labeled
-        if grouping_key_ct == 0:
-            group_tuple = ((None, inputs),)
-        else:
-            group_tuple = inputs.groupby(self.filter_idxs)
-
-        # groupby learned filter_idxs and extract n_periods, interval and d3mIndex information
-        n_periods = [1 for i in range(len(self._X_train))]
-        intervals = [None for i in range(len(self._X_train))]
-        d3m_indices = [None for i in range(len(self._X_train))]
-        for _, group in group_tuple:
-            if grouping_key_ct > 2:
-                group_value = tuple([group[self.filter_idxs[i]].values[0] for i in range(len(self.filter_idxs) - 1)])
-            elif grouping_key_ct > 1:
-                group_value = group[self.filter_idxs[0]].values[0]
-            if grouping_key_ct > 1:
-                testing_idx = np.where(
-                    self.interpolation_ranges.index.to_flat_index() == group_value
-                )[0][0]
-            else:
-                testing_idx = 0
-            min_train_idx = self._X_train[testing_idx].index[0]
-            time_diff = (
-                self._X_train[testing_idx].index[1] - min_train_idx
-            ).total_seconds()
-            local_intervals = discretize_time_difference(
-                group[self.time_column], min_train_idx, self.freq
-            )
-
-            # save n_periods prediction information
-            num_p = int(max(local_intervals) - self._X_train[testing_idx].shape[0] + 1)
-            if n_periods[testing_idx] < num_p:
-                n_periods[testing_idx] = num_p
-
-            # save interval prediction information
-            if intervals[testing_idx] is None:
-                intervals[testing_idx] = [local_intervals]
-            else:
-                intervals[testing_idx].append(local_intervals)
-
-            # save d3m indices prediction information
-            idxs = group.iloc[:, self.key[0]].values
-            if d3m_indices[testing_idx] is None:
-                d3m_indices[testing_idx] = [idxs]
-            else:
-                d3m_indices[testing_idx].append(idxs)
-
-        return n_periods, intervals, d3m_indices
 
     def produce(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
@@ -653,7 +355,7 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         """ prediction for future time series data
 
         Arguments:
-            inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
+            inputs {Inputs} -- attribute dataframe
         
         Keyword Arguments:
             timeout {float} -- timeout, not considered (default: {None})
@@ -663,137 +365,39 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             PrimitiveNotFittedError: if primitive not fit
         
         Returns:
-            CallResult[Outputs] -- (N, 2) dataframe with d3m_index and value for each prediction slice requested.
-                prediction slice = specific horizon idx for specific series in specific regression 
+            CallResult[Outputs] -- predictions for each prediction interval requested
         """
-        if not self._is_fit:
-            raise PrimitiveNotFittedError("Primitive not fitted.")
+        
+        return self._produce(inputs)
 
-        # make copy of input data!
-        inputs_copy = inputs.copy()
+    def produce_confidence_intervals(
+        self, *, inputs: Inputs, timeout: float = None, iterations: int = None
+    ) -> CallResult[Outputs]:
+        """ produce confidence intervals for each series 
+        
+        Arguments:
+            inputs {Inputs} -- attribute dataframe
+        
+        Keyword Arguments:
+            timeout {float} -- timeout, not considered (default: {None})
+            iterations {int} -- iterations, not considered (default: {None})
 
-        # if datetime columns are integers, parse as # of days
-        if self.integer_time:
-            inputs_copy[self.time_column] = pd.to_datetime(
-                inputs_copy[self.time_column] - 1, unit="D"
-            )
-        else:
-            inputs_copy[self.time_column] = pd.to_datetime(
-                inputs_copy[self.time_column], unit="s"
-            )
+        Raises:
+            PrimitiveNotFittedError: if primitive not fit
+        
+        Returns:
+            CallResult[Outputs] -- predictions for each prediction interval requested
 
-        # sort by time column
-        inputs_copy = inputs_copy.sort_values(by = [self.time_column])
+            Ex. 
+                 tgt  | tgt-0.05 | tgt-0.95
+                ----------------------------
+                  5   |     3    |    7
+                  6   |     4    |    8
+                  5   |     3    |    7
+                  6   |     4    |    8
+        """
 
-        # find marked 'GroupingKey' or 'SuggestedGroupingKey'
-        grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/GroupingKey"
-        )
-        suggested_grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
-            "https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey"
-        )
-        if len(grouping_keys) == 0:
-            grouping_keys = suggested_grouping_keys
-        else:
-            inputs_copy = inputs_copy.drop(columns=[list(inputs_copy)[i] for i in suggested_grouping_keys])
-
-        # groupby learned filter_idxs and extract n_periods, interval and d3mIndex information
-        n_periods, intervals, d3m_indices = self._calculate_prediction_intervals(
-            inputs_copy, len(grouping_keys)
-        )
-
-        # produce future forecast using VAR / ARMA
-        future_forecasts = [
-            fit.forecast(y = vals[vals.shape[0]-fit.k_ar:], 
-                steps = n)
-            if lags is not None and lags > 0
-            else np.repeat(fit.params, n, axis = 0)
-            if lags == 0 
-            else fit.predict(n_periods = n).reshape(-1,1)
-            for fit, vals, lags, n in zip(
-                self._fits, self._values_diff, self._lag_order, n_periods
-            )
-        ]
-
-        # prepend in-sample predictions
-        future_forecasts = [
-            np.concatenate((vals[:1], vals_diff[:1], fit.predict_in_sample().reshape(-1,1), pred), axis = 0)
-            if lags is None
-            else np.concatenate((vals[:1], vals_diff[:lags], fit.fittedvalues, pred), axis = 0)
-            for fit, pred, lags, vals, vals_diff
-            in zip(self._fits, future_forecasts, self._lag_order, self._values, self._values_diff)
-        ]
-
-        # undo differencing transformation, convert to df
-        future_forecasts = [pd.DataFrame(future_forecast.cumsum(axis=0)) for future_forecast in future_forecasts]
-
-        # apply invariances (real, positive data AND rounding NA / INF values)
-        future_forecasts = [
-            f.clip(lower = 0).replace(np.inf, np.nan)
-            if not positive 
-            else f.replace(np.inf, np.nan)
-            for f, positive in zip(future_forecasts, self._positive)
-        ]
-        future_forecasts = [f.fillna(f.mean()) for f in future_forecasts]
-
-        # select predictions to return based on intervals
-        key_names = [list(inputs)[k] for k in self.key]
-        var_df = pd.DataFrame([], columns=key_names + self._targets)
-
-        # TODO speed up nested for loops
-        for forecast, interval, idxs in zip(future_forecasts, intervals, d3m_indices):
-            if interval is not None:
-                for row, col, d3m_idx in zip(interval, range(len(interval)), idxs):
-                    # if new col in test (endogenous variable), average over all other cols
-                    if col >= forecast.shape[1]:
-                        logger.debug('Needed new forecast column!')
-                        preds = forecast.mean(axis = 1).replace(np.inf, MAX_INT)
-                        preds = pd.concat([preds] * len(self.target_indices), axis=1)
-                    else:
-                        cols = [col + t for t in self.target_indices]
-                        preds = forecast[cols]
-                    for r, i in zip(row, d3m_idx):
-                        var_df.loc[var_df.shape[0]] = [i, *preds.iloc[r].values]
-        var_df = d3m_DataFrame(var_df)
-        var_df.iloc[:, 0] = var_df.iloc[:, 0].astype(int)
-
-        # first column ('d3mIndex')
-        col_dict = dict(var_df.metadata.query((metadata_base.ALL_ELEMENTS, 0)))
-        col_dict["structural_type"] = type("1")
-        col_dict["name"] = key_names[0]
-        col_dict["semantic_types"] = (
-            "http://schema.org/Integer",
-            "https://metadata.datadrivendiscovery.org/types/PrimaryKey",
-        )
-        var_df.metadata = var_df.metadata.update(
-            (metadata_base.ALL_ELEMENTS, 0), col_dict
-        )
-
-        # assign target metadata and round appropriately
-        for (index, name), target_type in zip(
-            enumerate(self._targets), self._target_types
-        ):
-            col_dict = dict(
-                var_df.metadata.query((metadata_base.ALL_ELEMENTS, index + 1))
-            )
-            col_dict["structural_type"] = type("1")
-            col_dict["name"] = name
-            col_dict["semantic_types"] = (
-                "https://metadata.datadrivendiscovery.org/types/PredictedTarget",
-            )
-            if target_type == "i":
-                var_df[name] = var_df[name].astype(int)
-                col_dict["semantic_types"] += ("http://schema.org/Integer",)
-            elif target_type == "c":
-                col_dict["semantic_types"] += (
-                    "https://metadata.datadrivendiscovery.org/types/CategoricalData",
-                )
-            else:
-                col_dict["semantic_types"] += ("http://schema.org/Float",)
-            var_df.metadata = var_df.metadata.update(
-                (metadata_base.ALL_ELEMENTS, index + 1), col_dict
-            )
-        return CallResult(var_df, has_finished=self._is_fit)
+        return self._produce(inputs, return_conf_int = True)
 
     def produce_weights(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
@@ -814,12 +418,12 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
         
         Returns:
             CallResult[Outputs] -- pandas df where each row represents a unique series from one of the regressions that was fit. 
-            The columns contain the coefficients for each term in the regression, potentially aggregated by series or lag order. 
-            Column names will represent the lag order or series to which that column refers. 
-            If the regression is an ARIMA model, the set of column names will also contain AR_i (autoregressive terms) and 
-                MA_i (moving average terms)
-            Columns that are not included in the regression for a specific series will have NaN values in those
-                respective columns. 
+                The columns contain the coefficients for each term in the regression, potentially aggregated by series or lag order. 
+                Column names will represent the lag order or series to which that column refers. 
+                If the regression is an ARIMA model, the set of column names will also contain AR_i (autoregressive terms) and 
+                    MA_i (moving average terms)
+                Columns that are not included in the regression for a specific series will have NaN values in those
+                    respective columns. 
         """
 
         if not self._is_fit:
@@ -874,8 +478,8 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                 if self.hyperparams["interpret_value"] == "lag_order":
                     coef_df = pd.concat([coef_df, coef], sort = True)
 
-        if coef_df is not None:
-            logger.info(f"There was no more than one variable in each grouping of time series, " +
+        if coef_df is None:
+            logger.info(f"There was only one variable in each grouping of time series, " +
                 "therefore only ARIMA models were fit. Additionally, becasue the 'interpret_value' " +
                 "hyperparameter is set to series, this will return an empty dataframe.")
 
@@ -884,124 +488,493 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
             has_finished=self._is_fit,
         )
 
-    def produce_confidence_intervals(
-        self, *, inputs: Inputs, timeout: float = None, iterations: int = None
-    ) -> CallResult[Outputs]:
-        """ produce confidence intervals for each series 'confidence_interval_horizon' periods into 
-                the future
-        
-        Arguments:
-            inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
-        
-        Keyword Arguments:
-            timeout {float} -- timeout, not considered (default: {None})
-            iterations {int} -- iterations, considered (default: {None})
-        
-        Raises:
-            PrimitiveNotFittedError: 
-        
-        Returns:
-            CallResult[Outputs] -- 
-
-            Ex. 
-                series | timestep | mean | 0.05 | 0.95
-                --------------------------------------
-                a      |    0     |  5   |   3  |   7
-                a      |    1     |  6   |   4  |   8
-                b      |    0     |  5   |   3  |   7
-                b      |    1     |  6   |   4  |   8
+    def _get_cols(self, frame):
+        """ private util function: get indices of important columns from metadata 
         """
 
-        logger.info("This method exclusively produces confidence interval forecasts for future timesteps. It does " +
-            "not produce confidence intervals for in-sample predictions. The length of the horizon " + 
-            "can be controlled with the hyperparameter 'confidence_interval_horizon.'")
+        # mark datetime column
+        times = frame.metadata.list_columns_with_semantic_types(
+            (
+                "https://metadata.datadrivendiscovery.org/types/Time",
+                "http://schema.org/DateTime",
+            )
+        )
+        if len(times) != 1:
+            raise ValueError(
+                f"There are {len(times)} indices marked as datetime values. Please only specify one"
+            )
+        self._time_column = list(frame)[times[0]]
+
+        # mark key variable
+        self._key = frame.metadata.get_columns_with_semantic_type(
+            "https://metadata.datadrivendiscovery.org/types/PrimaryKey"
+        )
+
+        # mark target variables
+        self._targets = frame.metadata.list_columns_with_semantic_types(
+            (
+                "https://metadata.datadrivendiscovery.org/types/TrueTarget",
+                "https://metadata.datadrivendiscovery.org/types/Target",
+            )
+        )
+        self._targets = [list(frame)[t] for t in self._targets]
+
+        return times
+    
+    def _convert_times(self, frame, times):
+        """ private util function: convert to pd datetime
+
+            if datetime columns are integers, parse as # of days        
+        """
+        
+        if (
+            "http://schema.org/Integer"
+            in frame.metadata.query_column(times[0])["semantic_types"]
+        ):
+            self._integer_time = True
+            frame[self._time_column] = pd.to_datetime(
+                frame[self._time_column] - 1, unit="D"
+            )
+        else:
+            frame[self._time_column] = pd.to_datetime(
+                frame[self._time_column], unit="s"
+            )
+
+        return frame
+    
+    def _get_grouping_keys(self, frame):
+        """ see if 'GroupingKey' has been marked 
+            otherwise fall through to use 'SuggestedGroupingKey' to intelligently calculate grouping key order
+            we sort keys so that VAR can operate on as many series as possible simultaneously (reverse order)
+
+            return the number of grouping columns and list of extraneous columns that should be dropped
+        """
+        
+        grouping_keys = frame.metadata.get_columns_with_semantic_type(
+            "https://metadata.datadrivendiscovery.org/types/GroupingKey"
+        )
+        suggested_grouping_keys = frame.metadata.get_columns_with_semantic_type(
+            "https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey"
+        )
+        if len(grouping_keys) == 0:
+            grouping_keys = suggested_grouping_keys
+            drop_list = []
+        else:
+            drop_list = suggested_grouping_keys
+
+        grouping_keys_counts = [
+            frame.iloc[:, key_idx].nunique() for key_idx in grouping_keys
+        ]
+        grouping_keys = [
+            group_key
+            for count, group_key in sorted(zip(grouping_keys_counts, grouping_keys))
+        ]
+        self._filter_idxs = [list(frame)[key] for key in grouping_keys]
+
+        return len(grouping_keys), drop_list
+
+    def _prepare_collections(self, frame, num_group_keys = 0):
+        """ prepare separate collections of series on which to fit separate VAR or ARIMA models 
+
+        """
+
+        # check whether no grouping keys are labeled
+        if num_group_keys == 0:
+
+            # avg across duplicated time indices if necessary and re-index
+            if sum(frame[self._time_column].duplicated()) > 0:
+                frame = frame.groupby(self._time_column).mean()
+            else:
+                frame = frame.set_index(self._time_column)
+
+            # interpolate
+            self._freq = calculate_time_frequency(frame.index[1] - frame.index[0])
+            frame = frame.interpolate(method="time", limit_direction="both")
+
+            # set X train
+            self._target_indices = [
+                i
+                for i, col_name in enumerate(list(frame))
+                if col_name in self._targets
+            ]
+            self._X_train = [frame]
+            self._X_train_names = [frame.columns]
+
+        else:
+            # find interpolation range from outermost grouping key
+            if num_group_keys == 1:
+                date_ranges = frame.agg({self._time_column: ["min", "max"]})
+                indices = frame[self._filter_idxs[0]].unique()
+                self._interpolation_ranges = pd.Series(
+                    [date_ranges] * len(indices), index=indices
+                )
+                self._X_train = [None]
+                self._X_train_names = [None]
+            else:
+                self._interpolation_ranges = frame.groupby(
+                    self._filter_idxs[:-1], 
+                    sort = False
+                ).agg({self._time_column: ["min", "max"]})
+                self._X_train = [
+                    None 
+                    for i in range(self._interpolation_ranges.shape[0])
+                ]
+                self._X_train_names = [
+                    None 
+                    for i in range(self._interpolation_ranges.shape[0])
+                ]
+
+            for name, group in frame.groupby(self._filter_idxs, sort = False):
+                if num_group_keys > 2:
+                    group_value = name[:-1]
+                elif num_group_keys == 2:
+                    group_value = name[0]
+                else:
+                    group_value = name
+                if num_group_keys > 1:
+                    training_idx = np.where(
+                        self._interpolation_ranges.index.to_flat_index() == group_value
+                    )[0][0]
+                else:
+                    training_idx = 0
+                group = group.drop(columns=self._filter_idxs)
+
+                # avg across duplicated time indices if necessary and re-index
+                group = group.sort_values(by = [self._time_column])
+                if sum(group[self._time_column].duplicated()) > 0:
+                    group = group.groupby(self._time_column).mean()
+                else:
+                    group = group.set_index(self._time_column)
+
+                # interpolate
+                min_date = self._interpolation_ranges.loc[group_value][self._time_column][
+                    "min"
+                ]
+                max_date = self._interpolation_ranges.loc[group_value][self._time_column][
+                    "max"
+                ]
+                # assume frequency is the same across all time series
+                if self._freq is None:
+                    self._freq = calculate_time_frequency(group.index[1] - group.index[0])
+                
+                group = group.reindex(
+                    pd.date_range(min_date, max_date, freq = self._freq), 
+                )
+                group = group.interpolate(method="time", limit_direction="both")
+
+                # add to training data under appropriate top-level grouping key
+                self._target_indices = [
+                    i
+                    for i, col_name in enumerate(list(group))
+                    if col_name in self._targets
+                ]
+                if self._X_train[training_idx] is None:
+                    self._X_train[training_idx] = group
+                else:
+                    self._X_train[training_idx] = pd.concat(
+                        [self._X_train[training_idx], group], axis=1
+                    )
+                if self._X_train_names[training_idx] is None:
+                    self._X_train_names[training_idx] = [name]
+                else:
+                    self._X_train_names[training_idx].append(name)
+
+    def _robust_fit(self, models, training_data, training_times):
+        """ fit models, robustly recover from matrix decomposition errors and other fitting
+            errors
+        """
+
+        for vals, model, original in zip(training_data, models, training_times):
+            # VAR
+            if vals.shape[1] > 1:
+                try:
+                    lags = model.select_order(
+                        maxlags=self.hyperparams["max_lag_order"]
+                    ).bic
+                    logger.info(
+                        "Successfully performed model order selection. Optimal order = {} lags".format(
+                            lags
+                        )
+                    )
+                except np.linalg.LinAlgError:
+                    lags = self.hyperparams["default_lag_order"]
+                    logger.debug(
+                        f"Matrix decomposition error. Using default lag order of {lags}"
+                    )
+                except ValueError as e:
+                    lags = 0
+                    logger.debug('ValueError: ' + str(e) + '. Using lag order of 0')
+                self._lag_order.append(lags)
+                self._fits.append(model.fit(maxlags=lags))
+
+            # ARIMA
+            else:
+                X_train = pd.Series(
+                    data=vals.reshape((-1,)), index=original.index[: vals.shape[0]]
+                )
+                model.fit(X_train)
+                self._lag_order.append(None)
+                self._fits.append(model)
+
+        self._is_fit = True
+
+    def _calculate_prediction_intervals(self, inputs: Inputs, num_group_keys: int):
+        """ private util function that uses learned grouping keys to extract horizon, 
+            horizon intervals, and forecast_idxs
+        """
+
+        # check whether no grouping keys are labeled
+        if num_group_keys == 0:
+            group_tuple = ((self._X_train_names[0][0], inputs),)
+        else:
+            group_tuple = inputs.groupby(self._filter_idxs, sort=False)
+
+        # groupby learned filter_idxs and extract n_periods, interval and d3mIndex information
+        n_periods = [0 for i in range(len(self._X_train))]
+        forecast_idxs = []
+        intervals = []
+        for name, group in group_tuple:
+            if num_group_keys > 2:
+                group_value = name[:-1]
+            elif num_group_keys == 2:
+                group_value = name[0]
+            else:
+                group_value = name
+
+            if num_group_keys > 1:
+                testing_idx = np.where(
+                    self._interpolation_ranges.index.to_flat_index() == group_value
+                )[0][0]
+            else:
+                testing_idx = 0
+
+            col_idxs = [
+                i for i, tupl in enumerate(self._X_train_names[testing_idx])
+                if tupl == name
+            ]
+
+            if not len(col_idxs):
+                logger.info(
+                    f'Series with category {name} did not exist in training data, ' +
+                    f'These predictions will be returned as np.nan.'
+                )
+                col_idx = -1
+            else:
+                col_idx = col_idxs[0]
+            forecast_idxs.append((testing_idx, col_idx))
+
+            min_train_idx = self._X_train[testing_idx].index[0]
+            local_intervals = discretize_time_difference(
+                group[self._time_column], min_train_idx, self._freq
+            )
+            intervals.append(local_intervals)
+
+            num_p = int(max(local_intervals) - self._X_train[testing_idx].shape[0] + 1)
+            if n_periods[testing_idx] < num_p:
+                n_periods[testing_idx] = num_p
+
+        return n_periods, forecast_idxs, intervals
+
+    def _forecast(self, n_periods, return_conf_int = False):
+        """ make future forecasts using models, prepend in-sample predictions, inverse transformations
+            using information extracted from prediction intervals
+        """
+
+        forecasts = []
+        for fit, lags, vals, vals_diff, horizon in zip(
+            self._fits, 
+            self._lag_order, 
+            self._values, 
+            self._values_diff, 
+            n_periods
+        ):
+            if lags is None:
+                preds = np.concatenate(
+                    (vals[:1], vals_diff[:1], fit.predict_in_sample().reshape(-1,1)), 
+                    axis = 0
+                )
+            else:
+                preds = np.concatenate(
+                    (vals[:1], vals_diff[:lags], fit.fittedvalues), 
+                    axis = 0
+                )
+            in_sample_len = preds.shape[0]
+            
+            if horizon > 0:
+
+                if return_conf_int:
+                    alpha = self.hyperparams['confidence_interval_alpha']
+                    means, lowers, uppers = [], [], []
+                    if lags is not None and lags > 0:
+                        mean, lower, upper = fit.forecast_interval(
+                            y = vals_diff[-fit.k_ar:], 
+                            steps = horizon, 
+                            alpha = alpha
+                        )
+                    elif lags == 0:  
+                        sigma = np.sqrt(fit._forecast_vars(horizon))
+                        q = stats.norm.ppf(1 - alpha / 2)
+                        mean = np.repeat(fit.params, horizon, axis = 0)
+                        lower = np.repeat(fit.params - q * sigma, horizon, axis = 0)
+                        upper = np.repeat(fit.params + q * sigma, horizon, axis = 0)
+                    else:
+                        mean, lower, upper = fit.predict(
+                            n_periods = horizon, 
+                            return_conf_int = True, 
+                            alpha = alpha
+                        )
+                        if len(mean.shape) == 1:
+                            mean = mean.reshape(-1, 1)
+                            lower = lower.reshape(-1, 1)
+                            upper = upper.reshape(-1, 1)
+
+                    preds = [
+                        np.concatenate((preds, mean), axis = 0),
+                        np.concatenate((preds, lower), axis = 0),
+                        np.concatenate((preds, upper), axis = 0),
+                    ]
+                    preds = [p.cumsum(axis = 0) for p in preds]
+                    preds[1][:in_sample_len] = np.nan
+                    preds[2][:in_sample_len] = np.nan
+
+                else:
+                    if lags is not None and lags > 0:
+                        mean = fit.forecast(
+                            y = vals_diff[-fit.k_ar:], 
+                            steps = horizon
+                        )
+                    elif lags == 0:
+                        mean = np.repeat(fit.params, horizon, axis = 0)
+                    else:
+                        mean = fit.predict(n_periods = horizon).reshape(-1, 1)
+                    
+                    preds = np.concatenate((preds, mean), axis = 0)
+                    preds = [preds.cumsum(axis = 0)]
+            
+            else:
+                preds = [preds.cumsum(axis = 0)]
+
+                if return_conf_int:
+                    nan_array = np.empty(preds[0].shape)
+                    nan_array[:] = np.nan
+                    preds.append(nan_array)
+                    preds.append(nan_array)
+
+            preds = [pd.DataFrame(p) for p in preds]
+            forecasts.append(preds) 
+
+        return forecasts
+
+    def _produce(
+        self, inputs: Inputs, return_conf_int: bool = False
+    ) -> CallResult[Outputs]:
+        """ prediction for future time series data
+        """
 
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
 
-        horizon = self.hyperparams['confidence_interval_horizon']
-        alpha = self.hyperparams['confidence_interval_alpha']
+        # make copy of input data!
+        inputs_copy = inputs.copy()
 
-        # produce confidence interval forecasts using VAR / ARIMA
-        confidence_intervals = []
-        for fit, vals, vals_diff, lags in zip(self._fits, self._values, self._values_diff, self._lag_order):
-            if lags is not None and lags > 0:
-                forecast = fit.forecast_interval(y = vals_diff[-fit.k_ar:], 
-                    steps = horizon, 
-                    alpha = alpha)
-                
-                # undo differencing transforms
-                forecast = [f.cumsum(axis = 0) for f in forecast]
-                forecast += np.sum(np.concatenate((vals[:1], vals_diff[:lags], fit.fittedvalues), axis = 0), axis = 0)
-                confidence_intervals.append(forecast)
-            elif lags == 0:
-                q = stats.norm.ppf(1 - alpha / 2)
-                mean = np.repeat(fit.params, horizon, axis = 0)
-                lower = np.repeat(fit.params - q * fit.stderr, horizon, axis = 0)
-                upper = np.repeat(fit.params + q * fit.stderr, horizon, axis = 0)
-
-                # undo differencing transforms
-                offset = np.sum(np.concatenate((vals[:1], vals_diff[:lags], fit.fittedvalues), axis = 0), axis = 0)
-                mean = mean.cumsum(axis = 0) + offset
-                lower = lower.cumsum(axis = 0) + offset
-                upper = upper.cumsum(axis = 0) + offset
-                confidence_intervals.append(
-                    (mean, lower, upper)
-                )
-            else:
-                forecast = fit.predict(n_periods = horizon, 
-                    return_conf_int = True, 
-                    alpha = alpha)
-
-                # undo differencing transforms
-                forecast = [f.cumsum(axis = 0) for f in forecast]
-                forecast += np.sum(np.concatenate((vals[:1], vals_diff[:1], fit.predict_in_sample().reshape(-1,1)), axis = 0), axis = 0)
-                confidence_intervals.append(forecast)
-
-        # combine into long form df
-        series_names = [
-            [[name] * horizon for name in name_list] 
-            for name_list in self._X_train_names
-        ]
-        series_names = [
-            [name for sub_name_list in name_list for name in sub_name_list] 
-            for name_list in series_names
-        ]
-
-        confidence_intervals = [
-            pd.DataFrame(
-                np.concatenate(
-                    [
-                        point_estimate.flatten(order = 'F').reshape(-1, 1)    
-                        for point_estimate in interval
-                    ], 
-                    axis = 1
-                ), 
-                index = names, 
-                columns = ['mean', str(alpha / 2), str(1 - alpha / 2)]
+        # if datetime columns are integers, parse as # of days
+        if self._integer_time:
+            inputs_copy[self._time_column] = pd.to_datetime(
+                inputs_copy[self._time_column] - 1, unit="D"
             )
-            for interval, names in zip(confidence_intervals, series_names)
-        ]
+        else:
+            inputs_copy[self._time_column] = pd.to_datetime(
+                inputs_copy[self._time_column], unit="s"
+            )
 
-        # apply invariances (real, positive data AND rounding NA / INF values)
-        confidence_intervals = [
-            ci.clip(lower = 0)#.replace(np.inf, np.nan)
-            #if not positive 
-            #else ci.replace(np.inf, np.nan)
-            for ci, positive in zip(confidence_intervals, self._positive) if not positive 
-        ]
-        #confidence_intervals = [ci.fillna(ci.mean()) for ci in confidence_intervals]
-        interval_df = pd.concat(confidence_intervals)
-
-        # add timestep column and series index column
-        interval_df['horizon_index'] = np.tile(np.arange(horizon), len(interval_df.index.unique()))
-        interval_df['series'] = interval_df.index
-        if isinstance((interval_df['series'][0]), typing.Tuple):
-            interval_df['series'] = interval_df['series'].apply(lambda s: '|'.join(s))
-   
-        return CallResult(
-            container.DataFrame(interval_df, generate_metadata=True),
-            has_finished=self._is_fit,
+        # find marked 'GroupingKey' or 'SuggestedGroupingKey'
+        grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
+            "https://metadata.datadrivendiscovery.org/types/GroupingKey"
         )
+        suggested_grouping_keys = inputs_copy.metadata.get_columns_with_semantic_type(
+            "https://metadata.datadrivendiscovery.org/types/SuggestedGroupingKey"
+        )
+        if len(grouping_keys) == 0:
+            grouping_keys = suggested_grouping_keys
+        else:
+            inputs_copy = inputs_copy.drop(
+                columns=[list(inputs_copy)[i] for i in suggested_grouping_keys]
+            )
 
+        # extract n_periods, interval 
+        n_periods, forecast_idxs, all_intervals = self._calculate_prediction_intervals(
+            inputs_copy, len(grouping_keys)
+        )
+        forecasts = self._forecast(n_periods, return_conf_int = return_conf_int)
+        
+        a = self.hyperparams['confidence_interval_alpha']
+        if return_conf_int:
+            columns = [
+                [t, f'{t}-{a/2}', f'{t}-{1-a/2}']
+                for t in self._targets
+            ]
+            columns = [cols for cols in columns]
+        else:
+            columns = self._targets
 
+        var_df = []
+        for (grp_idx, col_idx), intervals in zip(forecast_idxs, all_intervals):
+            forecast = forecasts[grp_idx]
+            if col_idx == -1:
+                
+                nan_array = np.empty((
+                    len(intervals), 
+                    len(forecast) * len(self._target_indices)
+                ))
+                nan_array[:] = np.nan
+                data = pd.DataFrame(nan_array)
+            else:
+                col_idxs = [col_idx + target for target in self._target_indices]
+                data = [f.iloc[intervals, col_idxs] for f in forecast]
+                data = pd.concat(data, axis=1)
+            data.columns = columns
+            var_df.append(data)
+        var_df = pd.concat(var_df, axis = 0, ignore_index = True)
+        var_df = d3m_DataFrame(var_df)
+
+        # assign target metadata and round appropriately
+        idx = 0
+        for tgt_name in self._targets:
+            col_dict = dict(
+                var_df.metadata.query((metadata_base.ALL_ELEMENTS, idx))
+            )
+            col_dict["structural_type"] = type("1")
+            col_dict["name"] = tgt_name
+            col_dict["semantic_types"] = (
+                "https://metadata.datadrivendiscovery.org/types/PredictedTarget",
+                "http://schema.org/Float"
+            )
+            var_df.metadata = var_df.metadata.update(
+                (metadata_base.ALL_ELEMENTS, idx), col_dict
+            )
+
+            if return_conf_int:
+                col_dict_lower = dict(
+                    var_df.metadata.query((metadata_base.ALL_ELEMENTS, idx+1))
+                )
+                col_dict_upper = dict(
+                    var_df.metadata.query((metadata_base.ALL_ELEMENTS, idx+2))
+                )
+                col_dict_lower["structural_type"] = type("1")
+                col_dict_upper["structural_type"] = type("1")
+                col_dict_lower["semantic_types"] = ("http://schema.org/Float",)
+                col_dict_upper["semantic_types"] = ("http://schema.org/Float",)
+                col_dict_lower["name"] = f'{tgt_name}-{a/2}'
+                col_dict_upper["name"] = f'{tgt_name}-{1-a/2}'
+                var_df.metadata = var_df.metadata.update(
+                    (metadata_base.ALL_ELEMENTS, idx + 1), col_dict_lower
+                )    
+                var_df.metadata = var_df.metadata.update(
+                    (metadata_base.ALL_ELEMENTS, idx + 2), col_dict_upper
+                )
+                
+                idx += 3
+            else:
+                idx += 1
+
+        return CallResult(var_df, has_finished=self._is_fit)
