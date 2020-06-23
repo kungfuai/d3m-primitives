@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import logging
 import time
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 from collections import OrderedDict
 
 import numpy as np
@@ -34,7 +34,6 @@ Outputs = container.DataFrame
 
 logger = logging.getLogger(__name__)
 
-## TODO what can we encapsulate in DeepARDataset
 class Params(params.Params):
     deepar_dataset: DeepARDataset
     is_fit: bool
@@ -46,8 +45,9 @@ class Params(params.Params):
     group_cols: List[int]
     output_column: str
     min_trains: Union[
-        pd._libs.tslibs.timestamps.Timestamp, 
-        Dict[str, pd._libs.tslibs.timestamps.Timestamp]
+        List[pd._libs.tslibs.timestamps.Timestamp], 
+        Dict[str, pd._libs.tslibs.timestamps.Timestamp],
+        Dict[Tuple, pd._libs.tslibs.timestamps.Timestamp]
     ]
 
 class Hyperparams(hyperparams.Hyperparams):
@@ -126,7 +126,7 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="learning rate",
     )
-    batch_size = hyperparams.UniformInt(
+    training_batch_size = hyperparams.UniformInt(
         lower=1,
         upper=256,
         default=32,
@@ -134,7 +134,17 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="batch size",
+        description="training batch size",
+    )
+    inference_batch_size = hyperparams.UniformInt(
+        lower=1,
+        upper=1024,
+        default=256,
+        upper_inclusive=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+        ],
+        description="training batch size",
     )
     dropout_rate = hyperparams.Uniform(
         lower=0.0,
@@ -330,7 +340,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             trainer=Trainer(
                 epochs=iterations,
                 learning_rate=self.hyperparams['learning_rate'], 
-                batch_size=self.hyperparams['batch_size'],
+                batch_size=self.hyperparams['training_batch_size'],
                 num_batches_per_epoch=self.hyperparams['steps_per_epoch']
             )
         )
@@ -338,6 +348,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         logger.info(f"Fitting for {iterations} iterations")
         start_time = time.time()
         predictor = estimator.train(self._train_data)
+        predictor.batch_size = self.hyperparams['inference_batch_size']
         self._is_fit = True
         logger.info(f"Fit for {iterations} epochs, took {time.time() - start_time}s")
 
@@ -523,7 +534,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                     max_train_length = df.shape[0]
                 all_dfs.append(df)
                 min_trains[grp] = df.index[0]
-                #print(f'min train grp: {grp}, val: {df.index[0]}')
                 original_times[grp] = orig_times
             return pd.concat(all_dfs), min_trains, max_train_length, original_times
 
@@ -619,7 +629,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             all_intervals = []
             for grp, times in original_times.items():
                 if grp in self._min_trains.keys():
-                    #print(f'grp: {grp}, times 0: {times.iloc[0]}, min train: {self._min_trains[grp]}')
                     intervals = discretize_time_difference(
                         times,
                         self._min_trains[grp],
@@ -632,7 +641,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                         f'These predictions will be returned as np.nan.'
                     )
                     intervals = np.zeros(times.shape[0]).astype(int)
-                #print(f'min interval: {min(intervals)}')       
                 all_intervals.append(np.array(intervals) + 1)
         return all_intervals
 
@@ -650,11 +658,8 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self.hyperparams['number_samples'],
             self.hyperparams['quantiles']
         )
-        #print(test_frame.groupby('Company', sort=False).groups.keys())
         test_frame, _, _, original_times = self._reindex(test_frame)
-        #print(f'orig times shape: {sum([p.shape[0] for g, p in original_times.items()])}')
         pred_intervals = self._get_pred_intervals(original_times)
-        #print(f'pred int shape: {sum([p.shape[0] for p in pred_intervals])}, len {len(pred_intervals)}')
 
         st = time.time()
         preds = deepar_forecast.predict(test_frame, pred_intervals)
