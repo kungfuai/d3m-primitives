@@ -57,6 +57,9 @@ class ObjectDetectionRNPipeline(PipelineBase):
         step.add_hyperparameter(
             name='n_steps', argument_type=ArgumentType.VALUE, data=n_steps
         )
+        step.add_hyperparameter(
+            name='weights_path', argument_type=ArgumentType.VALUE, data='/scratch_dir/'
+        )
         step.add_output('produce')
         pipeline_description.add_step(step) 
 

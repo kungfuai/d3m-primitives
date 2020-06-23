@@ -189,7 +189,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         super().__init__(hyperparams=hyperparams, random_seed=random_seed)
 
         # set seed for reproducibility
-        tf.random.set_seed(random_seed)
+        # tf.random.set_seed(random_seed)
 
         self._is_fit = False
 
@@ -274,7 +274,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         # calculate inverse class weights
         counts = np.bincount(y_ind).astype(np.float32)
         weights = [count / sum(counts) for count in counts]
-        self._class_weights = [1 / w for w in weights]
+        self._class_weights = {i: 1 / w for i, w in enumerate(weights)}
 
         # convert labels to categorical
         self._n_classes = len(np.unique(y_ind))

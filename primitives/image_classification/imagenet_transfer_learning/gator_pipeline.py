@@ -151,6 +151,9 @@ class GatorPipeline(PipelineBase):
         step.add_hyperparameter(
             name='all_layer_epochs', argument_type=ArgumentType.VALUE, data=all_layer_epochs
         )
+        step.add_hyperparameter(
+            name='weights_filepath', argument_type=ArgumentType.VALUE, data='/scratch_dir/model_weights.h5'
+        )
         step.add_output("produce")
         pipeline_description.add_step(step)
         

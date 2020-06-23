@@ -42,7 +42,7 @@ def calculate_time_frequency(time_diff, model = 'var'):
     """
 
     return_strings = {
-        'var': ["YS", "MS", "M", "W", "D", "H", "S"],
+        'var': ["YS", "MS", "M", "W-MON", "D", "H", "S"],
         'deep_ar': [
             ("12M", "YS"), 
             ("M", "MS"),
@@ -64,9 +64,6 @@ def calculate_time_frequency(time_diff, model = 'var'):
     elif time_diff % S_PER_YEAR_1 == 0:
         logger.debug("granularity is years")
         return return_strings[model][0]
-    ## TODO - currently hacky solution because PHEM monthly is end of month (want return 'M')
-    #         sunspots monthly is beginning of month (want return 'MS')
-    #         should have robust way of differentiating
     elif time_diff % S_PER_MONTH_31 == 0:
         # Sunspots monthly
         logger.debug("granularity is months 31")
@@ -129,7 +126,7 @@ def discretize_time_difference(
         time_differences = [round(x / S_PER_YEAR_0) for x in time_differences]
     elif frequency == "MS" or frequency == 'M':
         time_differences = [round(x * 2 / (S_PER_MONTH_30 + S_PER_MONTH_31)) for x in time_differences]
-    elif frequency == "W":
+    elif frequency == "W" or frequency == "W-MON":
         time_differences = [round(x / S_PER_WEEK) for x in time_differences]
     elif frequency == "D":
         time_differences = [round(x / S_PER_DAY) for x in time_differences]

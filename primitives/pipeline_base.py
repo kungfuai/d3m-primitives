@@ -106,6 +106,37 @@ class PipelineBase:
         subprocess.run(proc_cmd, check=True)
         print(f'Fitting and producing pipeline took {(time.time() - st) / 60} mins')
 
+    def fit_produce_all(self, dataset):
+        
+        if not os.path.isfile(self.outfile_string):
+            raise ValueError("Must call 'write_pipeline()' method first")
+        
+        proc_cmd = [
+            "python3",
+            "-m",
+            "d3m",
+            "runtime", 
+            "-d", 
+            "/datasets",
+            "-v" ,
+            "/static_volumes",
+            "-s",
+            "/scratch_dir",
+            "fit-produce", 
+            "-p", 
+            self.outfile_string,
+            "-i",
+            f"/datasets/seed_datasets_current/{dataset}/TRAIN/dataset_TRAIN/datasetDoc.json",
+            "-r",
+            f"/datasets/seed_datasets_current/{dataset}/{dataset}_problem/problemDoc.json",
+            "-t",
+            f"/datasets/seed_datasets_current/{dataset}/{dataset}_dataset/datasetDoc.json",
+        ]
+
+        st = time.time()
+        subprocess.run(proc_cmd, check=True)
+        print(f'Fitting and producing pipeline took {(time.time() - st) / 60} mins')
+
     def fit_score(self, dataset, output_yml_dir = '.', output_score_dir = '.', submission = False, suffix = None):
         
         if not os.path.isfile(self.outfile_string):
