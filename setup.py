@@ -19,6 +19,7 @@ setup(
         "albumentations",
         "tifffile",
         "scikit-image==0.16.1",
+        "tensorflow-gpu==2.2.0",
         "punk @ git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk",
         "object_detection_retinanet @ git+https://github.com/uncharted-distil/object-detection-retinanet@f02652a00b3cd81a5c37f5c34da0daaa541dffb1#egg=object_detection_retinanet",
         "Simon @ git+https://github.com/uncharted-distil/simon@00422bbdc9caa09b867f8b5f583487b59b605de0#egg=Simon-1.2.5",

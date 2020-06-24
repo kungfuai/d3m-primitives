@@ -115,7 +115,7 @@ class SpectralClusteringPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hype
     
         targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/TrueTarget')
         if not len(targets):
-            targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/TrueTarget')
+            targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/Target')
         if not len(targets):
             targets = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/SuggestedTarget')
         target_names = [list(inputs)[t] for t in targets]

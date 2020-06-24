@@ -115,8 +115,12 @@ class RfFeaturesPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
 
         # remove primary key and targets from feature selection
         inputs_primary_key = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/PrimaryKey')
-        inputs_target = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/Target')
-
+        inputs_target = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/TrueTarget')
+        if not len(inputs_target):
+            inputs_target = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/Target')
+        if not len(inputs_target):
+            inputs_target = inputs.metadata.get_columns_with_semantic_type('https://metadata.datadrivendiscovery.org/types/SuggestedTarget')
+            
         # extract numeric columns and suggested target
         if self.hyperparams['only_numeric_cols']:
             inputs_float = inputs.metadata.get_columns_with_semantic_type('http://schema.org/Float')
