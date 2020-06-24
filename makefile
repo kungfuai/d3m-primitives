@@ -15,6 +15,7 @@ test:
 
 annotations:
 	@echo "Generating json annotations for all primitives"
+	rm -r annotations
 	docker-compose run --rm kf-d3m-primitives python3 kf-d3m-primitives/generate_annotations.py
 
 pipelines-cpu:

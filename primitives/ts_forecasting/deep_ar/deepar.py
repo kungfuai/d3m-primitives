@@ -47,7 +47,7 @@ class Params(params.Params):
     min_trains: Union[
         List[pd._libs.tslibs.timestamps.Timestamp], 
         Dict[str, pd._libs.tslibs.timestamps.Timestamp],
-        Dict[Tuple, pd._libs.tslibs.timestamps.Timestamp]
+        Dict[Tuple[str], pd._libs.tslibs.timestamps.Timestamp]
     ]
 
 class Hyperparams(hyperparams.Hyperparams):
@@ -144,7 +144,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="training batch size",
+        description="inference batch size",
     )
     dropout_rate = hyperparams.Uniform(
         lower=0.0,
