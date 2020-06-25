@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import logging
 import time
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict, Tuple, Any
 from collections import OrderedDict
 
 import numpy as np
@@ -47,7 +47,7 @@ class Params(params.Params):
     min_trains: Union[
         List[pd._libs.tslibs.timestamps.Timestamp], 
         Dict[str, pd._libs.tslibs.timestamps.Timestamp],
-        Dict[Tuple[str], pd._libs.tslibs.timestamps.Timestamp]
+        Dict[Any, pd._libs.tslibs.timestamps.Timestamp]
     ]
 
 class Hyperparams(hyperparams.Hyperparams):
