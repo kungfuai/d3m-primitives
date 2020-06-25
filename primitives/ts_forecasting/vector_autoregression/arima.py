@@ -116,7 +116,7 @@ class Arima:
                     OR (n_in_sample, 3) if returning confidence interval forecast
         """
 
-        forecast = self.arima_model.predict_in_sample(0, 1, dynamic=self.dynamic)
+        forecast = self.arima_model.predict_in_sample(dynamic=self.dynamic)
         if return_conf_int:
             interval = self.arima_model.conf_int(alpha = alpha)
             if self.log_transform:

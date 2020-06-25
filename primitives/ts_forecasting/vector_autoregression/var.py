@@ -81,15 +81,6 @@ class Hyperparams(hyperparams.Hyperparams):
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
     )
-    default_lag_order = hyperparams.UniformInt(
-        lower=0,
-        upper=100,
-        default=1,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="default lag order to use if matrix decomposition errors",
-    )
     seasonal = hyperparams.UniformBool(
         default=False,
         semantic_types=[
@@ -696,14 +687,14 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                             lags
                         )
                     )
-                except np.linalg.LinAlgError:
-                    lags = self.hyperparams["default_lag_order"]
-                    logger.debug(
-                        f"Matrix decomposition error. Using default lag order of {lags}"
+                except np.linalg.LinAlgError as e:
+                    lags = 0
+                    logger.info(
+                        f"Matrix decomposition error.  Using lag order of 0"
                     )
                 except ValueError as e:
                     lags = 0
-                    logger.debug('ValueError: ' + str(e) + '. Using lag order of 0')
+                    logger.info('ValueError: ' + str(e) + '. Using lag order of 0')
                 self._lag_order.append(lags)
                 self._fits.append(model.fit(maxlags=lags))
 
@@ -812,8 +803,8 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
                             alpha = alpha
                         )
                     elif lags == 0:  
-                        sigma = np.sqrt(fit._forecast_vars(horizon))
                         q = stats.norm.ppf(1 - alpha / 2)
+                        sigma = np.sqrt(fit._forecast_vars(horizon))
                         mean = np.repeat(fit.params, horizon, axis = 0)
                         lower = np.repeat(fit.params - q * sigma, horizon, axis = 0)
                         upper = np.repeat(fit.params + q * sigma, horizon, axis = 0)
@@ -870,7 +861,6 @@ class VarPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyper
     ) -> CallResult[Outputs]:
         """ prediction for future time series data
         """
-
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
 
