@@ -44,7 +44,6 @@ class Hyperparams(hyperparams.Hyperparams):
         values = ['clustering','classification'],
         description = 'Determines whether the output is a dataframe with just predictions,\
             or an additional feature added to the input dataframe.')
-    pass
 
 class SpectralClusteringPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     '''
