@@ -86,7 +86,7 @@ class Hyperparams(hyperparams.Hyperparams):
     epochs = hyperparams.UniformInt(
         lower = 0, 
         upper = sys.maxsize,
-        default = 500, 
+        default = 100, 
         semantic_types=['https://metadata.datadrivendiscovery.org/types/TuningParameter'], 
         description = 'how many epochs for which to finetune classification head (happens first)'
     )
