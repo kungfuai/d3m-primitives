@@ -19,6 +19,7 @@ setup(
         "requests",
         "shap>=0.35.0",
         "torchvision==0.5.0",
+        "opencv-python-headless==4.1.1.26",
         "gluonts", 
         "albumentations",
         "tifffile",
@@ -50,6 +51,7 @@ setup(
             "feature_selection.rffeatures.Rffeatures = primitives.feature_selection.rf_features.rf_features:RfFeaturesPrimitive",
             "classification.inceptionV3_image_feature.Gator = primitives.image_classification.imagenet_transfer_learning.gator:GatorPrimitive",
             "remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained = primitives.remote_sensing.featurizer.remote_sensing_pretrained:RemoteSensingPretrainedPrimitive",
+            "remote_sensing.mlp.MlpClassifier = primitives.remote_sensing.classifier.mlp_classifier:MlpClassifierPrimitive",
         ],
     },
 )

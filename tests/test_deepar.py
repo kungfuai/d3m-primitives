@@ -71,6 +71,7 @@ datetime_format_strs = {
     'LL1_736_population_spawn_MIN_METADATA': '%j',
     'LL1_736_stock_market_MIN_METADATA': '%m/%d/%Y',
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': '%j',
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': '%j',
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': '%Y-%m-%d',
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': '%Y-%m-%d'  
 }
@@ -81,6 +82,7 @@ freqs = {
     'LL1_736_population_spawn_MIN_METADATA': 'D',
     'LL1_736_stock_market_MIN_METADATA': 'D',
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': 'D',
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': 'D',
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': 'M',
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': 'W'
 }
@@ -90,6 +92,7 @@ min_pred_lengths = {
     'LL1_736_population_spawn_MIN_METADATA': (60, 100),
     'LL1_736_stock_market_MIN_METADATA': (34, 50),
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': (30, 45),
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': (30, 45),
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': (10, 15),
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': (10, 15)
 }
@@ -99,6 +102,7 @@ grouping_cols = {
     'LL1_736_population_spawn_MIN_METADATA': [0,1],
     'LL1_736_stock_market_MIN_METADATA': [0],
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [0,1],
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': [0,1],
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [0,1,2],
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [0,1,2],
 }
@@ -108,6 +112,7 @@ real_cols = {
     'LL1_736_population_spawn_MIN_METADATA': [],
     'LL1_736_stock_market_MIN_METADATA': [],
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': [],
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': [],
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': [],
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': [],
 }
@@ -117,6 +122,7 @@ distr = {
     'LL1_736_population_spawn_MIN_METADATA': NegativeBinomialOutput,
     'LL1_736_stock_market_MIN_METADATA': StudentTOutput,
     'LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA': StudentTOutput,
+    'LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA': NegativeBinomialOutput,
     'LL1_PHEM_Monthly_Malnutrition_MIN_METADATA': NegativeBinomialOutput,
     'LL1_PHEM_weeklyData_malnutrition_MIN_METADATA': StudentTOutput
 }
@@ -204,7 +210,7 @@ def _test_ts(dataset_name, target_col, group_compose = False, split_train = Fals
         group_compose=group_compose,
         split_train=split_train
     )
-    _test_produce_train_data(deepar, inputs_train, inputs_val, inputs_all)
+    #_test_produce_train_data(deepar, inputs_train, inputs_val, inputs_all)
 
     dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
     df = test_utils.get_dataframe(dataset, 'learningData', target_col)
@@ -260,6 +266,9 @@ def _test_confidence_intervals(dataset, group_compose = False):
 # def test_fit_produce_dataset_terra():      
 #     _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
 
+def test_fit_produce_dataset_terra_80():      
+    _test_ts('LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA', 4)
+
 # def test_fit_produce_dataset_phem_monthly():     
 #     _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
 
@@ -287,17 +296,17 @@ def _test_confidence_intervals(dataset, group_compose = False):
 # def test_fit_produce_split_dataset_phem_weekly():     
 #     _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
 
-def test_serialization_dataset_sunspots():
-    _test_serialize('56_sunspots_MIN_METADATA')
+# def test_serialization_dataset_sunspots():
+#     _test_serialize('56_sunspots_MIN_METADATA')
 
-def test_serialization_dataset_sunspots_monthly():
-    _test_serialize('56_sunspots_monthly_MIN_METADATA')
+# def test_serialization_dataset_sunspots_monthly():
+#     _test_serialize('56_sunspots_monthly_MIN_METADATA')
 
-def test_serialization_dataset_pop_spawn():
-    _test_serialize('LL1_736_population_spawn_MIN_METADATA')
+# def test_serialization_dataset_pop_spawn():
+#     _test_serialize('LL1_736_population_spawn_MIN_METADATA')
 
-def test_serialization_dataset_stock():
-    _test_serialize('LL1_736_stock_market_MIN_METADATA')
+# def test_serialization_dataset_stock():
+#     _test_serialize('LL1_736_stock_market_MIN_METADATA')
 
 # def test_confidence_intervals_dataset_sunspots():
 #     _test_confidence_intervals('56_sunspots_MIN_METADATA')

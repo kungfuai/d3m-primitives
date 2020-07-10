@@ -1,20 +1,24 @@
 import os.path
 import typing
-from typing import List
 
 import numpy as np
 import pandas as pd
+from d3m.primitive_interfaces.base import (
+    CallResult, 
+    NeuralNetworkModuleMixin, 
+    PrimitiveBase, 
+)
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
-from d3m.primitive_interfaces.base import CallResult
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
-from d3m.metadata import hyperparams, base as metadata_base
+from d3m.metadata import hyperparams, params, base as metadata_base
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from rsp.data import load_patch
+from rsp.moco_r50.resnet import ResNet
 from rsp.moco_r50.inference import moco_r50
 from rsp.moco_r50.data import sentinel_augmentation_valid
-from rsp.amdim.inference import amdim
+from rsp.amdim.inference import amdim, AMDIM
 
 
 __author__ = 'Distil'
@@ -23,6 +27,10 @@ __contact__ = 'mailto:jeffrey.gleason@kungfu.ai'
 
 Inputs = container.DataFrame
 Outputs = container.DataFrame
+#Module = typing.Union[ResNet, AMDIM] 
+
+class Params(params.Params):
+    pass
 
 class Hyperparams(hyperparams.Hyperparams):
     use_columns = hyperparams.Set(
@@ -45,18 +53,18 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=["https://metadata.datadrivendiscovery.org/types/TuningParameter"],
         description="inference batch size",
     )
-    num_workers = hyperparams.UniformInt(
-        lower=1,
-        upper=16,
-        default=8,
-        upper_inclusive=True,
+    pool_features = hyperparams.UniformBool(
+        default=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="number of workers to do if using multiprocessing threading",
+        description="whether to pool features across spatial dimensions in returned frame",
     )
 
-class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
+class RemoteSensingPretrainedPrimitive(
+    TransformerPrimitiveBase[Inputs, Outputs, Hyperparams],
+    #NeuralNetworkModuleMixin[Inputs, Outputs, Params, Hyperparams, Module]
+):
     '''
         Primitive that featurizes remote sensing imagery using a pre-trained model that was optimized
         with a self-supervised objective. There are two inference models that correspond to two pretext tasks:
@@ -115,17 +123,6 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = self._load_inference_model(volumes).to(self.device)
 
-    def _load_inference_model(
-        self, 
-        volumes: typing.Dict[str, str] = None,
-    ):
-        """ load either amdim or moco inference model
-        """
-        if self.hyperparams['inference_model'] == 'amdim':
-            return amdim(volumes['amdim_weights'], map_location=self.device)
-        elif self.hyperparams['inference_model'] == 'moco':
-            return moco_r50(volumes['moco_weights'], map_location=self.device)
-
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
         """
         Parameters
@@ -142,12 +139,16 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
             image_cols = inputs.metadata.get_columns_with_semantic_type('http://schema.org/ImageObject')
         else:
             image_cols = self.hyperparams['use_columns']
+        
+        if len(image_cols) > 1:
+            raise ValueError('Primitive only supports featurizing one image column')
+        image_col = image_cols[0]
 
-        image_dataset = self._load_dataset(inputs, image_cols)
+        image_dataset = self._load_dataset(inputs, image_col)
+        image_dataset = TensorDataset(image_dataset)
         image_loader = DataLoader(
             image_dataset, 
             batch_size=self.hyperparams['batch_size'],
-            num_workers=self.hyperparams['num_workers'],
         )
 
         all_img_features = []
@@ -158,18 +159,42 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
                 all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
 
-        col_names = [
-            'img_{}_feat_{}'.format(i // all_img_features.shape[1], i % all_img_features.shape[1]) 
-            for i in range(0, all_img_features.shape[1])
-        ]
-        all_img_features = self._sort_multiple_img_cols(all_img_features, inputs.shape[0])
-
-        feature_df = d3m_DataFrame(
-            pd.DataFrame(all_img_features, columns = col_names),
-            generate_metadata = True
-        )
-
+        col_names = [f'feat_{i}' for i in range(0, all_img_features.shape[1])]
+        feature_df = pd.DataFrame(all_img_features, columns = col_names)
+        feature_df = d3m_DataFrame(feature_df, generate_metadata = True)
         return CallResult(feature_df)
+
+    # def get_neural_network_module(self) -> Module:
+    #     return self.model
+
+    # def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
+    #     return None
+
+    # def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
+    #     return CallResult(None)
+
+    # def get_params(self) -> Params:
+    #     pass
+
+    # def set_params(self, *, params: Params) -> None:
+    #     pass
+
+    def _load_inference_model(
+        self, 
+        volumes: typing.Dict[str, str] = None,
+    ):
+        """ load either amdim or moco inference model
+        """
+        if self.hyperparams['inference_model'] == 'amdim':
+            model = amdim(volumes['amdim_weights'], map_location=self.device)
+        elif self.hyperparams['inference_model'] == 'moco':
+            model = moco_r50(volumes['moco_weights'], map_location=self.device) 
+
+        if not self.hyperparams['pool_features']:
+            model.avgpool = torch.nn.Sequential()
+            self._spatial_dim = 4
+
+        return model
 
     def _load_patch_sentinel(
         self,
@@ -182,26 +207,12 @@ class RemoteSensingPretrainedPrimitive(TransformerPrimitiveBase[Inputs, Outputs,
     def _load_dataset(
         self,
         inputs: d3m_DataFrame,
-        image_cols: List[int]
+        img_col: int
     ) -> TensorDataset:
         """ load image dataset from 1 or more columns of np arrays representing images """
-        imgs = [img for img_col in image_cols for img in inputs.iloc[:, img_col]]
+        imgs = inputs.iloc[:, img_col]
         if self.hyperparams['inference_model'] == 'moco':
             imgs = [self._load_patch_sentinel(img) for img in imgs]
-        return TensorDataset(torch.stack(imgs))
-
-    def _sort_multiple_img_cols(
-        self,
-        img_features: np.ndarray,
-        imgs_per_col: int
-    ) -> np.ndarray:
-        """ if multiple original columns of images were processed, sort generated feature vecs correctly
-        """
-
-        return np.concatenate(
-            [
-                img_features[i:i+imgs_per_col] 
-                for i in range(0, img_features.shape[0], imgs_per_col)
-            ],
-            axis=1
-        )
+        else:
+            imgs = [torch.Tensor(img) for img in imgs]
+        return torch.stack(imgs)

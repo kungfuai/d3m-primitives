@@ -10,7 +10,7 @@ requests
 shap
 gluonts
 torchvision==0.5.0
-#scikit-image==0.17.2
+opencv-python-headless==4.1.1.26
 albumentations
 tifffile
 git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk
