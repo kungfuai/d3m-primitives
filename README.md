@@ -129,3 +129,5 @@ make pipelines-gpu
 
 1. **RemoteSensingPretrainedPrimitive**: featurizes remote sensing imagery using pre-trained models that were optimized with a self-supervised objective. There are two inference models that correspond to two pretext tasks: [Augmented Multiscale Deep InfoMax](https://arxiv.org/abs/1906.00910) and [Momentum Contrast](https://arxiv.org/abs/1911.05722). The implementation of the inference models comes from [this repo](git+https://github.com/cfld/rs_pretrained#egg=rsp).
 
+2. **MlpClassifierPrimitive**: trains a two-layer neural network classifier on featurized remote sensing imagery. Produces heatmap visualizations for predictions using gradient-based [GradCam](https://arxiv.org/pdf/1610.02391v1.pdf) technique. 
+
