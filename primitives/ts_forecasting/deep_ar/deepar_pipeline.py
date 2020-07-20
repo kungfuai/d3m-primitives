@@ -18,7 +18,8 @@ class DeepARPipeline(PipelineBase):
         quantiles: List[float] = [0.1, 0.9],
         group_compose: bool = False,
         confidence_intervals: bool = False,
-        count_data: bool = None
+        count_data: bool = None,
+        output_mean: bool = True
     ):
 
         pipeline_description = Pipeline()
@@ -192,6 +193,11 @@ class DeepARPipeline(PipelineBase):
             name="weights_dir",
             argument_type=ArgumentType.VALUE,
             data="/scratch_dir",
+        )
+        step.add_hyperparameter(
+            name="output_mean",
+            argument_type=ArgumentType.VALUE,
+            data=output_mean,
         )
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")

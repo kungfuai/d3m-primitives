@@ -22,3 +22,4 @@ git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64
 pytest
 pytest-icdiff
 fire
+seaborn

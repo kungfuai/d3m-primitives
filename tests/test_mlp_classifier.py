@@ -18,9 +18,8 @@ from primitives.remote_sensing.classifier.mlp_classifier import (
     Hyperparams as mlp_hp
 )
 
-dataset_path = 'test_data/BigEarthNet-trimmed'
-amdim_path = 'static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
-moco_path = 'static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
+amdim_path = '/static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
+moco_path = '/static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
 
 def load_patch(imname):
     patch = [
@@ -31,17 +30,15 @@ def load_patch(imname):
     return patch
 
 def load_inputs():
-    fnames  = sorted(glob('bigearth-100-single/*/*.tif'))
+    fnames  = sorted(glob('/bigearth-100-single/*/*.tif'))
     imnames = sorted(list(set(['_'.join(f.split('_')[:-1]) for f in fnames])))
-
     imgs = [
         load_patch(img_path).astype(np.float32) 
         for img_path in imnames
     ]
 
-    y = [i.split('/')[1] for i in imnames]
+    y = [i.split('/')[2] for i in imnames]
     tgts = LabelEncoder().fit_transform(y)
-
     return pd.DataFrame({'image_col': imgs}), pd.DataFrame({'target': tgts})
 
 train_inputs, labels = load_inputs()
