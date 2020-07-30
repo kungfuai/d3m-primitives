@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class Params(params.Params):
     is_fit: bool
     output_column: str
-    nclasses: int
+    unique_values: np.ndarray
 
 class Hyperparams(hyperparams.Hyperparams):
     weights_filepath = hyperparams.Hyperparameter[str](
@@ -118,6 +118,13 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="whether to return explanations for all classes or only the predicted class"
     )
+    all_confidences = hyperparams.UniformBool(
+        default=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="whether to return explanations all classes and all confidences from produce method"
+    )
 
 class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
     '''
@@ -177,13 +184,13 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         return Params(
             is_fit = self._is_fit,
             output_column = self._output_column,
-            nclasses = self._nclasses,
+            unique_values = self._unique_values,
         )
 
     def set_params(self, *, params: Params) -> None:
         self._is_fit = params['is_fit']
         self._output_column = params['output_column']
-        self._nclasses = params['nclasses']
+        self._unique_values = params['unique_values']
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -239,10 +246,10 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             shuffle=False
         )
         
-        self._nclasses = np.unique(outputs.values).shape[0]
+        self._unique_values = np.unique(outputs.values)
         self._clf_model = self._build_clf_model(
             features.shape[1],
-            self._nclasses
+            self._unique_values.shape[0]
         ).to(self._device)
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
@@ -337,13 +344,45 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         else:
             all_outputs = self._all_outputs
         
-        _, all_preds = torch.max(all_outputs, 1)
-        all_preds = all_preds.cpu().data.numpy()
-
+        all_probs = nn.functional.softmax(all_outputs, dim = 1)
+        if self.hyperparams['all_confidences']:
+            index = np.repeat(
+                range(all_probs.shape[0]), 
+                self._unique_values.shape[0]
+            )
+            all_preds = np.tile(self._unique_values, all_probs.shape[0])
+            all_probs = all_probs.cpu().data.numpy().flatten()
+        else:
+            index = None
+            all_probs, all_preds = torch.max(all_probs, 1)
+            all_preds = all_preds.cpu().data.numpy()
+            all_probs = all_probs.cpu().data.numpy()
+        
         preds_df = d3m_DataFrame(
-            pd.DataFrame(all_preds, columns = [self._output_column]),
+            pd.DataFrame(
+                np.vstack((all_preds, all_probs)).T, 
+                columns = [self._output_column, 'confidence'],
+                index = index
+            ),
             generate_metadata = True
         )
+
+        preds_df[self._output_column] = preds_df[self._output_column].astype(int)
+        preds_df.metadata = preds_df.metadata.add_semantic_type(
+            (metadata_base.ALL_ELEMENTS, 0),
+            (
+                "https://metadata.datadrivendiscovery.org/types/PredictedTarget",
+                "http://schema.org/Integer"
+            )
+        )
+        preds_df.metadata = preds_df.metadata.add_semantic_type(
+            (metadata_base.ALL_ELEMENTS, 1),
+            (
+                "https://metadata.datadrivendiscovery.org/types/Confidence", 
+                "http://schema.org/Float"
+            )
+        )
+
         return CallResult(preds_df)
 
     def produce_explanations(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
@@ -360,7 +399,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         clf_model, test_loader = self._prepare_test_inputs(inputs)
         
         if self.hyperparams['explain_all_classes']:
-            all_class_masks = [[] for _ in range(self._nclasses)]
+            all_class_masks = [[] for _ in range(self._unique_values.shape[0])]
         else:
             all_class_masks = [[]]
 
@@ -425,7 +464,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         
         model = self._build_clf_model(
             features.shape[1],
-            self._nclasses
+            self._unique_values.shape[0]
         ).to(self._device)
         model.load_state_dict(
             torch.load(self.hyperparams['weights_filepath'])
@@ -445,7 +484,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             one_hots = [one_hot]
         else:
             one_hots = []
-            for i in range(self._nclasses):
+            for i in range(self._unique_values.shape[0]):
                 one_hot = np.zeros(test_outputs.shape, dtype=np.float32)
                 one_hot[:,i] = 1
                 one_hots.append(one_hot)

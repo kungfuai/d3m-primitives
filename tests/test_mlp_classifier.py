@@ -65,23 +65,42 @@ def test_fit():
     )
 
     mlp.set_training_data(inputs = features, outputs = labels)
-    assert mlp._clf_model[-1].weight.shape[0] == mlp._nclasses
+    assert mlp._clf_model[-1].weight.shape[0] == mlp._unique_values.shape[0]
     mlp.fit()
     global mlp_params
     mlp_params = mlp.get_params()
 
-def test_produce():
+# def test_produce():
+
+#     mlp = MlpClassifierPrimitive(
+#         hyperparams=mlp_hp(
+#             mlp_hp.defaults(),
+#             weights_filepath = '/scratch_dir/model_weights.pth',
+#             all_confidences = False
+#         )
+#     )
+#     mlp.set_params(params = mlp_params)
+
+#     preds = mlp.produce(inputs=features).value
+#     assert preds.shape == (train_inputs.shape[0],2)
+#     assert (preds.columns == ['target', 'confidence']).all()
+
+def test_produce_all_confidences():
 
     mlp = MlpClassifierPrimitive(
         hyperparams=mlp_hp(
             mlp_hp.defaults(),
-            weights_filepath = '/scratch_dir/model_weights.pth'
+            weights_filepath = '/scratch_dir/model_weights.pth',
         )
     )
     mlp.set_params(params = mlp_params)
 
     preds = mlp.produce(inputs=features).value
-    assert preds.shape == (train_inputs.shape[0],1)
+    nc = mlp._unique_values.shape[0]
+    assert preds.shape == (train_inputs.shape[0]*nc,2)
+    for i in range(0,train_inputs.shape[0]):
+        assert round(preds['confidence'][i*nc:(i+1)*nc].sum()) == 1
+    assert (preds.columns == ['target', 'confidence']).all()
 
 def test_produce_explanations():
 
