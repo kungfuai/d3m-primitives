@@ -34,6 +34,7 @@ class Params(params.Params):
     is_fit: bool
     output_column: str
     unique_values: np.ndarray
+    nclasses: int
 
 class Hyperparams(hyperparams.Hyperparams):
     weights_filepath = hyperparams.Hyperparameter[str](
@@ -86,7 +87,7 @@ class Hyperparams(hyperparams.Hyperparams):
     epochs = hyperparams.UniformInt(
         lower = 0, 
         upper = sys.maxsize,
-        default = 100, 
+        default = 25, 
         semantic_types=['https://metadata.datadrivendiscovery.org/types/TuningParameter'], 
         description = 'how many epochs for which to finetune classification head (happens first)'
     )
@@ -185,12 +186,14 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             is_fit = self._is_fit,
             output_column = self._output_column,
             unique_values = self._unique_values,
+            nclasses = self._nclasses
         )
 
     def set_params(self, *, params: Params) -> None:
         self._is_fit = params['is_fit']
         self._output_column = params['output_column']
         self._unique_values = params['unique_values']
+        self._nclasses = params['nclasses']
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
@@ -203,53 +206,21 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         
         self._output_column = outputs.columns[0]
 
-        features = inputs.values.reshape(
-            -1, 
-            self.hyperparams['feature_dim'],
-            self.hyperparams['spatial_dim'],
-            self.hyperparams['spatial_dim']
+        self._train_loader, self._val_loader = self._get_train_loaders(
+            inputs, 
+            outputs
         )
 
-        if outputs.iloc[0].value_counts().min() == 1:
-            stratify = None
-        else:
-            stratify = outputs.values
-        f_train, f_test, tgt_train, tgt_test = train_test_split(
-            features, 
-            outputs.values,
-            test_size = 0.1,
-            random_state = self.random_seed,
-            stratify=stratify
-        )
-
-        train_dataset = TensorDataset(
-            torch.Tensor(f_train),
-            torch.LongTensor(tgt_train).squeeze() #need?
-        )       
-
-        val_dataset = TensorDataset(
-            torch.Tensor(f_test),
-            torch.LongTensor(tgt_test).squeeze() #need?
-        )  
-        
-        self._val_size = tgt_test.shape[0]
-        self._train_size = tgt_train.shape[0]
-
-        self._train_loader = DataLoader(
-            train_dataset, 
-            batch_size=self.hyperparams['batch_size'],
-            shuffle=True
-        )
-        self._val_loader = DataLoader(
-            val_dataset, 
-            batch_size=self.hyperparams['batch_size'],
-            shuffle=False
-        )
-        
+        self._value_counts = outputs[self._output_column].value_counts()
         self._unique_values = np.unique(outputs.values)
+        self._nclasses = self._unique_values.shape[0]
+        if self._nclasses == 2:
+            self._nclasses = 1
+            self._unique_values = np.array([1])
+        
         self._clf_model = self._build_clf_model(
-            features.shape[1],
-            self._unique_values.shape[0]
+            self.hyperparams['feature_dim'],
+            self._nclasses
         ).to(self._device)
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
@@ -269,50 +240,58 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         else:
             has_finished = False
 
-        criterion = nn.CrossEntropyLoss()
+        if self._nclasses > 2:
+            class_weights = torch.Tensor([
+                1 / val_ct for val_ct in self._value_counts
+            ]).to(self._device)
+            criterion = nn.CrossEntropyLoss(weight = class_weights)
+        else:
+            class_weight = torch.Tensor([
+                self._value_counts.iloc[0] / self._value_counts.iloc[1]
+            ]).to(self._device)
+            criterion = nn.BCEWithLogitsLoss(pos_weight = class_weight)
+
         optimizer = Adam(
             self._clf_model.parameters(), 
             lr=self.hyperparams['learning_rate']
         )
         scheduler = ReduceLROnPlateau(
             optimizer, 
-            mode='max',
+            mode='min',
             verbose=True
         )
 
         st = time()
         for epoch in range(iterations):
             
-            train_tp = 0
             self._clf_model = self._clf_model.train()
             for train_inputs, train_labels in tqdm(self._train_loader):
                 optimizer.zero_grad()
-                train_inputs = train_inputs.to(self._device)
-                train_outputs = self._clf_model(train_inputs)
-                _, train_pred = torch.max(train_outputs.data, 1)
-                train_tp += (train_pred == train_labels).sum().item()
-                loss = criterion(train_outputs, train_labels)
+                loss = self._get_loss(
+                    train_inputs, 
+                    train_labels, 
+                    criterion
+                )
                 loss.backward()
                 optimizer.step()
             
-            val_tp = 0
             self._clf_model = self._clf_model.eval()
+            val_losses = []
             with torch.no_grad():
                 for val_inputs, val_labels in tqdm(self._val_loader):
-                    val_inputs = val_inputs.to(self._device)
-                    val_outputs = self._clf_model(val_inputs)
-                    _, val_pred = torch.max(val_outputs.data, 1)
-                    val_tp += (val_pred == val_labels).sum().item()
-            
-            train_acc = 100 * train_tp / self._train_size
-            val_acc = 100 * val_tp / self._val_size
-            scheduler.step(val_acc)
+                    val_loss = self._get_loss(
+                        val_inputs, 
+                        val_labels, 
+                        criterion
+                    )
+                    val_losses.append(val_loss.item())
+            scheduler.step(np.sum(val_losses))
 
-            logger.info(
-                f'Epoch: {epoch+1}/{iterations}, ' +
-                f'Train Loss: {round(loss.item(),2)}, ' +
-                f'Train Acc: {round(train_acc,2)}, Val Acc: {round(val_acc,2)}'
-            )
+            if epoch % 10 == 0:
+                logger.info(
+                    f'Epoch: {epoch+1}/{iterations}, ' +
+                    f'Val Loss: {round(np.sum(val_losses),2)}, ' 
+                )
         
         logger.info(f'Finished training, took {time() - st}s')
         self._is_fit = True
@@ -344,11 +323,15 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         else:
             all_outputs = self._all_outputs
         
-        all_probs = nn.functional.softmax(all_outputs, dim = 1)
+        if self._nclasses > 2:
+            all_probs = nn.functional.softmax(all_outputs, dim = 1)
+        else:
+            all_probs = nn.functional.sigmoid(all_outputs)
+
         if self.hyperparams['all_confidences']:
             index = np.repeat(
                 range(all_probs.shape[0]), 
-                self._unique_values.shape[0]
+                self._nclasses
             )
             all_preds = np.tile(self._unique_values, all_probs.shape[0])
             all_probs = all_probs.cpu().data.numpy().flatten()
@@ -399,7 +382,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         clf_model, test_loader = self._prepare_test_inputs(inputs)
         
         if self.hyperparams['explain_all_classes']:
-            all_class_masks = [[] for _ in range(self._unique_values.shape[0])]
+            all_class_masks = [[] for _ in range(self._nclasses)]
         else:
             all_class_masks = [[]]
 
@@ -427,7 +410,6 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             explain_df.columns = ['class_argmax']
         
         explain_df = d3m_DataFrame(explain_df, generate_metadata=False)
-        #explain_df.metadata = explain_df.metadata.generate(explain_df, compact=True)
         return CallResult(explain_df)
 
     def _build_clf_model(self, dim_mlp, clf_classes):
@@ -441,9 +423,15 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             nn.Linear(dim_mlp, clf_classes)
         )
 
+    def _get_loss(self, inputs, labels, criterion):
+        """ get loss from batch of inputs and labels""" 
+        inputs = inputs.to(self._device)
+        labels = labels.to(self._device)
+        outputs = self._clf_model(inputs)
+        return criterion(outputs, labels)
+
     def _prepare_test_inputs(self, inputs):
         """ prepare test inputs and model to produce either predictions or explanations"""
-
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
     
@@ -463,8 +451,8 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         )
         
         model = self._build_clf_model(
-            features.shape[1],
-            self._unique_values.shape[0]
+            self.hyperparams['feature_dim'],
+            self._nclasses
         ).to(self._device)
         model.load_state_dict(
             torch.load(self.hyperparams['weights_filepath'])
@@ -472,6 +460,61 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         model = model.eval()
 
         return model, test_loader
+
+    def _get_train_loaders(self, inputs, outputs):
+        """ build training and validation datasets and data loaders from inputs and ouputs """
+        
+        features = inputs.values.reshape(
+            -1, 
+            self.hyperparams['feature_dim'],
+            self.hyperparams['spatial_dim'],
+            self.hyperparams['spatial_dim']
+        )
+
+        if outputs[self._output_column].value_counts().min() == 1:
+            stratify = None
+        else:
+            stratify = outputs.values
+        f_train, f_test, tgt_train, tgt_test = train_test_split(
+            features, 
+            outputs.values,
+            test_size = 0.1,
+            random_state = self.random_seed,
+            stratify=stratify
+        )
+
+        unique_values = np.unique(outputs.values)
+        nclasses = unique_values.shape[0]
+
+        if nclasses > 2:
+            train_labels = torch.LongTensor(tgt_train)
+            val_labels = torch.LongTensor(tgt_test)
+        else:
+            train_labels = torch.FloatTensor(tgt_train)
+            val_labels = torch.FloatTensor(tgt_test)
+
+        train_dataset = TensorDataset(
+            torch.Tensor(f_train),
+            train_labels
+        )       
+
+        val_dataset = TensorDataset(
+            torch.Tensor(f_test),
+            val_labels
+        )  
+
+        train_loader = DataLoader(
+            train_dataset, 
+            batch_size=self.hyperparams['batch_size'],
+            shuffle=True
+        )
+        val_loader = DataLoader(
+            val_dataset, 
+            batch_size=self.hyperparams['batch_size'],
+            shuffle=False
+        )
+
+        return train_loader, val_loader
 
     def _get_one_hots(self, test_outputs):
         """ get list of one hot outputs for each class we are explaining """
@@ -484,7 +527,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             one_hots = [one_hot]
         else:
             one_hots = []
-            for i in range(self._unique_values.shape[0]):
+            for i in range(self._nclasses):
                 one_hot = np.zeros(test_outputs.shape, dtype=np.float32)
                 one_hot[:,i] = 1
                 one_hots.append(one_hot)

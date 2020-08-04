@@ -59,31 +59,31 @@ def test_fit():
     mlp = MlpClassifierPrimitive(
         hyperparams=mlp_hp(
             mlp_hp.defaults(),
-            epochs=0,
+            epochs=1,
             weights_filepath = '/scratch_dir/model_weights.pth'
         )
     )
 
     mlp.set_training_data(inputs = features, outputs = labels)
-    assert mlp._clf_model[-1].weight.shape[0] == mlp._unique_values.shape[0]
+    assert mlp._clf_model[-1].weight.shape[0] == mlp._nclasses
     mlp.fit()
     global mlp_params
     mlp_params = mlp.get_params()
 
-# def test_produce():
+def test_produce():
 
-#     mlp = MlpClassifierPrimitive(
-#         hyperparams=mlp_hp(
-#             mlp_hp.defaults(),
-#             weights_filepath = '/scratch_dir/model_weights.pth',
-#             all_confidences = False
-#         )
-#     )
-#     mlp.set_params(params = mlp_params)
+    mlp = MlpClassifierPrimitive(
+        hyperparams=mlp_hp(
+            mlp_hp.defaults(),
+            weights_filepath = '/scratch_dir/model_weights.pth',
+            all_confidences = False
+        )
+    )
+    mlp.set_params(params = mlp_params)
 
-#     preds = mlp.produce(inputs=features).value
-#     assert preds.shape == (train_inputs.shape[0],2)
-#     assert (preds.columns == ['target', 'confidence']).all()
+    preds = mlp.produce(inputs=features).value
+    assert preds.shape == (train_inputs.shape[0],2)
+    assert (preds.columns == ['target', 'confidence']).all()
 
 def test_produce_all_confidences():
 
@@ -96,10 +96,11 @@ def test_produce_all_confidences():
     mlp.set_params(params = mlp_params)
 
     preds = mlp.produce(inputs=features).value
-    nc = mlp._unique_values.shape[0]
+    nc = mlp._nclasses
     assert preds.shape == (train_inputs.shape[0]*nc,2)
-    for i in range(0,train_inputs.shape[0]):
-        assert round(preds['confidence'][i*nc:(i+1)*nc].sum()) == 1
+    if nc > 2:
+        for i in range(0,train_inputs.shape[0]):
+            assert round(preds['confidence'][i*nc:(i+1)*nc].sum()) == 1
     assert (preds.columns == ['target', 'confidence']).all()
 
 def test_produce_explanations():
