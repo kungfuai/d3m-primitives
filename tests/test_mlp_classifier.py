@@ -9,11 +9,11 @@ import torch
 from rsp.data import bilinear_upsample, BANDS
 from tifffile import imread as tiffread
 
-from primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
+from kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
     RemoteSensingPretrainedPrimitive, 
     Hyperparams as rs_hp
 )
-from primitives.remote_sensing.classifier.mlp_classifier import ( 
+from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier import ( 
     MlpClassifierPrimitive, 
     Hyperparams as mlp_hp
 )
@@ -30,7 +30,7 @@ def load_patch(imname):
     return patch
 
 def load_inputs():
-    fnames  = sorted(glob('/bigearth-100-single/*/*.tif'))
+    fnames  = sorted(glob('test_data/bigearth-100-single/*/*.tif'))
     imnames = sorted(list(set(['_'.join(f.split('_')[:-1]) for f in fnames])))
     imgs = [
         load_patch(img_path).astype(np.float32) 

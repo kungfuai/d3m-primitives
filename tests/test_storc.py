@@ -1,4 +1,4 @@
-from primitives.clustering.k_means.storc_pipeline import StorcPipeline
+from kf_d3m_primitives.clustering.k_means.storc_pipeline import StorcPipeline
 
 def _test_fit_produce(dataset):
     

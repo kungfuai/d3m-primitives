@@ -1,4 +1,4 @@
-from primitives.ts_classification.lstm_fcn.lstm_fcn_pipeline import LstmFcnPipeline
+from kf_d3m_primitives.ts_classification.lstm_fcn.lstm_fcn_pipeline import LstmFcnPipeline
 
 def _test_serialize(dataset):
     

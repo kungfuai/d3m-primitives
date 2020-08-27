@@ -6,7 +6,7 @@ from rsp.data import load_patch
 from rsp.moco_r50.resnet import ResNet
 from rsp.amdim.inference import AMDIM
 
-from primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
+from kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
     RemoteSensingPretrainedPrimitive, 
     Hyperparams as rs_hp
 )

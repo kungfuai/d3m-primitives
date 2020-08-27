@@ -1,4 +1,4 @@
-from primitives.data_preprocessing.data_cleaning.data_cleaning_pipeline import DataCleaningPipeline
+from kf_d3m_primitives.data_preprocessing.data_cleaning.data_cleaning_pipeline import DataCleaningPipeline
 
 def _test_fit_score(dataset):
     

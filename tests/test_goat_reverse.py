@@ -1,4 +1,4 @@
-from primitives.data_preprocessing.geocoding_reverse.goat_reverse_pipeline import GoatReversePipeline
+from kf_d3m_primitives.data_preprocessing.geocoding_reverse.goat_reverse_pipeline import GoatReversePipeline
 
 def _test_fit_score(dataset):
     

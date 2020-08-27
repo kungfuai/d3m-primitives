@@ -1,4 +1,4 @@
-from primitives.ts_classification.knn.kanine_pipeline import KaninePipeline
+from kf_d3m_primitives.ts_classification.knn.kanine_pipeline import KaninePipeline
 
 def _test_serialize(dataset):
     

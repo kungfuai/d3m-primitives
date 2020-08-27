@@ -6,8 +6,8 @@ from gluonts.distribution import NegativeBinomialOutput, StudentTOutput
 from d3m.primitives.schema_discovery import profiler
 from d3m.primitives.data_transformation import column_parser, extract_columns_by_semantic_types, grouping_field_compose
 
-from primitives.ts_forecasting.deep_ar.deepar import DeepArPrimitive
-from primitives.ts_forecasting.deep_ar.deepar_pipeline import DeepARPipeline
+from kf_d3m_primitives.ts_forecasting.deep_ar.deepar import DeepArPrimitive
+from kf_d3m_primitives.ts_forecasting.deep_ar.deepar_pipeline import DeepARPipeline
 import utils as test_utils
 
 class PreProcessPipeline():

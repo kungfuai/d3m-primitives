@@ -1,4 +1,4 @@
-from primitives.interpretability.shap_explainers.shap_values_pipeline import ShapPipeline
+from kf_d3m_primitives.interpretability.shap_explainers.shap_values_pipeline import ShapPipeline
 
 def _test_fit_produce(dataset):
     

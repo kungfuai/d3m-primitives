@@ -1,4 +1,4 @@
-from primitives.dimensionality_reduction.tsne.tsne_pipeline import TsnePipeline
+from kf_d3m_primitives.dimensionality_reduction.tsne.tsne_pipeline import TsnePipeline
 
 def _test_fit_score(dataset):
     
