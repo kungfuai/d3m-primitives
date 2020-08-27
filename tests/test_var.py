@@ -1,4 +1,4 @@
-from primitives.ts_forecasting.vector_autoregression.var_pipeline import VarPipeline
+from kf_d3m_primitives.ts_forecasting.vector_autoregression.var_pipeline import VarPipeline
 
 def _test_serialize(dataset, group_compose = False):
     

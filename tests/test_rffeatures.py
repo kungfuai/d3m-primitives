@@ -1,4 +1,4 @@
-from primitives.feature_selection.rf_features.rf_features_pipeline import RfFeaturesPipeline
+from kf_d3m_primitives.feature_selection.rf_features.rf_features_pipeline import RfFeaturesPipeline
 
 def _test_serialize(dataset):
     

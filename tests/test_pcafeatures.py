@@ -1,4 +1,4 @@
-from primitives.feature_selection.pca_features.pca_features_pipeline import PcaFeaturesPipeline
+from kf_d3m_primitives.feature_selection.pca_features.pca_features_pipeline import PcaFeaturesPipeline
 
 def _test_serialize(dataset):
     

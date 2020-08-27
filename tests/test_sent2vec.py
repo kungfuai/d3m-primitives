@@ -1,4 +1,4 @@
-from primitives.natural_language_processing.sent2vec.sent2vec_pipeline import Sent2VecPipeline
+from kf_d3m_primitives.natural_language_processing.sent2vec.sent2vec_pipeline import Sent2VecPipeline
 
 def _test_fit_score(dataset):
     

@@ -1,4 +1,4 @@
-from primitives.data_preprocessing.data_typing.simon_pipeline import SimonPipeline
+from kf_d3m_primitives.data_preprocessing.data_typing.simon_pipeline import SimonPipeline
 
 def _test_fit_score(dataset):
     

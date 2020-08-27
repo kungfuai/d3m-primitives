@@ -1,4 +1,4 @@
-from primitives.data_preprocessing.text_summarization.duke_pipeline import DukePipeline
+from kf_d3m_primitives.data_preprocessing.text_summarization.duke_pipeline import DukePipeline
 
 def _test_fit_produce(dataset):
     

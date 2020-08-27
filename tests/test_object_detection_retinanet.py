@@ -1,4 +1,4 @@
-from primitives.object_detection.retinanet.object_detection_retinanet_pipeline import ObjectDetectionRNPipeline
+from kf_d3m_primitives.object_detection.retinanet.object_detection_retinanet_pipeline import ObjectDetectionRNPipeline
 
 def _test_serialize(dataset):
     

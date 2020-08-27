@@ -1,4 +1,4 @@
-from primitives.clustering.hdbscan.hdbscan_pipeline import HdbscanPipeline
+from kf_d3m_primitives.clustering.hdbscan.hdbscan_pipeline import HdbscanPipeline
 
 def _test_fit_score(dataset):
     

@@ -1,4 +1,4 @@
-from primitives.image_classification.imagenet_transfer_learning.gator_pipeline import GatorPipeline
+from kf_d3m_primitives.image_classification.imagenet_transfer_learning.gator_pipeline import GatorPipeline
 
 def _test_serialize(dataset):
     
