@@ -2,7 +2,7 @@ from d3m import index
 from d3m.metadata.base import ArgumentType
 from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
-from primitives.pipeline_base import PipelineBase
+from kf_d3m_primitives.pipeline_base import PipelineBase
 
 class GoatReversePipeline(PipelineBase):
 
