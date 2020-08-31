@@ -3,6 +3,7 @@ import typing
 import sys
 from time import time
 import logging
+import math
 
 import cv2
 from tqdm import tqdm
@@ -63,16 +64,6 @@ class Hyperparams(hyperparams.Hyperparams):
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
         description="feature dimension after reshaping flattened feature vector",
-    )
-    spatial_dim = hyperparams.UniformInt(
-        lower=1,
-        upper=100,
-        default=4,
-        upper_inclusive=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="spatial dimension (height and with) after reshaping flattened feature vector",
     )
     batch_size = hyperparams.UniformInt(
         lower=1,
@@ -205,7 +196,6 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         """
         
         self._output_column = outputs.columns[0]
-
         self._train_loader, self._val_loader = self._get_train_loaders(
             inputs, 
             outputs
@@ -217,11 +207,6 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         if self._nclasses == 2:
             self._nclasses = 1
             self._unique_values = np.array([1])
-        
-        self._clf_model = self._build_clf_model(
-            self.hyperparams['feature_dim'],
-            self._nclasses
-        ).to(self._device)
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ Fits mlp classification head using training data from set_training_data and hyperparameters
@@ -250,6 +235,15 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
                 self._value_counts.iloc[0] / self._value_counts.iloc[1]
             ]).to(self._device)
             criterion = nn.BCEWithLogitsLoss(pos_weight = class_weight)
+        
+        self._clf_model = self._build_clf_model(
+            self.hyperparams['feature_dim'],
+            self._nclasses
+        ).to(self._device)
+        if os.path.isfile(self.hyperparams['weights_filepath']):
+            self._clf_model.load_state_dict(
+                torch.load(self.hyperparams['weights_filepath'])
+            )
 
         optimizer = Adam(
             self._clf_model.parameters(), 
@@ -436,12 +430,15 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         """ prepare test inputs and model to produce either predictions or explanations"""
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
-    
+        
+        spatial_dim = int(math.sqrt(
+            inputs.values.shape[1] / self.hyperparams['feature_dim']
+        ))
         features = inputs.values.reshape(
             -1, 
             self.hyperparams['feature_dim'],
-            self.hyperparams['spatial_dim'],
-            self.hyperparams['spatial_dim']
+            spatial_dim,
+            spatial_dim
         )
         features = torch.Tensor(features)
         test_dataset = TensorDataset(features)
@@ -465,18 +462,21 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
     def _get_train_loaders(self, inputs, outputs):
         """ build training and validation datasets and data loaders from inputs and ouputs """
-        
+        spatial_dim = int(math.sqrt(
+            inputs.values.shape[1] // self.hyperparams['feature_dim']
+        ))
         features = inputs.values.reshape(
             -1, 
             self.hyperparams['feature_dim'],
-            self.hyperparams['spatial_dim'],
-            self.hyperparams['spatial_dim']
+            spatial_dim,
+            spatial_dim
         )
 
         if outputs[self._output_column].value_counts().min() == 1:
             stratify = None
         else:
             stratify = outputs.values
+
         f_train, f_test, tgt_train, tgt_test = train_test_split(
             features, 
             outputs.values,
@@ -484,13 +484,12 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             random_state = self.random_seed,
             stratify=stratify
         )
-
         unique_values = np.unique(outputs.values)
         nclasses = unique_values.shape[0]
 
         if nclasses > 2:
-            train_labels = torch.LongTensor(tgt_train)
-            val_labels = torch.LongTensor(tgt_test)
+            train_labels = torch.LongTensor(tgt_train).squeeze()
+            val_labels = torch.LongTensor(tgt_test).squeeze()
         else:
             train_labels = torch.FloatTensor(tgt_train)
             val_labels = torch.FloatTensor(tgt_test)

@@ -30,19 +30,18 @@ def load_patch(imname):
     return patch
 
 def load_inputs():
-    fnames  = sorted(glob('test_data/bigearth-100-single/*/*.tif'))
+    fnames  = sorted(glob('/test_data/bigearth-100-single/*/*.tif'))
     imnames = sorted(list(set(['_'.join(f.split('_')[:-1]) for f in fnames])))
     imgs = [
         load_patch(img_path).astype(np.float32) 
         for img_path in imnames
     ]
 
-    y = [i.split('/')[2] for i in imnames]
+    y = [i.split('/')[3] for i in imnames]
     tgts = LabelEncoder().fit_transform(y)
     return pd.DataFrame({'image_col': imgs}), pd.DataFrame({'target': tgts})
 
 train_inputs, labels = load_inputs()
-
 featurizer = RemoteSensingPretrainedPrimitive(
     hyperparams=rs_hp(
         rs_hp.defaults(),
@@ -53,7 +52,10 @@ featurizer = RemoteSensingPretrainedPrimitive(
     volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path}
 )
 features = featurizer.produce(inputs = train_inputs).value
-
+# features.to_pickle("dummy.pkl")
+# labels.to_pickle("labels.pkl")
+# features = pd.read_pickle("dummy.pkl")
+# labels = pd.read_pickle("labels.pkl")
 def test_fit():
 
     mlp = MlpClassifierPrimitive(
@@ -65,8 +67,8 @@ def test_fit():
     )
 
     mlp.set_training_data(inputs = features, outputs = labels)
-    assert mlp._clf_model[-1].weight.shape[0] == mlp._nclasses
     mlp.fit()
+    assert mlp._clf_model[-1].weight.shape[0] == mlp._nclasses
     global mlp_params
     mlp_params = mlp.get_params()
 
@@ -82,7 +84,7 @@ def test_produce():
     mlp.set_params(params = mlp_params)
 
     preds = mlp.produce(inputs=features).value
-    assert preds.shape == (train_inputs.shape[0],2)
+    assert preds.shape == (features.shape[0],2)
     assert (preds.columns == ['target', 'confidence']).all()
 
 def test_produce_all_confidences():
@@ -97,9 +99,9 @@ def test_produce_all_confidences():
 
     preds = mlp.produce(inputs=features).value
     nc = mlp._nclasses
-    assert preds.shape == (train_inputs.shape[0]*nc,2)
+    assert preds.shape == (features.shape[0]*nc,2)
     if nc > 2:
-        for i in range(0,train_inputs.shape[0]):
+        for i in range(0,features.shape[0]):
             assert round(preds['confidence'][i*nc:(i+1)*nc].sum()) == 1
     assert (preds.columns == ['target', 'confidence']).all()
 
@@ -114,7 +116,7 @@ def test_produce_explanations():
     mlp.set_params(params = mlp_params)
 
     explanations = mlp.produce_explanations(inputs=features).value
-    assert explanations.shape == (train_inputs.shape[0], 1)
+    assert explanations.shape == (features.shape[0], 1)
     assert explanations.iloc[0,0].shape == (120,120)
 
 def test_produce_explanations_all_classes():
@@ -129,5 +131,5 @@ def test_produce_explanations_all_classes():
     mlp.set_params(params = mlp_params)
 
     explanations = mlp.produce_explanations(inputs=features).value
-    assert explanations.shape == (train_inputs.shape[0], mlp._nclasses)
+    assert explanations.shape == (features.shape[0], mlp._nclasses)
     assert explanations.iloc[0,0].shape == (120,120)

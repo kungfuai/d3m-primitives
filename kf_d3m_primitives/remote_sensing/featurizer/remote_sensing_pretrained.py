@@ -13,13 +13,13 @@ from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, params, base as metadata_base
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 from rsp.data import load_patch
 from rsp.moco_r50.resnet import ResNet
 from rsp.moco_r50.inference import moco_r50
-from rsp.moco_r50.data import sentinel_augmentation_valid
 from rsp.amdim.inference import amdim, AMDIM
 
+from .streaming_dataset import StreamingDataset
 
 __author__ = 'Distil'
 __version__ = '1.0.0'
@@ -60,6 +60,14 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="whether to pool features across spatial dimensions in returned frame",
     )
+    decompress_data = hyperparams.Hyperparameter[bool](
+        default=False,
+        semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
+        description="If True, applies LZO decompression algorithm to the data.\
+                    Compressed data stores a header consisting of the dtype character and the \
+                    data shape as unsigned integers. Given c struct alignment, will occupy \
+                    16 bytes (1 + 4 + 4 + 4 + 3 ) padding"
+    )
 
 class RemoteSensingPretrainedPrimitive(
     TransformerPrimitiveBase[Inputs, Outputs, Hyperparams],
@@ -89,6 +97,16 @@ class RemoteSensingPretrainedPrimitive(
         },
         "installation": [
             {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+            {
+                'type': metadata_base.PrimitiveInstallationType.UBUNTU,
+                'package': 'zlib1g-dev',
+                'version': '1:1.2.11.dfsg-0ubuntu2',
+            }, 
+            {
+                'type': metadata_base.PrimitiveInstallationType.UBUNTU,
+                'package': 'liblzo2-dev',
+                'version': '2.08-1.2',
+            },
             {
                 "type": metadata_base.PrimitiveInstallationType.PIP,
                 "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
@@ -144,8 +162,12 @@ class RemoteSensingPretrainedPrimitive(
             raise ValueError('Primitive only supports featurizing one image column')
         image_col = image_cols[0]
 
-        image_dataset = self._load_dataset(inputs, image_col)
-        image_dataset = TensorDataset(image_dataset)
+        image_dataset = StreamingDataset(
+            inputs, 
+            image_col,
+            self.hyperparams['inference_model'],
+            decompress_data = self.hyperparams['decompress_data']
+        )
         image_loader = DataLoader(
             image_dataset, 
             batch_size=self.hyperparams['batch_size'],
@@ -154,11 +176,10 @@ class RemoteSensingPretrainedPrimitive(
         all_img_features = []
         with torch.no_grad():
             for image_batch in image_loader:
-                image_batch = image_batch[0].to(self.device)
+                image_batch = image_batch.to(self.device)
                 features = self.model(image_batch).cpu().data.numpy()
                 all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
-
         col_names = [f'feat_{i}' for i in range(0, all_img_features.shape[1])]
         feature_df = pd.DataFrame(all_img_features, columns = col_names)
         feature_df = d3m_DataFrame(feature_df, generate_metadata = True)
@@ -192,27 +213,26 @@ class RemoteSensingPretrainedPrimitive(
 
         if not self.hyperparams['pool_features']:
             model.avgpool = torch.nn.Sequential()
-            self._spatial_dim = 4
 
         return model
 
-    def _load_patch_sentinel(
-        self,
-        img: np.ndarray
-    ):
-        """ load and transform sentinel image patch to prep for model """
-        img = img[:12].transpose(1, 2, 0) / 10_000
-        return sentinel_augmentation_valid()(image=img)['image']
+    # def _load_patch_sentinel(
+    #     self,
+    #     img: np.ndarray
+    # ):
+    #     """ load and transform sentinel image patch to prep for model """
+    #     img = img[:12].transpose(1, 2, 0) / 10_000
+    #     return sentinel_augmentation_valid()(image=img)['image']
 
-    def _load_dataset(
-        self,
-        inputs: d3m_DataFrame,
-        img_col: int
-    ) -> TensorDataset:
-        """ load image dataset from 1 or more columns of np arrays representing images """
-        imgs = inputs.iloc[:, img_col]
-        if self.hyperparams['inference_model'] == 'moco':
-            imgs = [self._load_patch_sentinel(img) for img in imgs]
-        else:
-            imgs = [torch.Tensor(img) for img in imgs]
-        return torch.stack(imgs)
+    # def _load_dataset(
+    #     self,
+    #     inputs: d3m_DataFrame,
+    #     img_col: int
+    # ) -> TensorDataset:
+    #     """ load image dataset from 1 or more columns of np arrays representing images """
+    #     imgs = inputs.iloc[:, img_col]
+    #     if self.hyperparams['inference_model'] == 'moco':
+    #         imgs = [self._load_patch_sentinel(img) for img in imgs]
+    #     else:
+    #         imgs = [torch.Tensor(img) for img in imgs]
+    #     return torch.stack(imgs)
