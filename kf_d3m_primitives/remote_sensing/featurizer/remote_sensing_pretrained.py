@@ -183,6 +183,13 @@ class RemoteSensingPretrainedPrimitive(
         col_names = [f'feat_{i}' for i in range(0, all_img_features.shape[1])]
         feature_df = pd.DataFrame(all_img_features, columns = col_names)
         feature_df = d3m_DataFrame(feature_df, generate_metadata = True)
+
+        for idx in range(feature_df.shape[1]):
+            feature_df.metadata = feature_df.metadata.add_semantic_type(
+                (metadata_base.ALL_ELEMENTS, idx),
+                "http://schema.org/Float"
+            )
+
         return CallResult(feature_df)
 
     # def get_neural_network_module(self) -> Module:
