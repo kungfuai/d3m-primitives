@@ -17,10 +17,10 @@ ignore = [
 ]
 
 # List all the primitives
-for p in glob.glob('kf-d3m-primitives/kf_d3m_primitives/*/*/*.py'):
-    if p in glob.glob('kf-d3m-primitives/kf_d3m_primitives/*/utils/*') or p in glob.glob('/kf-d3m-primitives/kf_d3m_primitives/*/*/__.init__.py'):
+for p in glob.glob('kf_d3m_primitives/*/*/*.py'):
+    if p in glob.glob('kf_d3m_primitives/*/utils/*') or p in glob.glob('kf_d3m_primitives/*/*/__.init__.py'):
         continue
-    f = p.replace('kf-d3m-primitives/', '').replace('/', '.').replace('.py', '')
+    f = p.replace('/', '.').replace('.py', '')
     module = importlib.import_module(f)
     for c in dir(module):
         if 'Primitive' in c and c not in ignore:

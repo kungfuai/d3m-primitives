@@ -4,22 +4,22 @@ build:
 
 volumes:
 	@echo "Downloading large static files"
-	docker-compose run --rm kf-d3m-primitives python3 kf-d3m-primitives/download_volumes.py
+	docker-compose run --rm kf-d3m-primitives python3 download_volumes.py
 run:
 	@echo "Running Kung Fu D3M Primitives Image"
 	docker-compose run --rm kf-d3m-primitives
 
 test:
 	@echo "Running tests for Kung Fu D3M Primitives Image"
-	docker-compose run --rm --entrypoint python3 kf-d3m-primitives -m pytest -s kf-d3m-primitives/tests
+	docker-compose run --rm --entrypoint python3 kf-d3m-primitives -m pytest -s --rootdir=tests tests
 
 annotations:
 	@echo "Generating json annotations for all primitives"
-	docker-compose run --rm kf-d3m-primitives python3 kf-d3m-primitives/generate_annotations.py
+	docker-compose run --rm kf-d3m-primitives python3 generate_annotations.py
 
 pipelines-cpu:
 	@echo "Generating pipeline run documents for all primitives"
-	docker-compose run --rm kf-d3m-primitives python3 kf-d3m-primitives/generate_pipelines.py
+	docker-compose run --rm kf-d3m-primitives python3 generate_pipelines.py
 
 pipelines-gpu:
 	@echo "Generating pipeline run documents for all primitives"

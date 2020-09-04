@@ -154,4 +154,5 @@ punk/
 pipeline_scores/
 distil-primitives/
 backup_annotations/
-bigearth-100-single-multi/
+test_data/bigearth-100-single-multi/
+test_data/bigearth-100-single-2c/
