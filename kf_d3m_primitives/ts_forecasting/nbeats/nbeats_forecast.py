@@ -9,22 +9,22 @@ from gluonts.gluonts_tqdm import tqdm
 from gluonts.dataset.common import ListDataset
 from gluonts.core.serde import load_json
 
-from .deepar_dataset import DeepARDataset
+from .nbeats_dataset import NBEATSDataset
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
-class DeepARForecast:
+class NBEATSForecast:
 
     def __init__(
         self,
-        train_dataset: DeepARDataset,
+        train_dataset: NBEATSDataset,
         predictor_filepath: str,
+        interpretable: bool = True,
         mean: bool = True,
-        num_samples: int = 100,
-        quantiles: List[float] = []
+        #quantiles: List[float] = []
     ):
-        """ constructs DeepAR forecast object
+        """ constructs NBEATS forecast object
         
             if mean False, will return median point estimates 
         """ 
@@ -32,11 +32,14 @@ class DeepARForecast:
         self.train_dataset = train_dataset
         self.train_frame = train_dataset.get_frame()
         self.predictor = GluonPredictor.deserialize(Path(predictor_filepath))
-        self.mean = mean
+        self.interpretable = interpretable
+        if interpretable:
+            self.mean = True
+        else:
+            self.mean = mean
         self.prediction_length = train_dataset.get_pred_length()
         self.context_length = train_dataset.get_context_length()
-        self.num_samples = num_samples
-        self.quantiles = quantiles
+        #self.quantiles = quantiles
 
         self.data = []
         self.series_idxs = []
@@ -51,16 +54,12 @@ class DeepARForecast:
 
         if not self.train_dataset.has_group_cols():
             interval = pred_intervals[0]
-            feat_df = self.train_dataset.get_features(self.train_frame)
             targets = self.train_dataset.get_targets(self.train_frame)
             min_interval = np.min(interval)
             max_interval = np.max(interval)
             self.max_intervals.append(max_interval)
-            if np.max(interval) >= targets.shape[0]:
-                feat_df = pd.concat((feat_df, test_frame))
             self._iterate_over_series(
                     0,
-                    feat_df, 
                     targets, 
                     min_interval, 
                     max_interval, 
@@ -87,13 +86,9 @@ class DeepARForecast:
                     self.pre_pad_lens.append(0)
                     self.total_in_samples.append(0)
                 else:
-                    feat_df = self.train_dataset.get_features(train_df)
                     targets = self.train_dataset.get_targets(train_df)
-                    if np.max(interval) >= targets.shape[0]:
-                        feat_df = pd.concat((feat_df, test_df))
                     self._iterate_over_series(
                         series_idx,
-                        feat_df, 
                         targets, 
                         min_interval, 
                         max_interval
@@ -102,12 +97,11 @@ class DeepARForecast:
         self.data = ListDataset(self.data, freq = self.train_dataset.get_freq())
         forecasts = self._forecast()
         forecasts = self._pad(forecasts)
-        return forecasts # Num Series, Quantiles, Horizon
+        return forecasts # Num Series, 1/3, Horizon
 
     def _iterate_over_series(
         self, 
         series_idx,
-        feat_df, 
         targets, 
         min_interval, 
         max_interval
@@ -140,7 +134,6 @@ class DeepARForecast:
                 self.data.append(
                     self.train_dataset.get_series(
                         targets,
-                        feat_df,
                         start_idx = start_idx, 
                         test = True
                     )
@@ -150,7 +143,7 @@ class DeepARForecast:
             self.series_idxs.append(-1)
             logger.info(
                 f"This model was trained to use a context length of {self.context_length}, but there are " + 
-                f"only  {targets.shape[0]} in this series. These predictions will be returned as np.nan"
+                f"only {targets.shape[0]} in this series. These predictions will be returned as np.nan"
             )
 
         self.total_in_samples.append(targets.shape[0])
@@ -161,18 +154,37 @@ class DeepARForecast:
 
         all_forecasts = []
         with tqdm(
-            self.predictor.predict(self.data, num_samples = self.num_samples),
+            self.predictor.predict(self.data),
             total=len(self.data),
             desc="Making Predictions"
         ) as forecasts, np.errstate(invalid='ignore'):
             for forecast in forecasts:
-                point_estimate = forecast.mean if self.mean else forecast.quantile(0.5)
-                quantiles = np.vstack(
-                    [point_estimate] + 
-                    [forecast.quantile(q) for q in self.quantiles]
-                )
-                all_forecasts.append(quantiles)
-        return np.array(all_forecasts) # Batch/Series, Quantiles, Prediction Length
+                if self.mean:
+                    point_estimate = np.mean(forecast.samples, axis=0) 
+                else:
+                    point_estimate = np.median(forecast.samples, axis=0) 
+                
+                # quantiles = np.vstack((
+                #     point_estimate,
+                #     np.quantile(forecast.samples, self.quantiles, axis=0).squeeze()
+                # ))
+                all_forecasts.append(point_estimate)
+        all_forecasts = np.array(all_forecasts)
+        if self.interpretable and len(self.data) > 0:
+            trends = []
+            for predictor in self.predictor.predictors:
+                trends.append(predictor.prediction_net.get_trend_forecast())
+                predictor.prediction_net.clear_trend_forecast()
+            trends = np.stack(trends)
+            trends = np.mean(trends, axis=0)
+            trends = np.expand_dims(trends, axis=1)
+            seasonalities = all_forecasts - trends
+            
+            all_forecasts = np.concatenate(
+                (all_forecasts, trends, seasonalities),
+                axis=1
+            )
+        return all_forecasts # Batch/Series, Quantiles, Prediction Length
 
     def _pad(self, forecasts):
         """ resize forecasts according to pre_pad_len """
@@ -182,8 +194,9 @@ class DeepARForecast:
         clean_series_idxs = self.series_idxs[self.series_idxs != -1]
         for series_val in self.series_idxs:
             if series_val == -1:
+                dim_0 = 3 if self.interpretable else 1
                 series_forecasts = np.empty((
-                    len(self.quantiles) + 1, 
+                    dim_0, #len(self.quantiles) + 1, 
                     self.max_intervals[series_idx] + self.total_in_samples[series_idx] + 1
                 ))
                 series_forecasts[:] = np.nan

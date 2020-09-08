@@ -34,8 +34,8 @@ class StreamingDataset(Dataset):
         img = img[:12].transpose(1, 2, 0) / 10_000
         return sentinel_augmentation_valid()(image=img)['image']
 
-    def _delete_record(self, idx):
-        self.df.drop(idx, inplace=True)
+    def _delete_array(self, idx):
+        self.df.iat[idx, self.image_col] = None
 
     def __getitem__(self, idx):
         """ get next data point, decompress, tranform for inference """
@@ -56,6 +56,6 @@ class StreamingDataset(Dataset):
         else:
             img = torch.Tensor(img)
 
-        self._delete_record(idx)
+        self._delete_array(idx)
         return img
 

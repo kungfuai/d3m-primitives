@@ -190,6 +190,8 @@ class RemoteSensingPretrainedPrimitive(
                 "http://schema.org/Float"
             )
 
+        input_df = inputs.remove_columns(image_cols)
+        feature_df = input_df.append_columns(feature_df)
         return CallResult(feature_df)
 
     # def get_neural_network_module(self) -> Module:
