@@ -9,7 +9,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import mxnet as mx
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.model.n_beats import NBEATSEnsembleEstimator
 from gluonts.trainer import Trainer
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
@@ -21,9 +21,9 @@ from ..utils.time_utils import (
     calculate_time_frequency,
     discretize_time_difference,
 )
-from .deepar_dataset import DeepARDataset
-from .deepar_forecast import DeepARForecast
-
+from .nbeats_dataset import NBEATSDataset
+from .nbeats_forecast import NBEATSForecast
+from .nbeats_predictor import NBEATSEnsembleEstimatorHook
 
 __author__ = "Distil"
 __version__ = "1.2.0"
@@ -35,15 +35,14 @@ Outputs = container.DataFrame
 logger = logging.getLogger(__name__)
 
 class Params(params.Params):
-    deepar_dataset: DeepARDataset
+    nbeats_dataset: NBEATSDataset
     is_fit: bool
     timestamp_column: int
     freq: str
     reind_freq: str
-    real_cols: List[int]
-    cat_cols: List[int]
     group_cols: List[int]
     output_column: str
+    target_column: int
     min_trains: Union[
         List[pd._libs.tslibs.timestamps.Timestamp], 
         Dict[str, pd._libs.tslibs.timestamps.Timestamp],
@@ -52,7 +51,7 @@ class Params(params.Params):
 
 class Hyperparams(hyperparams.Hyperparams):
     weights_dir= hyperparams.Hyperparameter[str](
-        default='deepar_weights',
+        default='nbeats_weights',
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
@@ -68,54 +67,53 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="number of future timesteps to predict",
     )
-    context_length = hyperparams.UniformInt(
-        lower=1,
-        upper=1000,
-        default=30,
-        upper_inclusive=True,
+    interpretable = hyperparams.UniformBool(
+        default=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="number of context timesteps to consider before prediction, for both training and test",
+        description="whether to build interpretable architecture",
     )
-    num_layers = hyperparams.UniformInt(
+    num_context_lengths = hyperparams.UniformInt(
         lower=1,
-        upper=16,
+        upper=6,
         default=2,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="number of cells to use in the lstm component of the model",
+        description="number of different context lengths to use for training estimators"
     )
-    lstm_dim = hyperparams.UniformInt(
-        lower=10,
-        upper=400,
-        default=40,
+    num_estimators = hyperparams.UniformInt(
+        lower=1,
+        upper=20,
+        default=2,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="number of cells to use in the lstm component of the model",
+        description="number of different estimators to train for each combination of context "
+            + "length and loss function (3). The total number of estimators is num_estimators * "
+            + "num_context_lengths * 3"
     )
     epochs = hyperparams.UniformInt(
         lower=1,
         upper=sys.maxsize,
-        default=50,
+        default=10,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="number of training epochs",
+        description="number of training epochs for each estimator",
     )
     steps_per_epoch = hyperparams.UniformInt(
         lower=1,
         upper=200,
-        default=100,
+        default=50,
         upper_inclusive=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="number of steps to do per epoch",
+        description="number of steps per epoch for each estimator",
     )
     learning_rate = hyperparams.Uniform(
         lower=0.0,
@@ -124,7 +122,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="learning rate",
+        description="learning rate for each estimator",
     )
     training_batch_size = hyperparams.UniformInt(
         lower=1,
@@ -134,7 +132,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="training batch size",
+        description="training batch size for each estimator",
     )
     inference_batch_size = hyperparams.UniformInt(
         lower=1,
@@ -146,58 +144,28 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="inference batch size",
     )
-    dropout_rate = hyperparams.Uniform(
-        lower=0.0,
-        upper=1.0,
-        default=0.1,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
-        ],
-        description="dropout to use in lstm model (input and recurrent transform)",
-    )
-    count_data = hyperparams.Union[Union[bool, None]](
-        configuration=OrderedDict(
-            user_selected=hyperparams.UniformBool(default=True),
-            auto_selected=hyperparams.Hyperparameter[None](default=None),
-        ),
-        default="auto_selected",
-        description="Whether we should label the target column as real or count (positive) "
-        + "based on user input or automatic selection. For example, user might want to specify "
-        + "positive only count data if target column is real-valued, but domain is >= 0",
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-    )
     output_mean = hyperparams.UniformBool(
         default=True,
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="whether to output mean (or median) forecasts from probability distributions",
+        description="whether to output mean (or median) forecasts from ensemble estimators. "
+        + "If `interpretable` is `True`, `output_mean` will automatically be `True` to preserve "
+        + "the additive decomposition of the trend and seasonality forecast components"
     )
-    quantiles = hyperparams.Set(
-        elements=hyperparams.Hyperparameter[float](-1),
-        default=(),
-        semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-        description="A set of quantiles for which to return estimates from forecast distribution"
-    )
-    number_samples = hyperparams.UniformInt(
-        lower=1,
-        upper=1000,
-        default=100,
-        upper_inclusive=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="number of samples to draw at each timestep from forecast distribution"
-    )
+    # quantiles = hyperparams.Set(
+    #     elements=hyperparams.Hyperparameter[float](-1),
+    #     default=(),
+    #     semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
+    #     description="A set of quantiles for which to return estimates from forecast distribution"
+    # )
 
 
-class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
+class NBEATSPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
     """
-        Primitive that applies a deep autoregressive forecasting algorithm for time series
-        prediction. The implementation is based off of this paper: https://arxiv.org/pdf/1704.04110.pdf
-        and this implementation: https://gluon-ts.mxnet.io/index.html
+        Primitive that applies the NBEATS (Neural basis expansion analysis for interpretable time
+        series forecasting) method for time series forecasting. The implementation is based off of
+        this paper: https://arxiv.org/abs/1905.10437 and this repository: https://gluon-ts.mxnet.io/index.html
 
         Training inputs: 1) Feature dataframe, 2) Target dataframe
         Outputs: Dataframe with predictions for specific time series at specific future time instances 
@@ -211,14 +179,16 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
     metadata = metadata_base.PrimitiveMetadata(
         {
-            "id": "3410d709-0a13-4187-a1cb-159dd24b584b",
+            "id": "3952a074-145e-406d-9cee-80232ae8f3ae",
             "version": __version__,
-            "name": "DeepAR",
+            "name": "NBEATS",
             "keywords": [
                 "time series",
                 "forecasting",
-                "recurrent neural network",
-                "autoregressive",
+                "deep neural network",
+                "fully-connected",
+                "residual network",
+                "interpretable"
             ],
             "source": {
                 "name": __author__,
@@ -236,9 +206,9 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                     ),
                 },
             ],
-            "python_path": "d3m.primitives.time_series_forecasting.lstm.DeepAR",
+            "python_path": "d3m.primitives.time_series_forecasting.feed_forward_neural_net.NBEATS",
             "algorithm_types": [
-                metadata_base.PrimitiveAlgorithmType.RECURRENT_NEURAL_NETWORK,
+                metadata_base.PrimitiveAlgorithmType.DEEP_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_FORECASTING,
         }
@@ -249,16 +219,15 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
         self._freq = None
         self._is_fit = False
-        self._all_preds = None
+        self.preds = None
 
     def get_params(self) -> Params:
         return Params(
-            deepar_dataset = self._deepar_dataset,
+            nbeats_dataset = self._nbeats_dataset,
             timestamp_column = self._timestamp_column,
-            real_cols = self._real_columns,
             group_cols = self._grouping_columns,
-            cat_cols = self._cat_columns,
             output_column = self._output_column,
+            target_column = self._target_column,
             freq = self._freq,
             reind_freq = self._reind_freq,
             is_fit = self._is_fit,
@@ -266,12 +235,11 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
 
     def set_params(self, *, params: Params) -> None:
-        self._deepar_dataset = params['deepar_dataset']
+        self._nbeats_dataset = params['nbeats_dataset']
         self._timestamp_column = params['timestamp_column']
-        self._real_columns = params['real_cols']
         self._grouping_columns = params['group_cols']
-        self._cat_columns = params['cat_cols']
         self._output_column = params['output_column']
+        self._target_column = params['target_column']
         self._freq = params['freq']
         self._reind_freq = params['reind_freq']
         self._is_fit = params['is_fit']
@@ -296,23 +264,19 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         frame, self._min_trains, max_train_length, _ = self._reindex(frame)
         self._check_window_support(max_train_length)
 
-        self._deepar_dataset = DeepARDataset(
+        self._nbeats_dataset = NBEATSDataset(
             frame, 
             self._grouping_columns,
-            self._cat_columns,
-            self._real_columns,
             self._timestamp_column,
             self._target_column,
             self._freq,
             self.hyperparams['prediction_length'],
-            self.hyperparams['context_length'],
-            self._target_semantic_types,
-            self.hyperparams['count_data']
+            self.hyperparams['num_context_lengths']
         )
-        self._train_data = self._deepar_dataset.get_data()
+        self._train_data = self._nbeats_dataset.get_data()
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
-        """ Fits DeepAR model using training data from set_training_data and hyperparameters
+        """ Fits NBEATS model using training data from set_training_data and hyperparameters
             
             Keyword Arguments:
                 timeout {float} -- timeout, considered (default: {None})
@@ -328,27 +292,50 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         else:
             has_finished = False
 
-        estimator = DeepAREstimator(
+        if self.hyperparams['interpretable']:
+            num_stacks = 2
+            num_blocks = [1]
+            widths = [256,2048]
+            sharing = [True]
+            expansion_coefficient_lengths = [3]
+            stack_types = ["T", "S"]
+            estimator_class = NBEATSEnsembleEstimatorHook
+        else:
+            num_stacks = 30
+            num_blocks = [3]
+            widths = [512]
+            sharing = [False]
+            expansion_coefficient_lengths = [32]
+            stack_types = ["G"]
+            estimator_class = NBEATSEnsembleEstimator
+
+        estimator = estimator_class(
             freq=self._freq,
             prediction_length=self.hyperparams['prediction_length'],
-            context_length=self.hyperparams['context_length'],
-            use_feat_static_cat=self._deepar_dataset.has_cat_cols() or self._deepar_dataset.has_group_cols(),
-            use_feat_dynamic_real=self._deepar_dataset.has_real_cols(),
-            cardinality=self._deepar_dataset.get_cardinality(),
-            distr_output=self._deepar_dataset.get_distribution_type(),
-            dropout_rate=self.hyperparams['dropout_rate'],
+            meta_context_length=[
+                i for i in range(2, self.hyperparams['num_context_lengths'] + 2)
+            ],
+            meta_loss_function = ['sMAPE', 'MASE', 'MAPE'],
+            meta_bagging_size = self.hyperparams['num_estimators'],
+            num_stacks=num_stacks,
+            num_blocks=num_blocks,
+            widths=widths,
+            sharing=sharing,
+            expansion_coefficient_lengths=expansion_coefficient_lengths,
+            stack_types=stack_types,
             trainer=Trainer(
                 epochs=iterations,
                 learning_rate=self.hyperparams['learning_rate'], 
                 batch_size=self.hyperparams['training_batch_size'],
                 num_batches_per_epoch=self.hyperparams['steps_per_epoch']
-            )
+            ),
         )
 
         logger.info(f"Fitting for {iterations} iterations")
         start_time = time.time()
         predictor = estimator.train(self._train_data)
         predictor.batch_size = self.hyperparams['inference_batch_size']
+        predictor.set_aggregation_method('none')
         self._is_fit = True
         logger.info(f"Fit for {iterations} epochs, took {time.time() - start_time}s")
 
@@ -378,15 +365,30 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 CallResult[Outputs] -- (N, 2) dataframe with d3m_index and value for each prediction slice requested.
                     prediction slice = specific horizon idx for specific series in specific regression 
         """
-        if self._all_preds is None:
-            self._all_preds, self._pred_intervals = self._produce(inputs)
+        all_preds, pred_intervals = self._produce(inputs)
 
-        point_estimates = np.concatenate(
-            [series[0][idxs] for series, idxs in zip(self._all_preds, self._pred_intervals)]
-        )
+        if self.hyperparams['interpretable']:
+            all_components = [[] for c in range(3)]
+            for series, idxs in zip(all_preds, pred_intervals):
+                for i, component in enumerate(series):
+                    all_components[i].append(component[idxs])
+            all_components = [np.concatenate(component) for component in all_components]
+
+            col_names = (self._output_column, 'trend-component', 'seasonality-component')
+            df_data = {
+                col_name: component 
+                for col_name, component 
+                in zip(col_names, all_components)
+            }
+
+        else:
+            point_estimates = np.concatenate(
+                [series[0][idxs] for series, idxs in zip(all_preds, pred_intervals)]
+            )
+            df_data = {self._output_column: point_estimates}
         
         result_df = container.DataFrame(
-            {self._output_column: point_estimates},
+            df_data,
             generate_metadata=True,
         )
 
@@ -396,54 +398,52 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
         return CallResult(result_df, has_finished=self._is_fit)
 
-    def produce_confidence_intervals(
-        self, *, inputs: Inputs, timeout: float = None, iterations: int = None
-    ) -> CallResult[Outputs]:
-        """ produce quantiles for each prediction timestep in dataframe
+    # def produce_confidence_intervals(
+    #     self, *, inputs: Inputs, timeout: float = None, iterations: int = None
+    # ) -> CallResult[Outputs]:
+    #     """ produce quantiles for each prediction timestep in dataframe
         
-        Arguments:
-            inputs {Inputs} -- D3M dataframe containing attributes
+    #     Arguments:
+    #         inputs {Inputs} -- D3M dataframe containing attributes
         
-        Keyword Arguments:
-            timeout {float} -- timeout, not considered (default: {None})
-            iterations {int} -- iterations, considered (default: {None})
+    #     Keyword Arguments:
+    #         timeout {float} -- timeout, not considered (default: {None})
+    #         iterations {int} -- iterations, considered (default: {None})
         
-        Raises:
-            PrimitiveNotFittedError: 
+    #     Raises:
+    #         PrimitiveNotFittedError: 
         
-        Returns:
-            CallResult[Outputs] -- 
+    #     Returns:
+    #         CallResult[Outputs] -- 
 
-            Ex. 
-                0.50 | 0.05 | 0.95
-                -------------------
-                 5   |   3  |   7
-                 6   |   4  |   8
-                 5   |   3  |   7
-                 6   |   4  |   8
-        """
+    #         Ex. 
+    #             0.50 | 0.05 | 0.95
+    #             -------------------
+    #              5   |   3  |   7
+    #              6   |   4  |   8
+    #              5   |   3  |   7
+    #              6   |   4  |   8
+    #     """
 
-        if self._all_preds is None:
-            self._all_preds, self._pred_intervals = self._produce(inputs)
+    #     all_preds, pred_intervals = self._produce(inputs)
+    #     all_quantiles = [[] for q in range(len(self.hyperparams['quantiles']) + 1)]
+    #     for series, idxs in zip(all_preds, pred_intervals):
+    #         for i, quantile in enumerate(series):
+    #             all_quantiles[i].append(quantile[idxs])
+    #     all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
 
-        all_quantiles = [[] for q in range(len(self.hyperparams['quantiles']) + 1)]
-        for series, idxs in zip(self._all_preds, self._pred_intervals):
-            for i, quantile in enumerate(series):
-                all_quantiles[i].append(quantile[idxs])
-        all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
+    #     col_names = (0.5,) + self.hyperparams['quantiles']
+    #     result_df = container.DataFrame(
+    #         {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},
+    #         generate_metadata=True,
+    #     )
 
-        col_names = (0.5,) + self.hyperparams['quantiles']
-        result_df = container.DataFrame(
-            {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},
-            generate_metadata=True,
-        )
+    #     result_df.metadata = result_df.metadata.add_semantic_type(
+    #         (metadata_base.ALL_ELEMENTS, 0),
+    #         ("https://metadata.datadrivendiscovery.org/types/PredictedTarget"),
+    #     )
 
-        result_df.metadata = result_df.metadata.add_semantic_type(
-            (metadata_base.ALL_ELEMENTS, 0),
-            ("https://metadata.datadrivendiscovery.org/types/PredictedTarget"),
-        )
-
-        return CallResult(result_df, has_finished=self._is_fit)
+    #     return CallResult(result_df, has_finished=self._is_fit)
 
     def _get_col_names(self, col_idxs, all_col_names):
         """ transform column indices to column names """
@@ -502,8 +502,7 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 self._freq, self._reind_freq = calculate_time_frequency(diff, model = 'gluon')
 
     def _robust_reindex(self, frame):
-        """ reindex dataframe IFF it has > 1 row, interpolate real-valued columns, forward-filling
-            categorical and grouping columns """ 
+        """ reindex dataframe IFF it has > 1 row, interpolate target column """ 
 
         frame = self._sort_by_timestamp(frame)
         original_times = frame.iloc[:, self._timestamp_column]
@@ -517,14 +516,16 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                     freq = self._reind_freq,
                 )
             )
-        frame.iloc[:, self._real_columns] = frame.iloc[:, self._real_columns].interpolate()
-        frame.iloc[:, self._cat_columns + self._grouping_columns] = \
-            frame.iloc[:, self._cat_columns + self._grouping_columns].ffill()
+
+        # only interpolate when target exists during training
+        if self._target_column < frame.shape[1]:
+            frame.iloc[:, self._target_column] = frame.iloc[:, self._target_column].interpolate() 
+        frame.iloc[:, self._grouping_columns] = frame.iloc[:, self._grouping_columns].ffill()
 
         return frame, original_times
 
     def _reindex(self, frame):
-        """ reindex data, keeping NA values for target column, but interpolating feature columns
+        """ reindex data, interpolating target columns
         """ 
 
         if len(self._grouping_columns) == 0:
@@ -585,30 +586,6 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         if len(self._grouping_columns) == 0:
             self._grouping_columns = suggested_group_cols
 
-        def diff(li1, li2): 
-            return list(set(li1) - set(li2))
-
-        # categorical columns
-        self._cat_columns = input_metadata.list_columns_with_semantic_types(
-            ("https://metadata.datadrivendiscovery.org/types/CategoricalData",)
-        )
-        self._cat_columns = diff(self._cat_columns, self._grouping_columns + suggested_group_cols)
-
-        # real valued columns
-        self._real_columns = input_metadata.list_columns_with_semantic_types(
-            ("http://schema.org/Integer", "http://schema.org/Float")
-        )
-
-        self._real_columns = diff(
-            self._real_columns, 
-            [self._timestamp_column] + [self._target_column] + self._grouping_columns
-        )
-
-        # determine whether targets are count data
-        self._target_semantic_types = input_metadata.query_column_field(
-            self._target_column, "semantic_types"
-        )
-
     def _check_window_support(self, max_train_length):
         """ ensures that at least one series of target series is >= context_length """
 
@@ -657,17 +634,17 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             raise PrimitiveNotFittedError("Primitive not fitted.")
 
         test_frame = inputs.copy()
-        deepar_forecast = DeepARForecast(
-            self._deepar_dataset,
+        nbeats_forecast = NBEATSForecast(
+            self._nbeats_dataset,
             self.hyperparams['weights_dir'],
+            self.hyperparams['interpretable'],
             self.hyperparams['output_mean'],
-            self.hyperparams['number_samples'],
-            self.hyperparams['quantiles']
+            #self.hyperparams['quantiles']
         )
         test_frame, _, _, original_times = self._reindex(test_frame)
         pred_intervals = self._get_pred_intervals(original_times)
 
         st = time.time()
-        preds = deepar_forecast.predict(test_frame, pred_intervals)
+        preds = nbeats_forecast.predict(test_frame, pred_intervals)
         logger.info(f'Making predictions took {time.time() - st}s')
         return preds, pred_intervals

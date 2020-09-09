@@ -7,6 +7,7 @@ import lzo
 from rsp.data import load_patch
 from rsp.moco_r50.resnet import ResNet
 from rsp.amdim.inference import AMDIM
+from d3m.container import DataFrame as d3m_DataFrame
 
 from kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
     RemoteSensingPretrainedPrimitive, 
@@ -46,7 +47,8 @@ def load_frame(compress_data = False):
             compressed_imgs.append(compressed_img)
         imgs = compressed_imgs
 
-    return pd.DataFrame({'image_col': imgs})
+    df = pd.DataFrame({'image_col': imgs, 'dummy_idx': range(len(imgs))})
+    return d3m_DataFrame(df)
 
 # def test_init_when_inference_model_amdim():
 #     rsp = RemoteSensingPretrainedPrimitive(
@@ -83,6 +85,13 @@ def load_frame(compress_data = False):
 #     assert feature_df.shape[0] == test_frame.shape[0]
 #     assert feature_df.shape[1] == 1024
 
+def _test_output_df(input_df, output_df, num_features):
+    assert output_df.shape[0] == 5
+    assert output_df.columns[0] == 'dummy_idx'
+    assert output_df.shape[1] == input_df.shape[1] - 1 + num_features
+    for i in range(1, num_features+1):
+        assert "http://schema.org/Float" in output_df.metadata.query_column(i)['semantic_types']
+
 def test_produce_when_inference_model_moco():
     test_frame = load_frame()
     rsp = RemoteSensingPretrainedPrimitive(
@@ -95,8 +104,7 @@ def test_produce_when_inference_model_moco():
     )
     global feature_df
     feature_df = rsp.produce(inputs=test_frame).value
-    assert feature_df.shape[0] == 5
-    assert feature_df.shape[1] == 2048
+    _test_output_df(test_frame, feature_df, 2048)
 
 def test_produce_when_inference_model_moco_no_pooling():
     test_frame = load_frame()
@@ -110,8 +118,7 @@ def test_produce_when_inference_model_moco_no_pooling():
         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path},
     )
     feature_df = rsp.produce(inputs=test_frame).value
-    assert feature_df.shape[0] == 5
-    assert feature_df.shape[1] == 2048*4*4
+    _test_output_df(test_frame, feature_df, 2048*4*4)
 
 def test_produce_when_inference_model_moco_decompress():
     test_frame = load_frame(compress_data = True)
@@ -125,6 +132,5 @@ def test_produce_when_inference_model_moco_decompress():
         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path},
     )
     decompress_feature_df = rsp.produce(inputs=test_frame).value
-    assert decompress_feature_df.shape[0] == 5
-    assert decompress_feature_df.shape[1] == 2048
+    _test_output_df(test_frame, decompress_feature_df, 2048)
     assert decompress_feature_df.equals(feature_df)

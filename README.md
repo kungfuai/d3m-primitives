@@ -73,29 +73,29 @@ make pipelines-gpu
 
 2. **DukePrimitive**: wrapper of the [Duke library](https://github.com/uncharted-distil/duke) in the D3M infrastructure.
 
-3. **SimonPrimitive**: LSTM-FCN neural network trained on 18 different semantic types, which infers the semantic type of each column. Base library [here](https://github.com/uncharted-distil/simon)
+3. **SimonPrimitive**: LSTM-FCN neural network trained on 18 different semantic types, which infers the semantic type of each column. Base library [here](https://github.com/uncharted-distil/simon).
 
-4. **GoatForwardPrimitive**: geocodes names of locations into lat/long pairs with requests to [photon](https://github.com/komoot/photon) geocoding server (based on OpenStreetMap)
+4. **GoatForwardPrimitive**: geocodes names of locations into lat/long pairs with requests to [photon](https://github.com/komoot/photon) geocoding server (based on OpenStreetMap).
 
-5. **GoatReversePrimitive**: geocodes lat/long pairs into geographic names of varying granularity with requests to [photon](https://github.com/komoot/photon) geocoding server (based on OpenStreetMap)
+5. **GoatReversePrimitive**: geocodes lat/long pairs into geographic names of varying granularity with requests to [photon](https://github.com/komoot/photon) geocoding server (based on OpenStreetMap).
 
 ### Clustering
 
-1. **HdbscanPrimitive**: wrapper of [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/index.html) and [DBSCAN](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html)
+1. **HdbscanPrimitive**: wrapper of [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/index.html) and [DBSCAN](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html).
 
-2. **StorcPrimitive**: wrapper of [tslearn](https://tslearn.readthedocs.io/en/stable/index.html) 's kmeans implementations
+2. **StorcPrimitive**: wrapper of [tslearn](https://tslearn.readthedocs.io/en/stable/index.html)'s kmeans implementations.
 
-3. **SpectralClustering**: wrapper of [Spectral Clustering](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html)
+3. **SpectralClustering**: wrapper of [Spectral Clustering](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html).
 
 ### Feature Selection
 
 1. **PcaFeaturesPrimitive**: wrapper of the [Punk](https://github.com/NewKnowledge/punk) feature ranker into D3M infrastructure.
 
-2. **RfFeaturesPrimitive** wrapper of the [Punk](https://github.com/NewKnowledge/punk) punk rrfeatures library into D3M infrastructure
+2. **RfFeaturesPrimitive** wrapper of the [Punk](https://github.com/NewKnowledge/punk) punk rrfeatures library into D3M infrastructure.
 
 ### Dimensionality Reduction
 
-1. **TsnePrimitive**: wrapper of [TSNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html)
+1. **TsnePrimitive**: wrapper of [TSNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html).
 
 ### Natural Language Processing
 
@@ -103,7 +103,7 @@ make pipelines-gpu
 
 ### Image Classification
 
-1. **GatorPrimitive**: Inception V3 model pretrained on ImageNet finetuned for classification
+1. **GatorPrimitive**: Inception V3 model pretrained on ImageNet finetuned for classification.
 
 ### Object Detection
 
@@ -111,19 +111,21 @@ make pipelines-gpu
 
 ### Time Series Classification
 
-1. **KaninePrimitive**: wrapper of [KNeighborsTimeSeriesClassifier](https://tslearn.readthedocs.io/en/latest/gen_modules/neighbors/tslearn.neighbors.KNeighborsTimeSeriesClassifier.html#tslearn.neighbors.KNeighborsTimeSeriesClassifier)
+1. **KaninePrimitive**: wrapper of [KNeighborsTimeSeriesClassifier](https://tslearn.readthedocs.io/en/latest/gen_modules/neighbors/tslearn.neighbors.KNeighborsTimeSeriesClassifier.html#tslearn.neighbors.KNeighborsTimeSeriesClassifier).
 
-2. **LstmFcnPrimitive**: wrapper of [LSTM Fully Convolutional Networks for Time Series Classification](https://github.com/houshd/LSTM-FCN)
+2. **LstmFcnPrimitive**: wrapper of [LSTM Fully Convolutional Networks for Time Series Classification](https://github.com/houshd/LSTM-FCN).
 
 ### Time Series Forecasting
 
-1. **DeepArPrimitive**: wrapper of [DeepAR](https://arxiv.org/abs/1704.04110) recurrent, autoregressive, probabilistic Time Series Forecasting algorithm based on [GluonTS](https://github.com/awslabs/gluon-ts) implementation.
+1. **DeepArPrimitive**: wrapper of [DeepAR](https://arxiv.org/abs/1704.04110) - a recurrent, autoregressive, probabilistic time series forecasting method from [GluonTS](https://github.com/awslabs/gluon-ts).
 
-2. **VarPrimitive**: wrapper of [VAR](https://www.statsmodels.org/dev/vector_ar.html) for multivariate time series and [auto_arima](http://alkaline-ml.com/pmdarima/0.9.0/modules/generated/pyramid.arima.auto_arima.html) for univariate time series
+2. **NBEATSPrimitive**: wrapper of [N-BEATS](https://arxiv.org/abs/1905.10437) - Neural basis expansion analysis for interpretable time series forecasting from [GluonTS](https://github.com/awslabs/gluon-ts).
+
+3. **VarPrimitive**: wrapper of [VAR](https://www.statsmodels.org/dev/vector_ar.html) for multivariate time series and [auto_arima](http://alkaline-ml.com/pmdarima/0.9.0/modules/generated/pyramid.arima.auto_arima.html) for univariate time series.
 
 ### Interpretability
 
-**shap_explainers**: wrapper of Lundberg's shapley values implementation for tree models. Currently integrated into *d3m.primitives.learner.random_forest.DistilEnsembleForest* as *produce_shap_values()*
+**shap_explainers**: wrapper of Lundberg's shapley values implementation for tree models. Currently integrated into *d3m.primitives.learner.random_forest.DistilEnsembleForest* as *produce_shap_values()*.
 
 ### Remote Sensing
 
