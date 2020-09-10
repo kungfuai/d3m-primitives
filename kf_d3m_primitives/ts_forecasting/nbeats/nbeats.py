@@ -63,7 +63,7 @@ class Hyperparams(hyperparams.Hyperparams):
         default=30,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
         description="number of future timesteps to predict",
     )
@@ -90,7 +90,7 @@ class Hyperparams(hyperparams.Hyperparams):
         default=2,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
         description="number of different estimators to train for each combination of context "
             + "length and loss function (3). The total number of estimators is num_estimators * "
@@ -140,7 +140,7 @@ class Hyperparams(hyperparams.Hyperparams):
         default=256,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
         description="inference batch size",
     )

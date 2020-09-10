@@ -64,7 +64,7 @@ class Hyperparams(hyperparams.Hyperparams):
         default=30,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
         description="number of future timesteps to predict",
     )
@@ -142,7 +142,7 @@ class Hyperparams(hyperparams.Hyperparams):
         default=256,
         upper_inclusive=True,
         semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
         description="inference batch size",
     )
