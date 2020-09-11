@@ -8,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 import torch
 from rsp.data import bilinear_upsample, BANDS
 from tifffile import imread as tiffread
+from d3m.container import DataFrame as d3m_DataFrame
 
 from kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained import (
     RemoteSensingPretrainedPrimitive, 
@@ -36,10 +37,16 @@ def load_inputs():
         load_patch(img_path).astype(np.float32) 
         for img_path in imnames
     ]
+    imgs_df = pd.DataFrame({'image_col': imgs, 'dummy_idx': range(len(imgs))})
 
     y = [i.split('/')[3] for i in imnames]
     tgts = LabelEncoder().fit_transform(y)
-    return pd.DataFrame({'image_col': imgs}), pd.DataFrame({'target': tgts})
+    tgts_df = pd.DataFrame({'target': tgts})
+
+    return (
+        d3m_DataFrame(imgs_df), 
+        d3m_DataFrame(tgts_df)
+    )
 
 train_inputs, labels = load_inputs()
 featurizer = RemoteSensingPretrainedPrimitive(
@@ -52,10 +59,12 @@ featurizer = RemoteSensingPretrainedPrimitive(
     volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path}
 )
 features = featurizer.produce(inputs = train_inputs).value
+features = features.drop(columns = 'dummy_idx')
 # features.to_pickle("dummy.pkl")
 # labels.to_pickle("labels.pkl")
 # features = pd.read_pickle("dummy.pkl")
 # labels = pd.read_pickle("labels.pkl")
+
 def test_fit():
 
     mlp = MlpClassifierPrimitive(
