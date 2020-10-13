@@ -8,7 +8,6 @@ setup(
     setkeywords=['d3m_primitive'],
     install_requires=[
         "d3m",
-        "tensorflow-gpu==2.2.0",
         "mxnet==1.6.0",
         "torch==1.4.0",
         "pillow==7.1.2",
@@ -30,6 +29,10 @@ setup(
         "duke @ git+https://github.com/uncharted-distil/duke@c56416e959b52ff5077c5a54c329e2f6e83bbd97#egg=duke",
         "rsp @ git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp"
     ],
+    extras_require={
+        'cpu': ['tensorflow==2.2.0'],
+        'gpu': ['tensorflow-gpu==2.2.0'],
+    },
     entry_points={
         "d3m.primitives": [
             "data_cleaning.column_type_profiler.Simon = kf_d3m_primitives.data_preprocessing.data_typing.simon:SimonPrimitive",

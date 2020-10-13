@@ -6,6 +6,7 @@ This script assumes that `generate_annotations.py` has already been run.
 
 import os
 import subprocess
+import shutil
 
 import fire
 
@@ -27,6 +28,7 @@ from kf_d3m_primitives.ts_classification.knn.kanine_pipeline import KaninePipeli
 from kf_d3m_primitives.ts_classification.lstm_fcn.lstm_fcn_pipeline import LstmFcnPipeline
 from kf_d3m_primitives.ts_forecasting.vector_autoregression.var_pipeline import VarPipeline
 from kf_d3m_primitives.ts_forecasting.deep_ar.deepar_pipeline import DeepARPipeline
+from kf_d3m_primitives.ts_forecasting.nbeats.nbeats_pipeline import NBEATSPipeline
 
 def generate_pipelines(gpu = False):
 
@@ -118,6 +120,12 @@ def generate_pipelines(gpu = False):
             (DeepARPipeline(prediction_length = 60, context_length = 30), ('LL1_736_population_spawn_MIN_METADATA',)),
             (DeepARPipeline(prediction_length = 34, context_length = 17), ('LL1_736_stock_market_MIN_METADATA',)),
         ],
+        "d3m.primitives.time_series_forecasting.feed_forward_neural_net.NBEATS": [
+            (NBEATSPipeline(prediction_length = 21), ('56_sunspots_MIN_METADATA',)), 
+            (NBEATSPipeline(prediction_length = 38), ('56_sunspots_monthly_MIN_METADATA',)),
+            (NBEATSPipeline(prediction_length = 60), ('LL1_736_population_spawn_MIN_METADATA',)),
+            (NBEATSPipeline(prediction_length = 34), ('LL1_736_stock_market_MIN_METADATA',)),
+        ],
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN": [
             (ObjectDetectionRNPipeline(), (
                 'LL1_tidy_terra_panicle_detection_MIN_METADATA', 
@@ -178,6 +186,8 @@ def generate_pipelines(gpu = False):
                         submission = True
                     )
                 else:
+                    if primitive.split(".")[-1] == 'NBEATS':
+                        shutil.rmtree(f'/scratch_dir/nbeats')
                     pipeline.fit_score(
                         dataset,
                         output_yml_dir = './pipeline_runs',
