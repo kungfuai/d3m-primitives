@@ -155,7 +155,22 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
                 "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
                     git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                 ),
-            }
+            },
+            {
+                'type': metadata_base.PrimitiveInstallationType.UBUNTU,
+                'package': 'zlib1g-dev',
+                'version': '1:1.2.11.dfsg-0ubuntu2',
+            }, 
+            {
+                'type': metadata_base.PrimitiveInstallationType.UBUNTU,
+                'package': 'liblzo2-dev',
+                'version': '2.08-1.2',
+            },
+            {
+                'type': metadata_base.PrimitiveInstallationType.PIP,
+                'package': 'python-lzo',
+                'version': '1.12',
+            },
         ],
         'python_path': 'd3m.primitives.remote_sensing.mlp.MlpClassifier',
         'algorithm_types': [
