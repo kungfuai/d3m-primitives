@@ -47,7 +47,7 @@ def load_frame(compress_data = False):
             compressed_imgs.append(compressed_img)
         imgs = compressed_imgs
 
-    df = pd.DataFrame({'image_col': imgs, 'dummy_idx': range(len(imgs))})
+    df = pd.DataFrame({'dummy_idx': range(len(imgs)), 'image_col': imgs})
     return d3m_DataFrame(df)
 
 # def test_init_when_inference_model_amdim():
@@ -89,7 +89,7 @@ def _test_output_df(input_df, output_df, num_features):
     assert output_df.shape[0] == 5
     assert output_df.columns[0] == 'dummy_idx'
     assert output_df.shape[1] == input_df.shape[1] - 1 + num_features
-    for i in range(1, num_features+1):
+    for i in range(1, num_features + 1):
         assert "http://schema.org/Float" in output_df.metadata.query_column(i)['semantic_types']
 
 def test_produce_when_inference_model_moco():
@@ -98,7 +98,7 @@ def test_produce_when_inference_model_moco():
         hyperparams=rs_hp(
             rs_hp.defaults(),
             inference_model = 'moco',
-            use_columns = [0],
+            use_columns = [1],
         ),
         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path},
     )
@@ -112,7 +112,7 @@ def test_produce_when_inference_model_moco_no_pooling():
         hyperparams=rs_hp(
             rs_hp.defaults(),
             inference_model = 'moco',
-            use_columns = [0],
+            use_columns = [1],
             pool_features = False,
         ),
         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path},
@@ -126,7 +126,7 @@ def test_produce_when_inference_model_moco_decompress():
         hyperparams=rs_hp(
             rs_hp.defaults(),
             inference_model = 'moco',
-            use_columns = [0],
+            use_columns = [1],
             decompress_data = True,
         ),
         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path},

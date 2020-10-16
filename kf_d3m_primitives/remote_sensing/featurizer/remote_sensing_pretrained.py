@@ -194,9 +194,11 @@ class RemoteSensingPretrainedPrimitive(
                 (metadata_base.ALL_ELEMENTS, idx),
                 "http://schema.org/Float"
             )
+        
+        if inputs.shape[1] > 1:
+            input_df = inputs.remove_columns(image_cols)
+            feature_df = input_df.append_columns(feature_df)
 
-        input_df = inputs.remove_columns(image_cols)
-        feature_df = input_df.append_columns(feature_df)
         return CallResult(feature_df)
 
     # def get_neural_network_module(self) -> Module:
@@ -229,24 +231,3 @@ class RemoteSensingPretrainedPrimitive(
             model.avgpool = torch.nn.Sequential()
 
         return model
-
-    # def _load_patch_sentinel(
-    #     self,
-    #     img: np.ndarray
-    # ):
-    #     """ load and transform sentinel image patch to prep for model """
-    #     img = img[:12].transpose(1, 2, 0) / 10_000
-    #     return sentinel_augmentation_valid()(image=img)['image']
-
-    # def _load_dataset(
-    #     self,
-    #     inputs: d3m_DataFrame,
-    #     img_col: int
-    # ) -> TensorDataset:
-    #     """ load image dataset from 1 or more columns of np arrays representing images """
-    #     imgs = inputs.iloc[:, img_col]
-    #     if self.hyperparams['inference_model'] == 'moco':
-    #         imgs = [self._load_patch_sentinel(img) for img in imgs]
-    #     else:
-    #         imgs = [torch.Tensor(img) for img in imgs]
-    #     return torch.stack(imgs)
