@@ -1,8 +1,10 @@
 import os.path
 import typing
+import types
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from d3m.primitive_interfaces.base import (
     CallResult, 
     NeuralNetworkModuleMixin, 
@@ -63,7 +65,7 @@ class Hyperparams(hyperparams.Hyperparams):
     decompress_data = hyperparams.Hyperparameter[bool](
         default=False,
         semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-        description="If True, applies LZO decompression algorithm to the data.\
+        description="If True, applies LZO decompression algorithm to the data. \
                     Compressed data stores a header consisting of the dtype character and the \
                     data shape as unsigned integers. Given c struct alignment, will occupy \
                     16 bytes (1 + 4 + 4 + 4 + 3 ) padding"
@@ -144,7 +146,13 @@ class RemoteSensingPretrainedPrimitive(
         super().__init__(hyperparams=hyperparams, random_seed=random_seed, volumes=volumes)
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = self._load_inference_model(volumes).to(self.device)
+
+        np.random.seed(random_seed)
+        torch.manual_seed(random_seed)
+        if self.device == 'cuda:0':
+            torch.cuda.manual_seed(random_seed)
+
+        self.model = self._load_inference_model(volumes)
 
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> CallResult[Outputs]:
         """
@@ -180,9 +188,12 @@ class RemoteSensingPretrainedPrimitive(
 
         all_img_features = []
         with torch.no_grad():
-            for image_batch in image_loader:
+            for image_batch in tqdm(image_loader):
                 image_batch = image_batch.to(self.device)
-                features = self.model(image_batch).cpu().data.numpy()
+                features = self.model(image_batch)
+                if self.hyperparams['pool_features']:
+                    features = self._aggregate_features(features)
+                features = features.detach().cpu().numpy()
                 all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
         col_names = [f'feat_{i}' for i in range(0, all_img_features.shape[1])]
@@ -225,9 +236,46 @@ class RemoteSensingPretrainedPrimitive(
         if self.hyperparams['inference_model'] == 'amdim':
             model = amdim(volumes['amdim_weights'], map_location=self.device)
         elif self.hyperparams['inference_model'] == 'moco':
-            model = moco_r50(volumes['moco_weights'], map_location=self.device) 
+            model = moco_r50(volumes['moco_weights'], map_location=self.device)
 
-        if not self.hyperparams['pool_features']:
-            model.avgpool = torch.nn.Sequential()
+            def forward(self, x):
+                """ Patch forward to eliminate pooling, flattening + fc """
+                x = self.conv1(x)
+                x = self.bn1(x)
+                x = self.relu(x)
+                x = self.maxpool(x)
+
+                x = self.layer1(x)
+                x = self.layer2(x)
+                x = self.layer3(x)
+                x = self.layer4(x)
+
+                return x
+            
+            model.forward = types.MethodType(forward, model) 
+
+        model = model.to(self.device)
+        model = model.eval()
 
         return model
+
+    def _aggregate_features(self, features, spatial_a = 2.0, spatial_b = 2.0):
+        """ aggregate features with
+            Cross-dimensional Weighting for Aggregated Deep Convolutional Features.
+            https://arxiv.org/pdf/1512.04065.pdf
+        """
+
+        spatial_weight = features.sum(dim=1, keepdims=True)
+        z = (spatial_weight**spatial_a).sum(dim=(2,3), keepdims=True)
+        z = z**(1./spatial_a)
+        spatial_weight = (spatial_weight/z)**(1./spatial_b)
+
+        bs,c,w,h = features.shape
+        nonzeros = (features != 0).float().sum(dim=(2,3)) / 1. / (w*h) + 1e-6
+        channel_weight = torch.log(nonzeros.sum(dim=1,keepdims=True) / nonzeros)
+
+        features = features*spatial_weight
+        features = features.sum(dim=(2,3))
+        features = features*channel_weight
+        return features
+

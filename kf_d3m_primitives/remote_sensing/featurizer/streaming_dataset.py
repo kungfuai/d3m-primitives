@@ -17,7 +17,6 @@ class StreamingDataset(Dataset):
         decompress_data: bool = False 
     ):
         """ load df of compressed np arrays representing imgs into memory"""
-        #self.df = pd.read_csv(self.hyperparams['img_dataframe'], chunksize?)
         self.df = df
         self.image_col = image_col
         self.inference_model = inference_model
