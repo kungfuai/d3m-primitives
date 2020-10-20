@@ -4,7 +4,6 @@ from glob import glob
 
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 import torch
 from rsp.data import bilinear_upsample, BANDS
 from tifffile import imread as tiffread
@@ -18,6 +17,7 @@ from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier import (
     MlpClassifierPrimitive, 
     Hyperparams as mlp_hp
 )
+from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier_pipeline import MlpClassifierPipeline
 
 amdim_path = '/static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
 moco_path = '/static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
@@ -40,8 +40,8 @@ def load_inputs():
     imgs_df = pd.DataFrame({'image_col': imgs, 'dummy_idx': range(len(imgs))})
 
     y = [i.split('/')[3] for i in imnames]
-    tgts = LabelEncoder().fit_transform(y)
-    tgts_df = pd.DataFrame({'target': tgts})
+    #tgts = LabelEncoder().fit_transform(y)
+    tgts_df = pd.DataFrame({'target': y})
 
     return (
         d3m_DataFrame(imgs_df), 
@@ -62,8 +62,8 @@ features = featurizer.produce(inputs = train_inputs).value
 features = features.drop(columns = 'dummy_idx')
 # features.to_pickle("dummy.pkl")
 # labels.to_pickle("labels.pkl")
-# features = pd.read_pickle("dummy.pkl")
-# labels = pd.read_pickle("labels.pkl")
+features = pd.read_pickle("dummy.pkl")
+labels = pd.read_pickle("labels.pkl")
 
 def test_fit():
 
@@ -142,3 +142,11 @@ def test_produce_explanations_all_classes():
     explanations = mlp.produce_explanations(inputs=features).value
     assert explanations.shape == (features.shape[0], mlp._nclasses)
     assert explanations.iloc[0,0].shape == (120,120)
+
+def test_serialize(dataset = 'LL1_bigearth_landuse_detection'):
+    pipeline = MlpClassifierPipeline(epochs=1)
+    pipeline.write_pipeline()
+    pipeline.fit_serialize(dataset)
+    pipeline.deserialize_score(dataset)
+    pipeline.delete_pipeline()
+    pipeline.delete_serialized_pipeline()

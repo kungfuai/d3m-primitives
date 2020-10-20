@@ -10,6 +10,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 from d3m.primitive_interfaces.base import CallResult, NeuralNetworkModuleMixin
 from d3m import container, utils
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 class Params(params.Params):
     is_fit: bool
     output_column: str
-    unique_values: np.ndarray
+    label_encoder: LabelEncoder
     nclasses: int
 
 class Hyperparams(hyperparams.Hyperparams):
@@ -191,14 +192,14 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         return Params(
             is_fit = self._is_fit,
             output_column = self._output_column,
-            unique_values = self._unique_values,
+            label_encoder = self._label_encoder,
             nclasses = self._nclasses
         )
 
     def set_params(self, *, params: Params) -> None:
         self._is_fit = params['is_fit']
         self._output_column = params['output_column']
-        self._unique_values = params['unique_values']
+        self._label_encoder = params['label_encoder']
         self._nclasses = params['nclasses']
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
@@ -211,17 +212,17 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         """
         
         self._output_column = outputs.columns[0]
-        self._train_loader, self._val_loader = self._get_train_loaders(
-            inputs, 
-            outputs
-        )
-
+        self._label_encoder = LabelEncoder()
+        labels = self._label_encoder.fit_transform(outputs.values.ravel())
         self._value_counts = outputs[self._output_column].value_counts()
-        self._unique_values = np.unique(outputs.values)
-        self._nclasses = self._unique_values.shape[0]
+        self._nclasses = np.unique(labels).shape[0]
         if self._nclasses == 2:
             self._nclasses = 1
-            self._unique_values = np.array([1])
+
+        self._train_loader, self._val_loader = self._get_train_loaders(
+            inputs, 
+            labels
+        )
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ Fits mlp classification head using training data from set_training_data and hyperparameters
@@ -332,22 +333,26 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         else:
             all_outputs = self._all_outputs
         
-        if self._nclasses > 2:
+        if self._nclasses > 1:
             all_probs = nn.functional.softmax(all_outputs, dim = 1)
+            all_classes = [i for i in range(self._nclasses)]
         else:
             all_probs = nn.functional.sigmoid(all_outputs)
+            all_classes = [1]
 
         if self.hyperparams['all_confidences']:
             index = np.repeat(
                 range(all_probs.shape[0]), 
                 self._nclasses
             )
-            all_preds = np.tile(self._unique_values, all_probs.shape[0])
+            output_labels = self._label_encoder.inverse_transform(all_classes)
+            all_preds = np.tile(output_labels, all_probs.shape[0])
             all_probs = all_probs.cpu().data.numpy().flatten()
         else:
             index = None
             all_probs, all_preds = torch.max(all_probs, 1)
             all_preds = all_preds.cpu().data.numpy()
+            all_preds = self._label_encoder.inverse_transform(all_preds)
             all_probs = all_probs.cpu().data.numpy()
         
         preds_df = d3m_DataFrame(
@@ -359,14 +364,9 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             generate_metadata = True
         )
 
-        preds_df[self._output_column] = preds_df[self._output_column].astype(int)
         preds_df.metadata = preds_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 0),
             "https://metadata.datadrivendiscovery.org/types/PredictedTarget"
-        )
-        preds_df.metadata = preds_df.metadata.add_semantic_type(
-            (metadata_base.ALL_ELEMENTS, 0),
-            "http://schema.org/Integer"
         )
         preds_df.metadata = preds_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 1),
@@ -487,22 +487,20 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             spatial_dim
         )
 
-        if outputs[self._output_column].value_counts().min() == 1:
+        if self._value_counts.min() == 1:
             stratify = None
         else:
-            stratify = outputs.values
+            stratify = outputs
 
         f_train, f_test, tgt_train, tgt_test = train_test_split(
             features, 
-            outputs.values,
+            outputs,
             test_size = 0.1,
             random_state = self.random_seed,
             stratify=stratify
         )
-        unique_values = np.unique(outputs.values)
-        nclasses = unique_values.shape[0]
 
-        if nclasses > 2:
+        if self._nclasses > 2:
             train_labels = torch.LongTensor(tgt_train).squeeze()
             val_labels = torch.LongTensor(tgt_test).squeeze()
         else:
