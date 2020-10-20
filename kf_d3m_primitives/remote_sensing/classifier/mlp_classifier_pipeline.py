@@ -10,7 +10,7 @@ class MlpClassifierPipeline(PipelineBase):
 
     def __init__(
         self, 
-        weights_filepath: str = 'scratch_dir/model_weights.pth',
+        weights_filepath: str = '/scratch_dir/model_weights.pth',
         explain_all_classes: bool = False,
         all_confidences: bool = False, 
         epochs: int = 25
@@ -60,7 +60,7 @@ class MlpClassifierPipeline(PipelineBase):
         )
         step.add_hyperparameter(
             name="return_result",
-            ArgumentType=ArgumentType.VALUE,
+            argument_type=ArgumentType.VALUE,
             data="replace"
         )
         step.add_output("produce")
@@ -160,12 +160,12 @@ class MlpClassifierPipeline(PipelineBase):
         step.add_argument(
             name="inputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.5.produce",
+            data_reference="steps.6.produce",
         )
         step.add_argument(
             name="outputs",
             argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.6.produce",
+            data_reference="steps.5.produce",
         )
         step.add_output("produce")
         step.add_hyperparameter(
@@ -193,7 +193,7 @@ class MlpClassifierPipeline(PipelineBase):
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                "d3m.primitives.remote_sensing.mlp.MlpClassifier"
+                "d3m.primitives.data_transformation.construct_predictions.Common"
             )
         )
         step.add_argument(
@@ -213,4 +213,9 @@ class MlpClassifierPipeline(PipelineBase):
             data=[0,1]
         )
         pipeline_description.add_step(step)
+
+        pipeline_description.add_output(
+            name="output predictions", data_reference="steps.8.produce"
+        )
+
         self.pipeline = pipeline_description

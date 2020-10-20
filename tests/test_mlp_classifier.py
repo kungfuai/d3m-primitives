@@ -17,6 +17,7 @@ from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier import (
     MlpClassifierPrimitive, 
     Hyperparams as mlp_hp
 )
+from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier_pipeline import MlpClassifierPipeline
 
 amdim_path = '/static_volumes/8946fea864c29ed785e00a9cbaa9a50295eb5a334b014f27ba20927104b07f46'
 moco_path = '/static_volumes/fcc8a5a05fa7dbad8fc55584a77fc5d2c407e03a88610267860b45208e152f1f'
@@ -141,3 +142,11 @@ def test_produce_explanations_all_classes():
     explanations = mlp.produce_explanations(inputs=features).value
     assert explanations.shape == (features.shape[0], mlp._nclasses)
     assert explanations.iloc[0,0].shape == (120,120)
+
+def test_serialize(dataset = 'LL1_bigearth_landuse_detection'):
+    pipeline = MlpClassifierPipeline(epochs=1)
+    pipeline.write_pipeline()
+    pipeline.fit_serialize(dataset)
+    pipeline.deserialize_score(dataset)
+    pipeline.delete_pipeline()
+    pipeline.delete_serialized_pipeline()

@@ -9,6 +9,15 @@ run:
 	@echo "Running Kung Fu D3M Primitives Image"
 	docker-compose run --rm kf-d3m-primitives
 
+run-gpu:
+	@echo "Running Kung Fu GPU D3M Primitives Image"
+	docker run --rm --runtime nvidia \
+		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/datasets,target=/datasets \
+		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/static_volumes,target=/static_volumes \
+		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/scratch_dir,target=/scratch_dir \
+		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/kf_d3m_primitives,target=/kf_d3m_primitives \
+		-it kf-d3m-primitives /bin/bash
+
 test:
 	@echo "Running tests for Kung Fu D3M Primitives Image"
 	docker-compose run --rm --entrypoint python3 kf-d3m-primitives -m pytest -s --rootdir=tests tests
@@ -29,4 +38,4 @@ pipelines-gpu:
 		--mount type=bind,source=/home/ubuntu/d3m-primitives/static_volumes,target=/static_volumes \
 		--mount type=bind,source=/home/ubuntu/d3m-primitives/scratch_dir,target=/scratch_dir \
 		--mount type=bind,source=/home/ubuntu/d3m-primitives/pipeline_scores,target=/pipeline_scores \
-		kf-d3m-primitives python3 kf-d3m-primitives/generate_pipelines.py --gpu=True
+		kf-d3m-primitives python3 generate_pipelines.py --gpu=True

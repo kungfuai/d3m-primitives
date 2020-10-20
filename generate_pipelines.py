@@ -29,6 +29,7 @@ from kf_d3m_primitives.ts_classification.lstm_fcn.lstm_fcn_pipeline import LstmF
 from kf_d3m_primitives.ts_forecasting.vector_autoregression.var_pipeline import VarPipeline
 from kf_d3m_primitives.ts_forecasting.deep_ar.deepar_pipeline import DeepARPipeline
 from kf_d3m_primitives.ts_forecasting.nbeats.nbeats_pipeline import NBEATSPipeline
+from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier_pipeline import MlpClassifierPipeline
 
 def generate_pipelines(gpu = False):
 
@@ -37,6 +38,7 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
         "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
         "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
+        "d3m.primitives.remote_sensing.mlp.MlpClassifier"
     ]
 
     prims_to_pipelines = {
@@ -152,6 +154,9 @@ def generate_pipelines(gpu = False):
                 "uu_101_object_categories_MIN_METADATA",
             ))
         ],
+        "d3m.primitives.remote_sensing.mlp.MlpClassifier": [
+            (MlpClassifierPipeline(), ('LL1_bigearth_landuse_detection',))
+        ]
     }
 
     for primitive, pipelines in prims_to_pipelines.items():
