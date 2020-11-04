@@ -40,7 +40,6 @@ def load_inputs():
     imgs_df = pd.DataFrame({'image_col': imgs, 'dummy_idx': range(len(imgs))})
 
     y = [i.split('/')[3] for i in imnames]
-    #tgts = LabelEncoder().fit_transform(y)
     tgts_df = pd.DataFrame({'target': y})
 
     return (

@@ -133,3 +133,6 @@ make pipelines-gpu
 
 2. **MlpClassifierPrimitive**: trains a two-layer neural network classifier on featurized remote sensing imagery. Produces heatmap visualizations for predictions using gradient-based [GradCam](https://arxiv.org/pdf/1610.02391v1.pdf) technique. 
 
+3. **ImageRetrievalPrimitive**: retrieves semantically similar images from an index of un-annotated images using heuristics. Supports an iterative, human-in-the-loop, retrieval pipeline. 
+
+

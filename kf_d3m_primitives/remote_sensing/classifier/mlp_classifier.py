@@ -187,6 +187,11 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._is_fit = False
         self._all_outputs = None
+
+        np.random.seed(random_seed)
+        torch.manual_seed(random_seed)
+        if self.device == 'cuda:0':
+            torch.cuda.manual_seed(random_seed)
     
     def get_params(self) -> Params:
         return Params(

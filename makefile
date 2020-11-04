@@ -15,6 +15,7 @@ run-gpu:
 		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/datasets,target=/datasets \
 		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/static_volumes,target=/static_volumes \
 		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/scratch_dir,target=/scratch_dir \
+		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/tests,target=/tests \
 		--mount type=bind,source=/home/ubuntu/d3m/d3m-primitives/kf_d3m_primitives,target=/kf_d3m_primitives \
 		-it kf-d3m-primitives /bin/bash
 
