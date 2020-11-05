@@ -196,6 +196,7 @@ class RemoteSensingPretrainedPrimitive(
                 features = features.detach().cpu().numpy()
                 all_img_features.append(features)
         all_img_features = np.vstack(all_img_features)
+        all_img_features = all_img_features.reshape(all_img_features.shape[0], -1)
         col_names = [f'feat_{i}' for i in range(0, all_img_features.shape[1])]
         feature_df = pd.DataFrame(all_img_features, columns = col_names)
         feature_df = d3m_DataFrame(feature_df, generate_metadata = True)

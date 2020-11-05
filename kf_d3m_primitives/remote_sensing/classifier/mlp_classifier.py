@@ -190,7 +190,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
         np.random.seed(random_seed)
         torch.manual_seed(random_seed)
-        if self.device == 'cuda:0':
+        if self._device == 'cuda:0':
             torch.cuda.manual_seed(random_seed)
     
     def get_params(self) -> Params:
@@ -363,7 +363,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         preds_df = d3m_DataFrame(
             pd.DataFrame(
                 np.vstack((all_preds, all_probs)).T, 
-                columns = [self._output_column, 'confidence'],
+                columns = [self._output_column, 'score'],
                 index = index
             ),
             generate_metadata = True
@@ -375,7 +375,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         )
         preds_df.metadata = preds_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 1),
-            "https://metadata.datadrivendiscovery.org/types/Confidence",
+            "https://metadata.datadrivendiscovery.org/types/Score",
         )
         preds_df.metadata = preds_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 1),
