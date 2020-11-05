@@ -363,7 +363,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         preds_df = d3m_DataFrame(
             pd.DataFrame(
                 np.vstack((all_preds, all_probs)).T, 
-                columns = [self._output_column, 'score'],
+                columns = [self._output_column, 'confidence'],
                 index = index
             ),
             generate_metadata = True
