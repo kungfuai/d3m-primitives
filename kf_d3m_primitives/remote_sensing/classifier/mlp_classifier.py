@@ -506,11 +506,11 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         )
 
         if self._nclasses > 2:
-            train_labels = torch.LongTensor(tgt_train).squeeze()
-            val_labels = torch.LongTensor(tgt_test).squeeze()
+            train_labels = torch.LongTensor(tgt_train)
+            val_labels = torch.LongTensor(tgt_test)
         else:
-            train_labels = torch.FloatTensor(tgt_train)
-            val_labels = torch.FloatTensor(tgt_test)
+            train_labels = torch.FloatTensor(tgt_train).unsqueeze(-1)
+            val_labels = torch.FloatTensor(tgt_test).unsqueeze(-1)
 
         train_dataset = TensorDataset(
             torch.Tensor(f_train),

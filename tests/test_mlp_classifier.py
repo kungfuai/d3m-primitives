@@ -61,8 +61,8 @@ features = featurizer.produce(inputs = train_inputs).value
 features = features.drop(columns = 'dummy_idx')
 # features.to_pickle("dummy.pkl")
 # labels.to_pickle("labels.pkl")
-features = pd.read_pickle("dummy.pkl")
-labels = pd.read_pickle("labels.pkl")
+# features = pd.read_pickle("dummy.pkl")
+# labels = pd.read_pickle("labels.pkl")
 
 def test_fit():
 
