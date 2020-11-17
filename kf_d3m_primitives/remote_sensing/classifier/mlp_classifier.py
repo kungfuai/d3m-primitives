@@ -77,10 +77,10 @@ class Hyperparams(hyperparams.Hyperparams):
         description="training and inference batch size",
     )
     epochs = hyperparams.UniformInt(
-        lower = 0, 
+        lower = 0,
         upper = sys.maxsize,
-        default = 25, 
-        semantic_types=['https://metadata.datadrivendiscovery.org/types/TuningParameter'], 
+        default = 25,
+        semantic_types=['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
         description = 'how many epochs for which to finetune classification head (happens first)'
     )
     learning_rate = hyperparams.Uniform(
@@ -121,12 +121,12 @@ class Hyperparams(hyperparams.Hyperparams):
 
 class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
     '''
-        Primitive that adds a relatively simple MLP classification head to the remote sensing 
+        Primitive that adds a relatively simple MLP classification head to the remote sensing
         featurizer. This primitive also surfaces explanation methods based on GradCam:
-        https://arxiv.org/pdf/1610.02391v1.pdf. 
+        https://arxiv.org/pdf/1610.02391v1.pdf.
 
         Training inputs: 1) Feature dataframe, 2) Label dataframe
-        Outputs: D3M dataset with predictions 
+        Outputs: D3M dataset with predictions
     '''
 
     metadata = metadata_base.PrimitiveMetadata({
@@ -134,12 +134,12 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         'version': __version__,
         'name': "MlpClassifier",
         'keywords': [
-            'remote sensing', 
-            'neural network', 
-            'classification', 
-            'explainability', 
-            'GradCam', 
-            'GuidedBackProp', 
+            'remote sensing',
+            'neural network',
+            'classification',
+            'explainability',
+            'GradCam',
+            'GuidedBackProp',
             'GradCam-GuidedBackProp'
         ],
         'source': {
@@ -150,7 +150,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             ],
         },
         "installation": [
-            {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+            {"type": "PIP", "package": "cython", "version": "0.29.16"},
             {
                 "type": metadata_base.PrimitiveInstallationType.PIP,
                 "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
@@ -161,7 +161,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
                 'type': metadata_base.PrimitiveInstallationType.UBUNTU,
                 'package': 'zlib1g-dev',
                 'version': '1:1.2.11.dfsg-0ubuntu2',
-            }, 
+            },
             {
                 'type': metadata_base.PrimitiveInstallationType.UBUNTU,
                 'package': 'liblzo2-dev',
@@ -192,7 +192,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         torch.manual_seed(random_seed)
         if self._device == 'cuda:0':
             torch.cuda.manual_seed(random_seed)
-    
+
     def get_params(self) -> Params:
         return Params(
             is_fit = self._is_fit,
@@ -209,13 +209,13 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
         """ Sets primitive's training data
-        
+
             Arguments:
                 inputs {Inputs} -- D3M dataframe containing features
                 outputs {Outputs} -- D3M dataframe containing targets
-            
+
         """
-        
+
         self._output_column = outputs.columns[0]
         self._label_encoder = LabelEncoder()
         labels = self._label_encoder.fit_transform(outputs.values.ravel())
@@ -225,17 +225,17 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             self._nclasses = 1
 
         self._train_loader, self._val_loader = self._get_train_loaders(
-            inputs, 
+            inputs,
             labels
         )
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         """ Fits mlp classification head using training data from set_training_data and hyperparameters
-            
+
             Keyword Arguments:
                 timeout {float} -- timeout, considered (default: {None})
                 iterations {int} -- iterations, considered (default: {None})
-            
+
             Returns:
                 CallResult[None]
         """
@@ -256,7 +256,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
                 self._value_counts.iloc[0] / self._value_counts.iloc[1]
             ]).to(self._device)
             criterion = nn.BCEWithLogitsLoss(pos_weight = class_weight)
-        
+
         self._clf_model = self._build_clf_model(
             self.hyperparams['feature_dim'],
             self._nclasses
@@ -267,36 +267,36 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             )
 
         optimizer = Adam(
-            self._clf_model.parameters(), 
+            self._clf_model.parameters(),
             lr=self.hyperparams['learning_rate']
         )
         scheduler = ReduceLROnPlateau(
-            optimizer, 
+            optimizer,
             mode='min',
             verbose=True
         )
 
         st = time()
         for epoch in range(iterations):
-            
+
             self._clf_model = self._clf_model.train()
             for train_inputs, train_labels in tqdm(self._train_loader):
                 optimizer.zero_grad()
                 loss = self._get_loss(
-                    train_inputs, 
-                    train_labels, 
+                    train_inputs,
+                    train_labels,
                     criterion
                 )
                 loss.backward()
                 optimizer.step()
-            
+
             self._clf_model = self._clf_model.eval()
             val_losses = []
             with torch.no_grad():
                 for val_inputs, val_labels in tqdm(self._val_loader):
                     val_loss = self._get_loss(
-                        val_inputs, 
-                        val_labels, 
+                        val_inputs,
+                        val_labels,
                         criterion
                     )
                     val_losses.append(val_loss.item())
@@ -305,9 +305,9 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             if epoch % 10 == 0:
                 logger.info(
                     f'Epoch: {epoch+1}/{iterations}, ' +
-                    f'Val Loss: {round(np.sum(val_losses),2)}, ' 
+                    f'Val Loss: {round(np.sum(val_losses),2)}, '
                 )
-        
+
         logger.info(f'Finished training, took {time() - st}s')
         self._is_fit = True
         torch.save(self._clf_model.state_dict(), self.hyperparams['weights_filepath'])
@@ -319,7 +319,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
             Arguments:
                 inputs {Inputs} -- D3M dataframe containing attributes
-            
+
             Keyword Arguments:
                 timeout {float} -- timeout, not considered (default: {None})
                 iterations {int} -- iterations, not considered (default: {None})
@@ -337,7 +337,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             all_outputs = torch.cat(all_outputs)
         else:
             all_outputs = self._all_outputs
-        
+
         if self._nclasses > 1:
             all_probs = nn.functional.softmax(all_outputs, dim = 1)
             all_classes = [i for i in range(self._nclasses)]
@@ -347,7 +347,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
         if self.hyperparams['all_confidences']:
             index = np.repeat(
-                range(all_probs.shape[0]), 
+                range(all_probs.shape[0]),
                 self._nclasses
             )
             output_labels = self._label_encoder.inverse_transform(all_classes)
@@ -359,10 +359,10 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             all_preds = all_preds.cpu().data.numpy()
             all_preds = self._label_encoder.inverse_transform(all_preds)
             all_probs = all_probs.cpu().data.numpy()
-        
+
         preds_df = d3m_DataFrame(
             pd.DataFrame(
-                np.vstack((all_preds, all_probs)).T, 
+                np.vstack((all_preds, all_probs)).T,
                 columns = [self._output_column, 'confidence'],
                 index = index
             ),
@@ -379,6 +379,10 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         )
         preds_df.metadata = preds_df.metadata.add_semantic_type(
             (metadata_base.ALL_ELEMENTS, 1),
+            "https://metadata.datadrivendiscovery.org/types/PredictedTarget",
+        )
+        preds_df.metadata = preds_df.metadata.add_semantic_type(
+            (metadata_base.ALL_ELEMENTS, 1),
             "http://schema.org/Float"
         )
 
@@ -389,14 +393,14 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
 
             Arguments:
                 inputs {Inputs} -- D3M dataframe containing attributes
-            
+
             Keyword Arguments:
                 timeout {float} -- timeout, not considered (default: {None})
                 iterations {int} -- iterations, not considered (default: {None})
         """
 
         clf_model, test_loader = self._prepare_test_inputs(inputs)
-        
+
         if self.hyperparams['explain_all_classes']:
             all_class_masks = [[] for _ in range(self._nclasses)]
         else:
@@ -414,17 +418,17 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
                 masks = self._get_masks(clf_model, test_inputs, test_outputs, one_hot)
                 masks = self._resize_masks(masks, self.hyperparams['image_dim'])
                 all_class_masks[i].append(masks)
-        
-        all_class_masks = [list(np.concatenate(masks)) for masks in all_class_masks]
+
+        all_class_masks = [list(np.concatenate(masks).tolist()) for masks in all_class_masks]
         self._all_outputs = torch.cat(all_outputs)
 
         explain_df = pd.DataFrame()
         for i, masks in enumerate(all_class_masks):
             explain_df[f'class_{i}'] = masks
-        
+
         if not self.hyperparams['explain_all_classes']:
             explain_df.columns = ['class_argmax']
-        
+
         explain_df = d3m_DataFrame(explain_df, generate_metadata=False)
         return CallResult(explain_df)
 
@@ -433,14 +437,14 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         return nn.Sequential(
             nn.AdaptiveAvgPool2d((1,1)),
             nn.Flatten(),
-            nn.Linear(dim_mlp, dim_mlp), 
+            nn.Linear(dim_mlp, dim_mlp),
             nn.BatchNorm1d(dim_mlp),
             nn.ReLU(),
             nn.Linear(dim_mlp, clf_classes)
         )
 
     def _get_loss(self, inputs, labels, criterion):
-        """ get loss from batch of inputs and labels""" 
+        """ get loss from batch of inputs and labels"""
         inputs = inputs.to(self._device)
         labels = labels.to(self._device)
         outputs = self._clf_model(inputs)
@@ -450,12 +454,12 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         """ prepare test inputs and model to produce either predictions or explanations"""
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
-        
+
         spatial_dim = int(math.sqrt(
             inputs.values.shape[1] / self.hyperparams['feature_dim']
         ))
         features = inputs.values.reshape(
-            -1, 
+            -1,
             self.hyperparams['feature_dim'],
             spatial_dim,
             spatial_dim
@@ -464,11 +468,11 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         test_dataset = TensorDataset(features)
 
         test_loader = DataLoader(
-            test_dataset, 
+            test_dataset,
             batch_size=self.hyperparams['batch_size'],
             shuffle=False
         )
-        
+
         model = self._build_clf_model(
             self.hyperparams['feature_dim'],
             self._nclasses
@@ -486,7 +490,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             inputs.values.shape[1] // self.hyperparams['feature_dim']
         ))
         features = inputs.values.reshape(
-            -1, 
+            -1,
             self.hyperparams['feature_dim'],
             spatial_dim,
             spatial_dim
@@ -498,7 +502,7 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
             stratify = outputs
 
         f_train, f_test, tgt_train, tgt_test = train_test_split(
-            features, 
+            features,
             outputs,
             test_size = 0.1,
             random_state = self.random_seed,
@@ -515,20 +519,20 @@ class MlpClassifierPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Par
         train_dataset = TensorDataset(
             torch.Tensor(f_train),
             train_labels
-        )       
+        )
 
         val_dataset = TensorDataset(
             torch.Tensor(f_test),
             val_labels
-        )  
+        )
 
         train_loader = DataLoader(
-            train_dataset, 
+            train_dataset,
             batch_size=self.hyperparams['batch_size'],
             shuffle=True
         )
         val_loader = DataLoader(
-            val_dataset, 
+            val_dataset,
             batch_size=self.hyperparams['batch_size'],
             shuffle=False
         )
