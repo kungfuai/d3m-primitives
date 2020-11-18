@@ -254,16 +254,17 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
 
     def _reduce(self, features: np.ndarray) -> np.ndarray:
         """ reduce dimensions of feature vectors """ 
+        n_components = min(self.hyperparams['reduce_dimension'], features.shape[1])
         if self.hyperparams['reduce_method'] == 'pca':
             reduce_method = PCA(
-                n_components=self.hyperparams['reduce_dimension'], 
+                n_components=n_components, 
                 whiten=True,
                 random_state=self.random_seed
             )
 
         elif self.hyperparams['reduce_method'] == 'svd':
             reduce_method = TruncatedSVD(
-                n_components=self.hyperparams['reduce_dimension']
+                n_components=n_components
             )
 
         return reduce_method.fit_transform(features)

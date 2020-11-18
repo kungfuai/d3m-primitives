@@ -50,7 +50,7 @@ class MlpClassifierPipeline(PipelineBase):
         # Satellite Image Loader
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                "d3m.primitives.data_preprocessing.satellite_image_loader.DistilSatelliteImageLoader"
+                "d3m.primitives.data_transformation.satellite_image_loader.DistilSatelliteImageLoader"
             )
         )
         step.add_argument(
@@ -69,7 +69,7 @@ class MlpClassifierPipeline(PipelineBase):
         # Distil column parser
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                "d3m.primitives.data_transformation.DistilColumnParser"
+                "d3m.primitives.data_transformation.column_parser.DistilColumnParser"
             )
         )
         step.add_argument(

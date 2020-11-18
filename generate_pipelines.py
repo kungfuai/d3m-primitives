@@ -38,7 +38,8 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
         "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
         "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
-        "d3m.primitives.remote_sensing.mlp.MlpClassifier"
+        "d3m.primitives.remote_sensing.mlp.MlpClassifier",
+        "d3m.primitives.similarity_modeling.iterative_labeling.ImageRetrieval",
     ]
 
     prims_to_pipelines = {
@@ -156,6 +157,9 @@ def generate_pipelines(gpu = False):
         ],
         "d3m.primitives.remote_sensing.mlp.MlpClassifier": [
             (MlpClassifierPipeline(), ('LL1_bigearth_landuse_detection',))
+        ],
+        "d3m.primitives.similarity_modeling.iterative_labeling.ImageRetrieval": [
+            (MlpClassifierPipeline('LL1_bigearth_landuse_detection'), ())
         ]
     }
 
