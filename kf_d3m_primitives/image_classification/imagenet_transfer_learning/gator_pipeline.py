@@ -31,7 +31,7 @@ class GatorPipeline(PipelineBase):
         # Dataset sample primitive to reduce computation time
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.data_preprocessing.dataset_sample.Common'
+                'd3m.primitives.data_transformation.dataset_sample.Common'
             )
         )
         step.add_argument(

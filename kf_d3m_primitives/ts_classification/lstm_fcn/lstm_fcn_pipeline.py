@@ -18,7 +18,7 @@ class LstmFcnPipeline(PipelineBase):
         # Ts formatter
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                "d3m.primitives.data_preprocessing.data_cleaning.DistilTimeSeriesFormatter"
+                "d3m.primitives.data_transformation.time_series_formatter.DistilTimeSeriesFormatter"
             )
         )
         step.add_argument(

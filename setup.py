@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="kf-d3m-primitives",
-    version="0.5.0",
+    version="0.6.0",
     description="All Kung Fu D3M primitives as a single library",
     packages=find_packages(exclude="scripts"),
     setkeywords=['d3m_primitive'],
@@ -16,7 +16,7 @@ setup(
         "pmdarima==1.6.1",
         "hdbscan==0.8.26",
         "requests==2.23.0",
-        "shap==0.35.0",
+        "shap==0.37.0",
         "torchvision==0.5.0",
         "opencv-python-headless==4.1.1.26",
         "gluonts==0.5.2", 

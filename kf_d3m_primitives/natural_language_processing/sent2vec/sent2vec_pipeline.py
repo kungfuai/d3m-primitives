@@ -40,7 +40,7 @@ class Sent2VecPipeline(PipelineBase):
         # Text reader 
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                "d3m.primitives.data_preprocessing.text_reader.Common"
+                "d3m.primitives.data_transformation.text_reader.Common"
             )
         )
         step.add_argument(
