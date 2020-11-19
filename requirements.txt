@@ -1,5 +1,4 @@
 d3m
-mxnet==1.6.0
 torch==1.4.0
 pillow==7.1.2
 tslearn==0.4.1

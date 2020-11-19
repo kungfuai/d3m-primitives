@@ -40,6 +40,8 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
         "d3m.primitives.remote_sensing.mlp.MlpClassifier",
         "d3m.primitives.similarity_modeling.iterative_labeling.ImageRetrieval",
+        "d3m.primitives.time_series_forecasting.lstm.DeepAR",
+        "d3m.primitives.time_series_forecasting.feed_forward_neural_net.NBEATS"
     ]
 
     prims_to_pipelines = {

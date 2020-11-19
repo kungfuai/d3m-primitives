@@ -211,6 +211,7 @@ class NBEATSPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 metadata_base.PrimitiveAlgorithmType.DEEP_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_FORECASTING,
+            "can_use_gpus": True
         }
     )
 

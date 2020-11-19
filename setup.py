@@ -8,7 +8,6 @@ setup(
     setkeywords=['d3m_primitive'],
     install_requires=[
         "d3m",
-        "mxnet==1.6.0",
         "torch==1.4.0",
         "pillow==7.1.2",
         "tslearn==0.4.1",
@@ -31,8 +30,8 @@ setup(
         "rsp @ git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp"
     ],
     extras_require={
-        'cpu': ['tensorflow==2.2.0'],
-        'gpu': ['tensorflow-gpu==2.2.0'],
+        'cpu': ['tensorflow==2.2.0', 'mxnet==1.6.0'],
+        'gpu': ['tensorflow-gpu==2.2.0', 'mxnet-cu101mkl==1.6.0.post0'],
     },
     entry_points={
         "d3m.primitives": [
