@@ -150,25 +150,37 @@ def iterative_labeling(features, labels, seed_idx = 2, n_rounds = 5):
 
 #     iterative_labeling(features, labels)
 
-def test_big_earthnet():
+# def test_big_earthnet():
 
-    train_inputs, labels = load_big_earthnet()
+#     train_inputs, labels = load_big_earthnet()
 
-    featurizer = RemoteSensingPretrainedPrimitive(
-        hyperparams=rs_hp(
-            rs_hp.defaults(),
-            inference_model = 'moco',
-            use_columns = [0],
-        ),
-        volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path}
-    )
-    features = featurizer.produce(inputs = train_inputs).value
-    features.to_pickle("dummy.pkl")
-    # features = pd.read_pickle("dummy.pkl")
+#     featurizer = RemoteSensingPretrainedPrimitive(
+#         hyperparams=rs_hp(
+#             rs_hp.defaults(),
+#             inference_model = 'moco',
+#             use_columns = [0],
+#         ),
+#         volumes = {'amdim_weights': amdim_path, 'moco_weights': moco_path}
+#     )
+#     features = featurizer.produce(inputs = train_inputs).value
+#     features.to_pickle("dummy.pkl")
+#     # features = pd.read_pickle("dummy.pkl")
 
-    iterative_labeling(features, labels)
+#     iterative_labeling(features, labels)
 
-def test_iterative_pipeline(
+def test_fixed_value_pipeline(
+    dataset = 'LL1_bigearth_landuse_detection', 
+    n_rows = 2188,
+):
+    pipeline = ImageRetrievalPipeline(annotations = [1], dataset = dataset)
+    annotations = pipeline.make_annotations_dataset(n_rows)
+    pipeline = ImageRetrievalPipeline(annotations = annotations, dataset = dataset)
+    pipeline.write_pipeline()
+    pipeline.fit_produce()
+    pipeline.delete_pipeline()
+    pipeline.delete_annotations_dataset()
+
+def test_two_inputs_pipeline(
     dataset = 'LL1_bigearth_landuse_detection', 
     n_rows = 2188,
     n_rounds = 2,
@@ -181,5 +193,3 @@ def test_iterative_pipeline(
         pipeline.fit_produce()
     pipeline.delete_pipeline()
     pipeline.delete_annotations_dataset()
-
-

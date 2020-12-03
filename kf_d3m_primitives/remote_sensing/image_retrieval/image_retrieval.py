@@ -152,18 +152,24 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             'https://metadata.datadrivendiscovery.org/types/PrimaryMultiKey'
         )
         if len(index_cols):
-            index_col = index_cols[0]
-            self.idx_name = inputs.columns[index_col]
-            self.d3m_idxs = inputs.iloc[:, index_col].values
+            self.idx_name = inputs.columns[index_cols[0]]
+            inputs.sort_values(by = self.idx_name)
+            self.d3m_idxs = inputs[self.idx_name].values
+            input_features = inputs.drop(self.idx_name, axis=1).values
         else:
             self.idx_name = 'index'
-            self.d3m_idxs = np.array([i for i in range(inputs.shape[0])])
-
+            self.d3m_idxs = np.arange(inputs.shape[0])
+            input_features = inputs.values
+        
         if self.features is None:
-            self.features = self._postprocess(
-                inputs.drop(self.idx_name, axis=1).values
-            )
+            self.features = self._postprocess(input_features)
         self.features = np.ascontiguousarray(self.features)
+
+        ann_index_cols = inputs.metadata.get_columns_with_semantic_type(
+            'https://metadata.datadrivendiscovery.org/types/PrimaryMultiKey'
+        )
+        if len(ann_index_cols):
+            outputs.sort_values(by = outputs.columns[ann_index_cols[0]])
 
         self.annotations = outputs['annotations'].values.astype(int)
 

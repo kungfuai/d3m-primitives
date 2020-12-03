@@ -125,7 +125,7 @@ def test_produce_explanations():
 
     explanations = mlp.produce_explanations(inputs=features).value
     assert explanations.shape == (features.shape[0], 1)
-    assert explanations.iloc[0,0].shape == (120,120)
+    assert np.array(explanations.iloc[0,0]).shape == (120,120)
 
 def test_produce_explanations_all_classes():
 
@@ -140,7 +140,7 @@ def test_produce_explanations_all_classes():
 
     explanations = mlp.produce_explanations(inputs=features).value
     assert explanations.shape == (features.shape[0], mlp._nclasses)
-    assert explanations.iloc[0,0].shape == (120,120)
+    assert np.array(explanations.iloc[0,0]).shape == (120,120)
 
 def test_serialize(dataset = 'LL1_bigearth_landuse_detection'):
     pipeline = MlpClassifierPipeline(epochs=1)

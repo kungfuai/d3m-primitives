@@ -9,6 +9,7 @@ import pandas as pd
 from d3m import index
 from d3m.metadata.base import ArgumentType
 from d3m.metadata.pipeline import Pipeline, PrimitiveStep
+from d3m.container import DataFrame as d3m_DataFrame
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
@@ -16,13 +17,15 @@ class ImageRetrievalPipeline(PipelineBase):
 
     def __init__(
         self, 
+        annotations: List[int] = None,
         gem_p: int = 1,
-        dataset: str = 'LL1_bigearth_landuse_detection'
+        dataset: str = 'LL1_bigearth_landuse_detection',
     ):
 
         pipeline_description = Pipeline()
         pipeline_description.add_input(name="inputs")
-        pipeline_description.add_input(name="annotations")
+        if annotations is None:
+            pipeline_description.add_input(name="annotations")
 
         # Denormalize
         step = PrimitiveStep(
@@ -132,18 +135,19 @@ class ImageRetrievalPipeline(PipelineBase):
         pipeline_description.add_step(step)
 
         # DS to DF on annotations DS
-        step = PrimitiveStep(
-            primitive=index.get_primitive(
-                "d3m.primitives.data_transformation.dataset_to_dataframe.Common"
+        if annotations is None:
+            step = PrimitiveStep(
+                primitive=index.get_primitive(
+                    "d3m.primitives.data_transformation.dataset_to_dataframe.Common"
+                )
             )
-        )
-        step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="inputs.1"
-        )
-        step.add_output("produce")
-        pipeline_description.add_step(step)
+            step.add_argument(
+                name="inputs", 
+                argument_type=ArgumentType.CONTAINER, 
+                data_reference="inputs.1"
+            )
+            step.add_output("produce")
+            pipeline_description.add_step(step)
 
         # image retrieval primitive
         step = PrimitiveStep(
@@ -156,11 +160,18 @@ class ImageRetrievalPipeline(PipelineBase):
             argument_type=ArgumentType.CONTAINER,
             data_reference="steps.5.produce",
         )
-        step.add_argument(
-            name="outputs",
-            argument_type=ArgumentType.CONTAINER,
-            data_reference="steps.6.produce",
-        )
+        if annotations is not None:
+            step.add_argument(
+                name="outputs",
+                argument_type=ArgumentType.VALUE,
+                data=annotations,
+            )
+        else:
+            step.add_argument(
+                name="outputs",
+                argument_type=ArgumentType.CONTAINER,
+                data="steps.6.produce",
+            )
         step.add_output("produce")
         step.add_hyperparameter(
             name="gem_p",
@@ -169,36 +180,46 @@ class ImageRetrievalPipeline(PipelineBase):
         )
         pipeline_description.add_step(step)
 
-        pipeline_description.add_output(
-            name="output ranking", data_reference="steps.7.produce"
-        )
+        if annotations is not None:
+            pipeline_description.add_output(
+                name="output ranking", data_reference="steps.6.produce"
+            )
+        else:
+            pipeline_description.add_output(
+                name="output ranking", data_reference="steps.7.produce"
+            )
 
         self.pipeline = pipeline_description
         self.dataset = dataset
+        self.annotations = annotations
 
     def make_annotations_dataset(self, n_rows, round_num = 0, num_bands = 12):
         
-        annotationsDoc = {
-            "dataResources": [{
-                "resID": "annotationsData",
-                "resPath": "/scratch_dir/annotationsData.csv",
-                "resType": "table",
-                "resFormat": { "text/csv": ["csv"]},
-                "columns": [{
-                    "colIndex": 0,
-                    "colName": "annotations",
-                    "colType": "integer",
-                    "role": ["attribute"]
+        if self.annotations is None:
+            annotationsDoc = {
+                "dataResources": [{
+                    "resID": "annotationsData",
+                    "resPath": "/scratch_dir/annotationsData.csv",
+                    "resType": "table",
+                    "resFormat": { "text/csv": ["csv"]},
+                    "columns": [{
+                        "colIndex": 0,
+                        "colName": "annotations",
+                        "colType": "integer",
+                        "role": ["attribute"]
+                    }]
                 }]
-            }]
-        } 
-        with open("/scratch_dir/annotationsDoc.json", "w") as json_file:
-            json.dump(annotationsDoc, json_file)
+            } 
+            with open("/scratch_dir/annotationsDoc.json", "w") as json_file:
+                json.dump(annotationsDoc, json_file)
 
         if round_num == 0:
             annotations = np.zeros(n_rows) - 1
             annotations[0] = 1
-            annotations = pd.DataFrame({"annotations": annotations.astype(int)})
+            annotations = pd.DataFrame({
+                "d3mIndex": np.arange(n_rows),
+                "annotations": annotations.astype(int)
+            })
         else:
             annotations = pd.read_csv("/scratch_dir/annotationsData.csv")
             ranking = pd.read_csv("/scratch_dir/rankings.csv")
@@ -208,16 +229,20 @@ class ImageRetrievalPipeline(PipelineBase):
             
             top_idx = np.where(test_index == ranking.iloc[0,0])[0][0] // num_bands
             human_annotation = np.random.randint(2)
-            annotations.iloc[top_idx, 0] = human_annotation
+            annotations.iloc[top_idx, 1] = human_annotation
 
         annotations.to_csv("/scratch_dir/annotationsData.csv", index=False)
+        return d3m_DataFrame(annotations)
 
     def delete_annotations_dataset(self):
-        subprocess.run(['rm', "/scratch_dir/annotationsDoc.json"], check = True)
+
+        if self.annotations is None:
+            subprocess.run(['rm', "/scratch_dir/annotationsDoc.json"], check = True)
+
         subprocess.run(['rm', "/scratch_dir/annotationsData.csv"], check = True)
         subprocess.run(['rm', "/scratch_dir/rankings.csv"], check = True)
 
-    def fit_produce(self):
+    def fit_produce(self, output_yml_dir = '.', submission = False):
         
         if not os.path.isfile(self.outfile_string):
             raise ValueError("Must call 'write_pipeline()' method first")
@@ -238,17 +263,24 @@ class ImageRetrievalPipeline(PipelineBase):
             self.outfile_string,
             "-i",
             f"/datasets/seed_datasets_current/{self.dataset}/TEST/dataset_TEST/datasetDoc.json",
-            "-i",
-            "/scratch_dir/annotationsData.csv",
             "-r",
             f"/datasets/seed_datasets_current/{self.dataset}/{self.dataset}_problem/problemDoc.json",
             "-t",
             f"/datasets/seed_datasets_current/{self.dataset}/TEST/dataset_TEST/datasetDoc.json",
-            "-t",
-            "/scratch_dir/annotationsData.csv",
             "-o",
             f"/scratch_dir/rankings.csv"
         ]
+
+        if self.annotations is None:
+            proc_cmd += [
+                "-i",
+                "/scratch_dir/annotationsData.csv",
+                "-t",
+                "/scratch_dir/annotationsData.csv",
+            ]
+
+        if submission:
+            proc_cmd += ["-O", f"{output_yml_dir}/{self.dataset}.yml"]
 
         st = time.time()
         subprocess.run(proc_cmd, check=True)
