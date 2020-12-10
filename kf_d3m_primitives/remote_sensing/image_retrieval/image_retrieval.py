@@ -153,7 +153,7 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
         )
         if len(index_cols):
             self.idx_name = inputs.columns[index_cols[0]]
-            inputs.sort_values(by = self.idx_name)
+            inputs = inputs.sort_values(by = self.idx_name)
             self.d3m_idxs = inputs[self.idx_name].values
             input_features = inputs.drop(self.idx_name, axis=1).values
         else:
@@ -169,7 +169,7 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             'https://metadata.datadrivendiscovery.org/types/PrimaryMultiKey'
         )
         if len(ann_index_cols):
-            outputs.sort_values(by = outputs.columns[ann_index_cols[0]])
+            outputs = outputs.sort_values(by = outputs.columns[ann_index_cols[0]])
 
         self.annotations = outputs['annotations'].values.astype(int)
 
@@ -244,7 +244,6 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             (metadata_base.ALL_ELEMENTS, 1),
             "http://schema.org/Float"
         )
-
         return CallResult(ranking_df)
 
     def _postprocess(self, features: np.ndarray) -> np.ndarray:

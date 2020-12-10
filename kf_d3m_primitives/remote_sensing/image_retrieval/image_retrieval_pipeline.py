@@ -170,7 +170,7 @@ class ImageRetrievalPipeline(PipelineBase):
             step.add_argument(
                 name="outputs",
                 argument_type=ArgumentType.CONTAINER,
-                data="steps.6.produce",
+                data_reference="steps.6.produce",
             )
         step.add_output("produce")
         step.add_hyperparameter(

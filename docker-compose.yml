@@ -12,4 +12,5 @@ services:
             - ./pipeline_scores:/pipeline_scores
             - ./tests:/tests
             - ./kf_d3m_primitives:/kf_d3m_primitives
+            - ./scripts:/scripts
             - ./primitives:/primitives

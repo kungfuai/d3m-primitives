@@ -40,12 +40,12 @@ def load_image(inpath: str):
         _bilinear_upsample(imread(f'{inpath}_B12.tif'), n=120),
     ])
 
-def load_inputs(datapath: str = '../bigearth-100-single/*/*.tif'):
+def load_inputs(datapath: str = '/test_data/bigearth-100-single/*/*.tif'):
     fnames  = sorted(glob(datapath))
     imnames = sorted(list(set(['_'.join(f.split('_')[:-1]) for f in fnames])))
     imgs =  [load_image(xx) for xx in tqdm(imnames)]
     
-    y = [i.split('/')[2] for i in imnames]
+    y = [i.split('/')[3] for i in imnames]
     label_encoder = LabelEncoder()
     label_encoder.fit_transform(y)
     
@@ -70,7 +70,7 @@ def show_cam_on_image(
     cv2.imwrite(f"imgs/img_{image}.jpg", np.uint8(255 * img))
     cv2.imwrite(f"cams/cam_{image}.jpg", np.uint8(255 * cam))
 
-all_images, label_encoder, tgts = load_inputs('../bigearth-100-single-multi/*/*.tif')
+all_images, label_encoder, tgts = load_inputs('/test_data/bigearth-100-single-multi/*/*.tif')
 masks = pd.read_pickle('cam_explanations.pkl') # images x nclasses
 preds = pd.read_pickle('mlp_preds.pkl')
 
