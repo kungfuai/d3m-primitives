@@ -78,17 +78,18 @@ def iterative_labeling(features, labels, seed_idx = 2, n_rounds = 5):
     annotations = np.zeros(features.shape[0]) - 1
     annotations[seed_idx] = 1
 
-    sampler = ImageRetrievalPrimitive(
-        hyperparams=ir_hp(
-            ir_hp.defaults(),
-            reduce_dimension=32
-        )
-    )
-
     n_pos, n_neg = 1, 0
     for i in range(n_rounds):
-        
+
+        print(f'round {i}')
+
         # generate ranking by similarity
+        sampler = ImageRetrievalPrimitive(
+            hyperparams=ir_hp(
+                ir_hp.defaults(),
+                reduce_dimension=256
+            )
+        )
         sampler.set_training_data(
             inputs = features, 
             outputs = d3m_DataFrame(pd.DataFrame({'annotations': annotations}))
@@ -164,7 +165,7 @@ def iterative_labeling(features, labels, seed_idx = 2, n_rounds = 5):
 #     )
 #     features = featurizer.produce(inputs = train_inputs).value
 #     features.to_pickle("dummy.pkl")
-#     # features = pd.read_pickle("dummy.pkl")
+#     #features = pd.read_pickle("dummy.pkl")
 
 #     iterative_labeling(features, labels)
 

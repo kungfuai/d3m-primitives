@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import List
 from time import time
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -69,6 +70,13 @@ class Hyperparams(hyperparams.Hyperparams):
         description="only ranks according to positive annotations until this many negative \
                     annotations are obtained"
     )
+    dot_products_cache = hyperparams.Hyperparameter[str](
+        default='dot_product_cache',
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="already computed dot products will be cached in this location",
+    )
     
 
 class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
@@ -121,9 +129,9 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
         self.neg_idxs = []
         self.pos_scores = []
         self.neg_scores = []
-        self.features = None
         self.random_seed = random_seed
         np.random.seed(random_seed)
+        os.makedirs(cache_dir, exist_ok=True)
 
     def get_params(self) -> Params:
         return Params(
@@ -171,8 +179,13 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             self.d3m_idxs = np.arange(inputs.shape[0])
             input_features = inputs.values
         
-        if self.features is None:
+        cache_dir = self.hyperparams['dot_products_cache']
+        features_f = os.path.join(cache_dir, 'features.pkl')
+        if os.path.isfile(features_f):
+            self.features = pickle.load(open(features_f, "rb"))
+        else:
             self.features = self._postprocess(input_features)
+            pickle.dump(self.features, open(features_f, "wb"))
         self.features = np.ascontiguousarray(self.features)
 
         ann_index_cols = inputs.metadata.get_columns_with_semantic_type(
@@ -191,6 +204,8 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
         
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
         
+        self._attempt_load(self.hyperparams['dot_products_cache'])
+
         for idx in np.where(self.annotations == 1)[0]:
             if idx not in self.pos_idxs:
                 self.pos_idxs.append(int(idx))
@@ -199,6 +214,8 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             if idx not in self.neg_idxs:
                 self.neg_idxs.append(int(idx))
                 self.neg_scores.append(self.features @ self.features[idx])
+
+        self._cache(self.hyperparams['dot_products_cache'])
 
         return CallResult(None)
                 
@@ -271,7 +288,11 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
 
     def _reduce(self, features: np.ndarray) -> np.ndarray:
         """ reduce dimensions of feature vectors """ 
-        n_components = min(self.hyperparams['reduce_dimension'], features.shape[1])
+        n_components = min(
+            self.hyperparams['reduce_dimension'], 
+            features.shape[0],
+            features.shape[1]
+        )
         if self.hyperparams['reduce_method'] == 'pca':
             reduce_method = PCA(
                 n_components=n_components, 
@@ -285,5 +306,37 @@ class ImageRetrievalPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Pa
             )
 
         return reduce_method.fit_transform(features)
+
+    def _attempt_load(self, cache_dir: str) -> None:
+        """ attempt to load cached dot products """
+        
+        if os.path.isdir(cache_dir):
+
+            pos_idxs_f = os.path.join(cache_dir, 'pos_idxs.pkl')
+            pos_scores_f = os.path.join(cache_dir, 'pos_scores.pkl')
+            if os.path.isfile(pos_idxs_f):
+                self.pos_idxs = pickle.load(open(pos_idxs_f, "rb"))
+                self.pos_scores = pickle.load(open(pos_scores_f, "rb"))
+
+            neg_idxs_f = os.path.join(cache_dir, 'neg_idxs.pkl')
+            neg_scores_f = os.path.join(cache_dir, 'neg_scores.pkl')
+            if os.path.isfile(neg_idxs_f):
+                self.neg_idxs = pickle.load(open(neg_idxs_f, "rb"))
+                self.neg_scores = pickle.load(open(neg_scores_f, "rb"))
+
+    def _cache(self, cache_dir: str) -> None:
+        """ cache computed dot products """ 
+
+        if len(self.pos_idxs):
+            pos_idxs_f = os.path.join(cache_dir, 'pos_idxs.pkl')
+            pos_scores_f = os.path.join(cache_dir, 'pos_scores.pkl')
+            pickle.dump(self.pos_idxs, open(pos_idxs_f, "wb"))
+            pickle.dump(self.pos_scores, open(pos_scores_f, "wb"))
+
+        if len(self.neg_idxs):
+            neg_idxs_f = os.path.join(cache_dir, 'neg_idxs.pkl')
+            neg_scores_f = os.path.join(cache_dir, 'neg_scores.pkl')
+            pickle.dump(self.neg_idxs, open(neg_idxs_f, "wb"))
+            pickle.dump(self.neg_scores, open(neg_scores_f, "wb"))
 
             
