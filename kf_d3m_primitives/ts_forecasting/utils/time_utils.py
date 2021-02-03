@@ -12,19 +12,25 @@ SECONDS_PER_MINUTE = 60
 MINUTES_PER_HOUR = 60
 HOURS_PER_DAY = 24
 DAYS_PER_WEEK = 7
-DAYS_PER_MONTH = [28, 30, 31]
-DAYS_PER_YEAR = [365, 366]
+DAYS_PER_MONTH_AVG = [28, 30, 31]
+DAYS_PER_YEAR_AVG = [365, 366]
+DAYS_PER_YEAR = 365.25
+DAYS_PER_MONTH = DAYS_PER_YEAR / 12
 
-S_PER_YEAR_0 = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR[0]
-S_PER_YEAR_1 = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR[1]
+S_PER_YEAR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR
+S_PER_YEAR_0 = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR_AVG[0]
+S_PER_YEAR_1 = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR_AVG[1]
+S_PER_MONTH = (
+    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH
+)
 S_PER_MONTH_28 = (
-    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH[0]
+    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH_AVG[0]
 )
 S_PER_MONTH_30 = (
-    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH[1]
+    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH_AVG[1]
 )
 S_PER_MONTH_31 = (
-    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH[2]
+    SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH_AVG[2]
 )
 S_PER_WEEK = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_WEEK
 S_PER_DAY = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY
@@ -66,7 +72,7 @@ def calculate_time_frequency(time_diff, model = 'var'):
         return return_strings[model][0]
     elif time_diff % S_PER_MONTH_31 == 0:
         # Sunspots monthly
-        logger.debug("granularity is months 31")
+        logger.debug("granularity is months")
         return return_strings[model][1]
     elif time_diff % S_PER_MONTH_30 == 0:
         logger.debug("granularity is months 30")
@@ -123,9 +129,12 @@ def discretize_time_difference(
         time_differences = time_differences.apply(lambda t: t.total_seconds())
 
     if frequency == "YS" or frequency == "12M":
-        time_differences = [round(x / S_PER_YEAR_0) for x in time_differences]
+        time_differences = [round(x / S_PER_YEAR) for x in time_differences]
     elif frequency == "MS" or frequency == 'M':
-        time_differences = [round(x * 2 / (S_PER_MONTH_30 + S_PER_MONTH_31)) for x in time_differences]
+        time_differences = [round(x / S_PER_MONTH) for x in time_differences]
+        #     round(x / ((1/12 * S_PER_MONTH_28) * (1/3 * S_PER_MONTH_30) + ( * S_PER_MONTH_31))) 
+        #     for x in time_differences
+        # ]
     elif frequency == "W" or frequency == "W-MON":
         time_differences = [round(x / S_PER_WEEK) for x in time_differences]
     elif frequency == "D":

@@ -153,7 +153,6 @@ def _test_set_training_data(dataset_name, target_col, group_compose = False, spl
     train_inputs, train_outputs = preprocess.produce(train)
     val_inputs, _ = preprocess.produce(val)
     all_inputs, all_outputs = preprocess.produce(df)
-    deepar_hp = DeepArPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
     
     pred_length_idx = 1 if split_train else 0  
     deepar_hp = DeepArPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams'] 
