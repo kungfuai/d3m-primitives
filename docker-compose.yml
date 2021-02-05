@@ -13,4 +13,4 @@ services:
             - ./tests:/tests
             - ./kf_d3m_primitives:/kf_d3m_primitives
             - ./scripts:/scripts
-            - ./primitives:/primitives
+            # - ./primitives:/primitives

@@ -22,6 +22,7 @@ setup(
         "albumentations==0.4.6",
         "tifffile==2020.8.13",
         "tqdm==4.48.2",
+        "segmentation-models-pytorch==0.1.3",
         "punk @ git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk",
         "object_detection_retinanet @ git+https://github.com/uncharted-distil/object-detection-retinanet@f4cba645c61a7bc068608356c6194adbe34f8e9e#egg=object_detection_retinanet",
         "Simon @ git+https://github.com/uncharted-distil/simon@00422bbdc9caa09b867f8b5f583487b59b605de0#egg=Simon",
@@ -58,6 +59,7 @@ setup(
             "remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained = kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained:RemoteSensingPretrainedPrimitive",
             "remote_sensing.mlp.MlpClassifier = kf_d3m_primitives.remote_sensing.classifier.mlp_classifier:MlpClassifierPrimitive",
             "similarity_modeling.iterative_labeling.ImageRetrieval = kf_d3m_primitives.remote_sensing.image_retrieval.image_retrieval:ImageRetrievalPrimitive",
+            "remote_sensing.convolutional_neural_net.ImageSegmentation = kf_d3m_primitives.remote_sensing.segmentation.image_segmentation:ImageSegmentationPrimitive",
         ],
     },
 )

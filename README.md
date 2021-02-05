@@ -129,10 +129,13 @@ make pipelines-gpu
 
 ### Remote Sensing
 
-1. **RemoteSensingPretrainedPrimitive**: featurizes remote sensing imagery using pre-trained models that were optimized with a self-supervised objective. There are two inference models that correspond to two pretext tasks: [Augmented Multiscale Deep InfoMax](https://arxiv.org/abs/1906.00910) and [Momentum Contrast](https://arxiv.org/abs/1911.05722). The implementation of the inference models comes from [this repo](git+https://github.com/cfld/rs_pretrained#egg=rsp).
+1. **RemoteSensingPretrainedPrimitive**: featurizes Sentinel-2 satellite imagery using pre-trained models that were optimized with a self-supervised objective. There are two inference models that correspond to two pretext tasks: [Augmented Multiscale Deep InfoMax](https://arxiv.org/abs/1906.00910) and [Momentum Contrast](https://arxiv.org/abs/1911.05722). The implementation of the inference models comes from [this repo](git+https://github.com/cfld/rs_pretrained#egg=rsp).
 
 2. **MlpClassifierPrimitive**: trains a two-layer neural network classifier on featurized remote sensing imagery. Produces heatmap visualizations for predictions using gradient-based [GradCam](https://arxiv.org/pdf/1610.02391v1.pdf) technique. 
 
 3. **ImageRetrievalPrimitive**: retrieves semantically similar images from an index of un-annotated images using heuristics. Supports an iterative, human-in-the-loop, retrieval pipeline. 
+
+4. **ImageSegmentationPrimitive**: trains a binary image segmentation model on Sentinel-2 satellite imagery using image-level labels (weak supervision, see [1](https://www.mdpi.com/2072-4292/12/2/207/htm)). Furthermore, the pre-trained featurizer is used the initialize the parameters of segmentation encoder. Thus, the training process is also an instance of transfer learning (see [2](https://arxiv.org/pdf/2003.02899.pdf)). 
+
 
 

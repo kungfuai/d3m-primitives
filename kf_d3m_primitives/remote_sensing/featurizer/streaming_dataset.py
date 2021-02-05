@@ -14,7 +14,7 @@ class StreamingDataset(Dataset):
         df: pd.DataFrame, 
         image_col: int,
         inference_model: str = 'moco',
-        decompress_data: bool = False 
+        decompress_data: bool = False,
     ):
         """ load df of compressed np arrays representing imgs into memory"""
         self.df = df
@@ -37,7 +37,7 @@ class StreamingDataset(Dataset):
         self.df.iat[idx, self.image_col] = None
 
     def __getitem__(self, idx):
-        """ get next data point, decompress, tranform for inference """
+        """ get next data point, decompress, transform for inference """
         img = self.df.loc[idx][self.image_col]
         
         if self.decompress_data:
