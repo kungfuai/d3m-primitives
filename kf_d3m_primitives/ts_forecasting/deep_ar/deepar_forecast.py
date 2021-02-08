@@ -22,7 +22,8 @@ class DeepARForecast:
         predictor_filepath: str,
         mean: bool = True,
         num_samples: int = 100,
-        quantiles: List[float] = []
+        quantiles: List[float] = [],
+        nan_padding: bool = True
     ):
         """ constructs DeepAR forecast object
         
@@ -37,6 +38,7 @@ class DeepARForecast:
         self.context_length = train_dataset.get_context_length()
         self.num_samples = num_samples
         self.quantiles = quantiles
+        self.nan_padding = nan_padding
 
         self.data = []
         self.series_idxs = []
@@ -186,7 +188,10 @@ class DeepARForecast:
                     len(self.quantiles) + 1, 
                     self.max_intervals[series_idx] + self.total_in_samples[series_idx] + 1
                 ))
-                series_forecasts[:] = np.nan
+                if self.nan_padding:
+                    series_forecasts[:] = np.nan
+                else:
+                    series_forecasts[:] = 0
             elif series_val < series_idx:
                 continue
             else:
@@ -208,7 +213,10 @@ class DeepARForecast:
                         series_forecasts.shape[0], 
                         self.max_intervals[series_idx] - series_forecasts.shape[1] + 1
                     ))
-                    padding[:] = np.nan
+                    if self.nan_padding:
+                        padding[:] = np.nan
+                    else:
+                        padding[:] = series_forecasts[:, -1][:, np.newaxis]
                     series_forecasts = np.concatenate(
                         (series_forecasts, padding), 
                         axis = 1

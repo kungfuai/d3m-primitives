@@ -165,7 +165,8 @@ def _test_set_training_data(dataset_name, target_col, group_compose = False, spl
             prediction_length = min_pred_lengths[dataset_name][pred_length_idx] + 5,
             context_length = min_pred_lengths[dataset_name][pred_length_idx] - 5,
             quantiles = (0.1, 0.9),
-            output_mean = False
+            output_mean = False,
+            nan_padding = False
         )
     )
     if split_train:
@@ -193,6 +194,7 @@ def _test_produce_train_data(deepar, train_inputs, val_inputs, all_inputs):
 
 def _test_produce_test_data(deepar, inputs_test):
     test_preds = deepar.produce(inputs = inputs_test).value
+    assert test_preds.isna().sum().sum() == 0
     assert test_preds.shape[0] == inputs_test.shape[0] 
 
 def _test_produce_confidence_intervals(deepar, inputs):
@@ -209,15 +211,15 @@ def _test_ts(dataset_name, target_col, group_compose = False, split_train = Fals
         group_compose=group_compose,
         split_train=split_train
     )
-    _test_produce_train_data(deepar, inputs_train, inputs_val, inputs_all)
+    # _test_produce_train_data(deepar, inputs_train, inputs_val, inputs_all)
 
     dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
     df = test_utils.get_dataframe(dataset, 'learningData', target_col)
     inputs_test, _ = preprocess.produce(df)
     
     _test_produce_test_data(deepar, inputs_test)
-    _test_produce_confidence_intervals(deepar, inputs_all)
-    _test_produce_confidence_intervals(deepar, inputs_test)
+    # _test_produce_confidence_intervals(deepar, inputs_all)
+    # _test_produce_confidence_intervals(deepar, inputs_test)
 
 def _test_serialize(dataset, group_compose = False):
     
