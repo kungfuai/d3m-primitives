@@ -191,6 +191,14 @@ class Hyperparams(hyperparams.Hyperparams):
         ],
         description="number of samples to draw at each timestep from forecast distribution"
     )
+    nan_padding = hyperparams.UniformBool(
+        default=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="whether to pad predictions that aren't supported by the model "
+        + "with 'np.nan' or with the last valid prediction"
+    )
 
 
 class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
@@ -663,7 +671,8 @@ class DeepArPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self.hyperparams['weights_dir'],
             self.hyperparams['output_mean'],
             self.hyperparams['number_samples'],
-            self.hyperparams['quantiles']
+            self.hyperparams['quantiles'],
+            self.hyperparams['nan_padding']
         )
         test_frame, _, _, original_times = self._reindex(test_frame)
         pred_intervals = self._get_pred_intervals(original_times)

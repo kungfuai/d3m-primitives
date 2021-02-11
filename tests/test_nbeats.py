@@ -143,7 +143,7 @@ def _test_set_training_data(dataset_name, target_col, group_compose = False, spl
             steps_per_epoch = 1,
             num_estimators = 1,
             prediction_length = min_pred_lengths[dataset_name][pred_length_idx] + 5,
-            #quantiles = (0.1, 0.9),
+            nan_padding = False
         )
     )
     if os.path.isdir(nbeats.hyperparams['weights_dir']):
@@ -181,15 +181,9 @@ def _test_produce_train_data(nbeats, train_inputs, val_inputs, all_inputs):
 
 def _test_produce_test_data(nbeats, inputs_test):
     test_preds = nbeats.produce(inputs = inputs_test).value
+    assert test_preds.isna().sum().sum() == 0
     assert test_preds.shape[0] == inputs_test.shape[0] 
     _check_interpretable(test_preds)
-
-# def _test_produce_confidence_intervals(nbeats, inputs):
-#     confidence_intervals = nbeats.produce_confidence_intervals(inputs = inputs).value
-#     assert confidence_intervals.shape[0] == inputs.shape[0]
-#     assert confidence_intervals.shape[1] == 3
-#     assert (confidence_intervals.iloc[:, 1].dropna() <= confidence_intervals.iloc[:, 0].dropna()).all()
-#     assert (confidence_intervals.iloc[:, 2].dropna() >= confidence_intervals.iloc[:, 0].dropna()).all()
 
 def _test_ts(dataset_name, target_col, group_compose = False, split_train = False):
     nbeats, preprocess, inputs_train, inputs_val, inputs_all = _test_set_training_data(
@@ -198,15 +192,13 @@ def _test_ts(dataset_name, target_col, group_compose = False, split_train = Fals
         group_compose=group_compose,
         split_train=split_train
     )
-    _test_produce_train_data(nbeats, inputs_train, inputs_val, inputs_all)
+    #_test_produce_train_data(nbeats, inputs_train, inputs_val, inputs_all)
 
     dataset = test_utils.load_dataset(f'/datasets/seed_datasets_current/{dataset_name}/TEST/dataset_TEST/')
     df = test_utils.get_dataframe(dataset, 'learningData', target_col)
     inputs_test, _ = preprocess.produce(df)
     
     _test_produce_test_data(nbeats, inputs_test)
-    #_test_produce_confidence_intervals(nbeats, inputs_all)
-    #_test_produce_confidence_intervals(nbeats, inputs_test)
 
 def _test_serialize(dataset, group_compose = False):
     
@@ -228,20 +220,6 @@ def _test_serialize(dataset, group_compose = False):
     pipeline.delete_pipeline()
     pipeline.delete_serialized_pipeline()
 
-# def _test_confidence_intervals(dataset, group_compose = False):
-    
-#     pipeline = NBEATSPipeline(
-#         epochs = 1,
-#         steps_per_epoch = 1,
-#         num_estimators = 1,
-#         prediction_length = min_pred_lengths[dataset][0],
-#         group_compose = group_compose,
-#         confidence_intervals = True
-#     )    
-#     pipeline.write_pipeline()
-#     pipeline.fit_produce(dataset)
-#     pipeline.delete_pipeline()
-
 # def test_fit_produce_dataset_sunspots():
 #     _test_ts('56_sunspots_MIN_METADATA', 4)
 
@@ -254,17 +232,17 @@ def _test_serialize(dataset, group_compose = False):
 # def test_fit_produce_dataset_pop_spawn():
 #     _test_ts('LL1_736_population_spawn_MIN_METADATA', 4)
 
-# def test_fit_produce_dataset_terra():      
-#     _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
+def test_fit_produce_dataset_terra():      
+    _test_ts('LL1_terra_leaf_angle_mean_long_form_s4_MIN_METADATA', 4)
 
-# def test_fit_produce_dataset_terra_80():      
-#     _test_ts('LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA', 4)
+def test_fit_produce_dataset_terra_80():      
+    _test_ts('LL1_terra_canopy_height_long_form_s4_80_MIN_METADATA', 4)
 
-# def test_fit_produce_dataset_phem_monthly():     
-#     _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
+def test_fit_produce_dataset_phem_monthly():     
+    _test_ts('LL1_PHEM_Monthly_Malnutrition_MIN_METADATA', 5)
 
-# def test_fit_produce_dataset_phem_weekly():     
-#     _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
+def test_fit_produce_dataset_phem_weekly():     
+    _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5)
 
 # def test_fit_produce_split_dataset_sunspots():
 #     _test_ts('56_sunspots_MIN_METADATA', 4, split_train=True)
@@ -287,27 +265,15 @@ def _test_serialize(dataset, group_compose = False):
 # def test_fit_produce_split_dataset_phem_weekly():     
 #     _test_ts('LL1_PHEM_weeklyData_malnutrition_MIN_METADATA', 5, group_compose = True, split_train=True)
 
-def test_serialization_dataset_sunspots():
-    _test_serialize('56_sunspots_MIN_METADATA')
+# def test_serialization_dataset_sunspots():
+#     _test_serialize('56_sunspots_MIN_METADATA')
 
-def test_serialization_dataset_sunspots_monthly():
-    _test_serialize('56_sunspots_monthly_MIN_METADATA')
+# def test_serialization_dataset_sunspots_monthly():
+#     _test_serialize('56_sunspots_monthly_MIN_METADATA')
 
-def test_serialization_dataset_pop_spawn():
-    _test_serialize('LL1_736_population_spawn_MIN_METADATA')
+# def test_serialization_dataset_pop_spawn():
+#     _test_serialize('LL1_736_population_spawn_MIN_METADATA')
 
-def test_serialization_dataset_stock():
-    _test_serialize('LL1_736_stock_market_MIN_METADATA')
-
-# def test_confidence_intervals_dataset_sunspots():
-#     _test_confidence_intervals('56_sunspots_MIN_METADATA')
-
-# def test_confidence_intervals_dataset_sunspots_monthly():
-#     _test_confidence_intervals('56_sunspots_monthly_MIN_METADATA')
-
-# def test_confidence_intervals_dataset_pop_spawn():
-#     _test_confidence_intervals('LL1_736_population_spawn_MIN_METADATA', group_compose=True)
-
-# def test_confidence_intervals_dataset_stock():
-#     _test_confidence_intervals('LL1_736_stock_market_MIN_METADATA')
+# def test_serialization_dataset_stock():
+#     _test_serialize('LL1_736_stock_market_MIN_METADATA')
 

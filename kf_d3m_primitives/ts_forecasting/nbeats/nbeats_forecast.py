@@ -22,7 +22,7 @@ class NBEATSForecast:
         predictor_filepath: str,
         interpretable: bool = True,
         mean: bool = True,
-        #quantiles: List[float] = []
+        nan_padding: bool = True
     ):
         """ constructs NBEATS forecast object
         
@@ -39,7 +39,7 @@ class NBEATSForecast:
             self.mean = mean
         self.prediction_length = train_dataset.get_pred_length()
         self.context_length = train_dataset.get_context_length()
-        #self.quantiles = quantiles
+        self.nan_padding = nan_padding
 
         self.data = []
         self.series_idxs = []
@@ -164,10 +164,6 @@ class NBEATSForecast:
                 else:
                     point_estimate = np.median(forecast.samples, axis=0) 
                 
-                # quantiles = np.vstack((
-                #     point_estimate,
-                #     np.quantile(forecast.samples, self.quantiles, axis=0).squeeze()
-                # ))
                 all_forecasts.append(point_estimate)
         all_forecasts = np.array(all_forecasts)
         if self.interpretable and len(self.data) > 0:
@@ -184,7 +180,7 @@ class NBEATSForecast:
                 (all_forecasts, trends, seasonalities),
                 axis=1
             )
-        return all_forecasts # Batch/Series, Quantiles, Prediction Length
+        return all_forecasts # Batch/Series, Components, Prediction Length
 
     def _pad(self, forecasts):
         """ resize forecasts according to pre_pad_len """
@@ -196,10 +192,13 @@ class NBEATSForecast:
             if series_val == -1:
                 dim_0 = 3 if self.interpretable else 1
                 series_forecasts = np.empty((
-                    dim_0, #len(self.quantiles) + 1, 
+                    dim_0,  
                     self.max_intervals[series_idx] + self.total_in_samples[series_idx] + 1
                 ))
-                series_forecasts[:] = np.nan
+                if self.nan_padding:
+                    series_forecasts[:] = np.nan
+                else:
+                    series_forecasts[:] = 0
             elif series_val < series_idx:
                 continue
             else:
@@ -208,24 +207,27 @@ class NBEATSForecast:
                 series_forecasts = np.stack(series_forecasts, axis=1).reshape(
                     series_forecasts.shape[1], 
                     -1
-                ) # Quantiles, In-Sample Horizon
+                ) # Components, In-Sample Horizon
                 if self.pre_pad_lens[series_idx] > 0:
                     padding = np.empty((series_forecasts.shape[0], self.pre_pad_lens[series_idx]))
                     padding[:] = np.nan
                     series_forecasts = np.concatenate(
                         (padding, series_forecasts), 
                         axis = 1
-                    ) # Quantiles, Context Length + Horizon
+                    ) # Components, Context Length + Horizon
                 if self.max_intervals[series_idx] >= series_forecasts.shape[1]:
                     padding = np.empty((
                         series_forecasts.shape[0], 
                         self.max_intervals[series_idx] - series_forecasts.shape[1] + 1
                     ))
-                    padding[:] = np.nan
+                    if self.nan_padding:
+                        padding[:] = np.nan
+                    else:
+                        padding[:] = series_forecasts[:, -1][:, np.newaxis]
                     series_forecasts = np.concatenate(
                         (series_forecasts, padding), 
                         axis = 1
-                    ) # Quantiles, Context Length + Horizon + Post Padding
+                    ) # Components, Context Length + Horizon + Post Padding
                     logger.info(
                         f"Asking for a prediction {self.max_intervals[series_idx] - self.total_in_samples[series_idx]} " + 
                         f"steps into the future from a model that was trained to predict a maximum of {self.prediction_length} " +

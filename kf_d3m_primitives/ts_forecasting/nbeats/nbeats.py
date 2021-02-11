@@ -153,12 +153,14 @@ class Hyperparams(hyperparams.Hyperparams):
         + "If `interpretable` is `True`, `output_mean` will automatically be `True` to preserve "
         + "the additive decomposition of the trend and seasonality forecast components"
     )
-    # quantiles = hyperparams.Set(
-    #     elements=hyperparams.Hyperparameter[float](-1),
-    #     default=(),
-    #     semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-    #     description="A set of quantiles for which to return estimates from forecast distribution"
-    # )
+    nan_padding = hyperparams.UniformBool(
+        default=True,
+        semantic_types=[
+            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
+        ],
+        description="whether to pad predictions that aren't supported by the model "
+        + "with 'np.nan' or with the last valid prediction"
+    )
 
 
 class NBEATSPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
@@ -399,53 +401,6 @@ class NBEATSPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         )
         return CallResult(result_df, has_finished=self._is_fit)
 
-    # def produce_confidence_intervals(
-    #     self, *, inputs: Inputs, timeout: float = None, iterations: int = None
-    # ) -> CallResult[Outputs]:
-    #     """ produce quantiles for each prediction timestep in dataframe
-        
-    #     Arguments:
-    #         inputs {Inputs} -- D3M dataframe containing attributes
-        
-    #     Keyword Arguments:
-    #         timeout {float} -- timeout, not considered (default: {None})
-    #         iterations {int} -- iterations, considered (default: {None})
-        
-    #     Raises:
-    #         PrimitiveNotFittedError: 
-        
-    #     Returns:
-    #         CallResult[Outputs] -- 
-
-    #         Ex. 
-    #             0.50 | 0.05 | 0.95
-    #             -------------------
-    #              5   |   3  |   7
-    #              6   |   4  |   8
-    #              5   |   3  |   7
-    #              6   |   4  |   8
-    #     """
-
-    #     all_preds, pred_intervals = self._produce(inputs)
-    #     all_quantiles = [[] for q in range(len(self.hyperparams['quantiles']) + 1)]
-    #     for series, idxs in zip(all_preds, pred_intervals):
-    #         for i, quantile in enumerate(series):
-    #             all_quantiles[i].append(quantile[idxs])
-    #     all_quantiles = [np.concatenate(quantile) for quantile in all_quantiles]
-
-    #     col_names = (0.5,) + self.hyperparams['quantiles']
-    #     result_df = container.DataFrame(
-    #         {col_name: quantile for col_name, quantile in zip(col_names, all_quantiles)},
-    #         generate_metadata=True,
-    #     )
-
-    #     result_df.metadata = result_df.metadata.add_semantic_type(
-    #         (metadata_base.ALL_ELEMENTS, 0),
-    #         ("https://metadata.datadrivendiscovery.org/types/PredictedTarget"),
-    #     )
-
-    #     return CallResult(result_df, has_finished=self._is_fit)
-
     def _get_col_names(self, col_idxs, all_col_names):
         """ transform column indices to column names """
         return [all_col_names[i] for i in col_idxs]
@@ -640,7 +595,7 @@ class NBEATSPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
             self.hyperparams['weights_dir'],
             self.hyperparams['interpretable'],
             self.hyperparams['output_mean'],
-            #self.hyperparams['quantiles']
+            self.hyperparams['nan_padding']
         )
         test_frame, _, _, original_times = self._reindex(test_frame)
         pred_intervals = self._get_pred_intervals(original_times)
