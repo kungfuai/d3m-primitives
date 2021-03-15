@@ -160,9 +160,6 @@ def generate_pipelines(gpu = False):
         "d3m.primitives.remote_sensing.mlp.MlpClassifier": [
             (MlpClassifierPipeline(), ('LL1_bigearth_landuse_detection',))
         ],
-        "d3m.primitives.similarity_modeling.iterative_labeling.ImageRetrieval": [
-            (MlpClassifierPipeline('LL1_bigearth_landuse_detection'), ())
-        ]
     }
 
     for primitive, pipelines in prims_to_pipelines.items():
