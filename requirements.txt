@@ -1,5 +1,5 @@
 d3m
-torch==1.7.0
+torch==1.4.0
 pillow==7.1.2
 tslearn==0.4.1
 statsmodels==0.11.1
@@ -8,7 +8,7 @@ hdbscan==0.8.26
 requests==2.23.0
 shap==0.37.0
 gluonts==0.5.2
-torchvision==0.8.1
+torchvision==0.5.0
 opencv-python-headless==4.1.1.26
 albumentations==0.4.6
 tifffile==2020.8.13
@@ -17,7 +17,7 @@ segmentation-models-pytorch==0.1.3
 git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk
 git+https://github.com/uncharted-distil/object-detection-retinanet@df87aa8f99303991f820863823a144a123a25811#egg=object_detection_retinanet
 git+https://github.com/uncharted-distil/simon@00422bbdc9caa09b867f8b5f583487b59b605de0#egg=Simon
-git+https://github.com/uncharted-distil/nk-sent2vec@41cd72ffa7c3ade0aca873ba7816f82875e66730#egg=nk_sent2vec
+git+https://github.com/uncharted-distil/nk-sent2vec@229d9c0114ccdd2d86e06ff48c75b09a2eb216b5#egg=nk_sent2vec
 git+https://github.com/uncharted-distil/duke@71de4875a2d6dbd8b0b384d108aff4d3724cc12f#egg=duke
 git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp
 pytest==6.0.1
