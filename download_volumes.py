@@ -25,8 +25,8 @@ for large_file_primitive in large_file_primitives:
             "-p",
             large_file_primitive,
             "-o",
-            "/static_volumes"
+            "/static_volumes",
         ],
-        check = True
+        check=True,
     )
-    print(f'Downloaded large static file for primitive: {large_file_primitive}')
+    print(f"Downloaded large static file for primitive: {large_file_primitive}")
