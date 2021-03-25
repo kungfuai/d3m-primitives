@@ -4,6 +4,7 @@ setup(
     name="kf-d3m-primitives",
     version="0.6.0",
     description="All Kung Fu D3M primitives as a single library",
+    license='Apache-2.0',
     packages=find_packages(exclude="scripts"),
     setkeywords=["d3m_primitive"],
     install_requires=[
