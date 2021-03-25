@@ -1,6 +1,6 @@
 from typing import List
 import json
-import os 
+import os
 import time
 import subprocess
 
@@ -13,13 +13,13 @@ from d3m.container import DataFrame as d3m_DataFrame
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class ImageRetrievalPipeline(PipelineBase):
 
+class ImageRetrievalPipeline(PipelineBase):
     def __init__(
-        self, 
+        self,
         annotations: List[int] = None,
         gem_p: int = 1,
-        dataset: str = 'LL1_bigearth_landuse_detection',
+        dataset: str = "LL1_bigearth_landuse_detection",
     ):
 
         pipeline_description = Pipeline()
@@ -34,9 +34,9 @@ class ImageRetrievalPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -48,9 +48,9 @@ class ImageRetrievalPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.0.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.0.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -62,14 +62,12 @@ class ImageRetrievalPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.1.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.1.produce",
         )
         step.add_hyperparameter(
-            name="return_result",
-            argument_type=ArgumentType.VALUE,
-            data="replace"
+            name="return_result", argument_type=ArgumentType.VALUE, data="replace"
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -115,7 +113,7 @@ class ImageRetrievalPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=[
                 "http://schema.org/ImageObject",
-                'https://metadata.datadrivendiscovery.org/types/PrimaryMultiKey',
+                "https://metadata.datadrivendiscovery.org/types/PrimaryMultiKey",
             ],
         )
         pipeline_description.add_step(step)
@@ -142,9 +140,9 @@ class ImageRetrievalPipeline(PipelineBase):
                 )
             )
             step.add_argument(
-                name="inputs", 
-                argument_type=ArgumentType.CONTAINER, 
-                data_reference="inputs.1"
+                name="inputs",
+                argument_type=ArgumentType.CONTAINER,
+                data_reference="inputs.1",
             )
             step.add_output("produce")
             pipeline_description.add_step(step)
@@ -174,9 +172,7 @@ class ImageRetrievalPipeline(PipelineBase):
             )
         step.add_output("produce")
         step.add_hyperparameter(
-            name="gem_p",
-            argument_type=ArgumentType.VALUE,
-            data=gem_p
+            name="gem_p", argument_type=ArgumentType.VALUE, data=gem_p
         )
         pipeline_description.add_step(step)
 
@@ -193,41 +189,44 @@ class ImageRetrievalPipeline(PipelineBase):
         self.dataset = dataset
         self.annotations = annotations
 
-    def make_annotations_dataset(self, n_rows, round_num = 0, num_bands = 12):
-        
+    def make_annotations_dataset(self, n_rows, round_num=0, num_bands=12):
+
         if self.annotations is None:
             annotationsDoc = {
-                "dataResources": [{
-                    "resID": "annotationsData",
-                    "resPath": "/scratch_dir/annotationsData.csv",
-                    "resType": "table",
-                    "resFormat": { "text/csv": ["csv"]},
-                    "columns": [{
-                        "colIndex": 0,
-                        "colName": "annotations",
-                        "colType": "integer",
-                        "role": ["attribute"]
-                    }]
-                }]
-            } 
+                "dataResources": [
+                    {
+                        "resID": "annotationsData",
+                        "resPath": "/scratch_dir/annotationsData.csv",
+                        "resType": "table",
+                        "resFormat": {"text/csv": ["csv"]},
+                        "columns": [
+                            {
+                                "colIndex": 0,
+                                "colName": "annotations",
+                                "colType": "integer",
+                                "role": ["attribute"],
+                            }
+                        ],
+                    }
+                ]
+            }
             with open("/scratch_dir/annotationsDoc.json", "w") as json_file:
                 json.dump(annotationsDoc, json_file)
 
         if round_num == 0:
             annotations = np.zeros(n_rows) - 1
             annotations[0] = 1
-            annotations = pd.DataFrame({
-                "d3mIndex": np.arange(n_rows),
-                "annotations": annotations.astype(int)
-            })
+            annotations = pd.DataFrame(
+                {"d3mIndex": np.arange(n_rows), "annotations": annotations.astype(int)}
+            )
         else:
             annotations = pd.read_csv("/scratch_dir/annotationsData.csv")
             ranking = pd.read_csv("/scratch_dir/rankings.csv")
             test_index = pd.read_csv(
                 f"/datasets/seed_datasets_current/{self.dataset}/TEST/dataset_TEST/tables/learningData.csv"
-            )['d3mIndex'].values
-            
-            top_idx = np.where(test_index == ranking.iloc[0,0])[0][0] // num_bands
+            )["d3mIndex"].values
+
+            top_idx = np.where(test_index == ranking.iloc[0, 0])[0][0] // num_bands
             human_annotation = np.random.randint(2)
             annotations.iloc[top_idx, 1] = human_annotation
 
@@ -237,29 +236,29 @@ class ImageRetrievalPipeline(PipelineBase):
     def delete_annotations_dataset(self):
 
         if self.annotations is None:
-            subprocess.run(['rm', "/scratch_dir/annotationsDoc.json"], check = True)
+            subprocess.run(["rm", "/scratch_dir/annotationsDoc.json"], check=True)
 
-        subprocess.run(['rm', "/scratch_dir/annotationsData.csv"], check = True)
-        subprocess.run(['rm', "/scratch_dir/rankings.csv"], check = True)
+        subprocess.run(["rm", "/scratch_dir/annotationsData.csv"], check=True)
+        subprocess.run(["rm", "/scratch_dir/rankings.csv"], check=True)
 
-    def fit_produce(self, output_yml_dir = '.', submission = False):
-        
+    def fit_produce(self, output_yml_dir=".", submission=False):
+
         if not os.path.isfile(self.outfile_string):
             raise ValueError("Must call 'write_pipeline()' method first")
-        
+
         proc_cmd = [
             "python3",
             "-m",
             "d3m",
-            "runtime", 
-            "-d", 
+            "runtime",
+            "-d",
             "/datasets",
-            "-v" ,
+            "-v",
             "/static_volumes",
             "-s",
             "/scratch_dir",
-            "fit-produce", 
-            "-p", 
+            "fit-produce",
+            "-p",
             self.outfile_string,
             "-i",
             f"/datasets/seed_datasets_current/{self.dataset}/TEST/dataset_TEST/datasetDoc.json",
@@ -268,7 +267,7 @@ class ImageRetrievalPipeline(PipelineBase):
             "-t",
             f"/datasets/seed_datasets_current/{self.dataset}/TEST/dataset_TEST/datasetDoc.json",
             "-o",
-            f"/scratch_dir/rankings.csv"
+            f"/scratch_dir/rankings.csv",
         ]
 
         if self.annotations is None:
@@ -284,4 +283,4 @@ class ImageRetrievalPipeline(PipelineBase):
 
         st = time.time()
         subprocess.run(proc_cmd, check=True)
-        print(f'Fitting and producing pipeline took {(time.time() - st) / 60} mins')
+        print(f"Fitting and producing pipeline took {(time.time() - st) / 60} mins")

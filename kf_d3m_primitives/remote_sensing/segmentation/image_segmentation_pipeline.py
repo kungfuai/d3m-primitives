@@ -9,14 +9,14 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class ImageSegmentationPipeline(PipelineBase):
 
+class ImageSegmentationPipeline(PipelineBase):
     def __init__(
-        self, 
+        self,
         binary_labels,
-        weights_filepath: str = 'scratch_dir/model_weights.pth',
+        weights_filepath: str = "scratch_dir/model_weights.pth",
         epochs_frozen: int = 20,
-        epochs_unfrozen: int = 100
+        epochs_unfrozen: int = 100,
     ):
 
         pipeline_description = Pipeline()
@@ -29,9 +29,9 @@ class ImageSegmentationPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -43,9 +43,9 @@ class ImageSegmentationPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.0.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.0.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -57,14 +57,12 @@ class ImageSegmentationPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.1.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.1.produce",
         )
         step.add_hyperparameter(
-            name="return_result",
-            argument_type=ArgumentType.VALUE,
-            data="replace"
+            name="return_result", argument_type=ArgumentType.VALUE, data="replace"
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -133,17 +131,15 @@ class ImageSegmentationPipeline(PipelineBase):
         step.add_hyperparameter(
             name="weights_filepath",
             argument_type=ArgumentType.VALUE,
-            data=weights_filepath
+            data=weights_filepath,
         )
         step.add_hyperparameter(
-            name="epochs_frozen",
-            argument_type=ArgumentType.VALUE,
-            data=epochs_frozen
+            name="epochs_frozen", argument_type=ArgumentType.VALUE, data=epochs_frozen
         )
         step.add_hyperparameter(
             name="epochs_unfrozen",
             argument_type=ArgumentType.VALUE,
-            data=epochs_unfrozen
+            data=epochs_unfrozen,
         )
         pipeline_description.add_step(step)
 
@@ -152,25 +148,25 @@ class ImageSegmentationPipeline(PipelineBase):
         )
 
         self.pipeline = pipeline_description
-    
-    def fit_produce(self, dataset, output_yml_dir = '.', submission = False):
-        
+
+    def fit_produce(self, dataset, output_yml_dir=".", submission=False):
+
         if not os.path.isfile(self.outfile_string):
             raise ValueError("Must call 'write_pipeline()' method first")
-        
+
         proc_cmd = [
             "python3",
             "-m",
             "d3m",
-            "runtime", 
-            "-D", 
+            "runtime",
+            "-D",
             "/datasets",
-            "-v" ,
+            "-v",
             "/static_volumes",
             "--scratch",
             "/scratch_dir",
-            "fit-produce", 
-            "-p", 
+            "fit-produce",
+            "-p",
             self.outfile_string,
             "-i",
             f"/datasets/seed_datasets_current/{dataset}/TEST/dataset_TEST/datasetDoc.json",
@@ -184,4 +180,4 @@ class ImageSegmentationPipeline(PipelineBase):
 
         st = time.time()
         subprocess.run(proc_cmd, check=True)
-        print(f'Fitting and producing pipeline took {(time.time() - st) / 60} mins')
+        print(f"Fitting and producing pipeline took {(time.time() - st) / 60} mins")

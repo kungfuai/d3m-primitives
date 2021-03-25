@@ -67,7 +67,8 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="timeout, how much time to give elastic search database to startup, may vary based on infrastructure",
+        description="timeout, how much time to give elastic search database to startup, \
+            may vary based on infrastructure",
     )
     cache_size = hyperparams.UniformInt(
         lower=1,
@@ -82,45 +83,24 @@ class Hyperparams(hyperparams.Hyperparams):
 
 class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
     """
-    Accept a set of lat/long pair, processes it and returns a set corresponding geographic location names
-    
-    Parameters
-    ----------
-    inputs : pandas dataframe containing 2 coordinate float values, i.e., [longitude,latitude] 
-                representing each geographic location of interest - a pair of values
-                per location/row in the specified target column
-
-    Returns
-    -------
-    Outputs
-        Pandas dataframe containing one location per longitude/latitude pair (if reverse
-        geocoding possible, otherwise NaNs) appended as new columns
+    This primitive converts longitude/latitude coordinates into geographic location names.
     """
 
-    # Make sure to populate this with JSON annotations...
-    # This should contain only metadata which cannot be automatically determined from the code.
     metadata = metadata_base.PrimitiveMetadata(
         {
-            # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
             "id": "f6e4880b-98c7-32f0-b687-a4b1d74c8f99",
             "version": __version__,
             "name": "Goat_reverse",
-            # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
             "keywords": ["Reverse Geocoder"],
             "source": {
                 "name": __author__,
                 "contact": __contact__,
                 "uris": [
-                    # Unstructured URIs.
                     "https://github.com/kungfuai/d3m-primitives"
                 ],
             },
-            # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
-            # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
-            # install a Python package first to be even able to run setup.py of another package. Or you have
-            # a dependency which is not on PyPi.
             "installation": [
-                {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+                {"type": "PIP", "package": "cython", "version": "0.29.16"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
                     "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
@@ -139,10 +119,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
                     "file_digest": "d7e3d5c6ae795b5f53d31faa3a9af63a9691070782fa962dfcd0edf13e8f1eab",
                 },
             ],
-            # The same path the primitive is registered with entry points in setup.py.
             "python_path": "d3m.primitives.data_cleaning.geocoding.Goat_reverse",
-            # Choose these from a controlled vocabulary in the schema. If anything is missing which would
-            # best describe the primitive, make a merge request.
             "algorithm_types": [metadata_base.PrimitiveAlgorithmType.NUMERICAL_METHOD],
             "primitive_family": metadata_base.PrimitiveFamily.DATA_CLEANING,
         }
@@ -169,19 +146,19 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
     ) -> CallResult[Outputs]:
         """
-        Accept a set of lat/long pair, processes it and returns a set corresponding geographic location names
-        
+        Accept a set of longitude/latitude pairs, processes it and returns a set of corresponding
+        geographic location names
+
         Parameters
         ----------
-        inputs : pandas dataframe containing 2 coordinate float values, i.e., [longitude,latitude] 
+        inputs: D3M dataframe containing 2 coordinate float values, i.e., [longitude,latitude]
                  representing each geographic location of interest - a pair of values
                  per location/row in the specified target column
 
         Returns
-        -------
-        Outputs
-            Pandas dataframe containing one location per longitude/latitude pair (if reverse
-            geocoding possible, otherwise NaNs)
+        ----------
+        Outputs: D3M dataframe containing one location per longitude/latitude pair appended as new columns
+            (if reverse geocoding possible, otherwise NaNs)
         """
 
         # confirm that server is responding before proceeding
@@ -192,10 +169,10 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
 
         # find location columns, real columns, and real-vector columns
         latitude = inputs.metadata.get_columns_with_semantic_type(
-            "http://schema.org/latitude", 
+            "http://schema.org/latitude",
         )
         longitude = inputs.metadata.get_columns_with_semantic_type(
-            "http://schema.org/longitude", 
+            "http://schema.org/longitude",
         )
         targets = list(set(latitude + longitude))
         real_values = inputs.metadata.get_columns_with_semantic_type(
@@ -236,7 +213,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
         # for col in target_columns:
         #     if inputs[col].apply(lambda x: x[0]).max() > 90:
         #         inputs[col] = inputs[col].apply(lambda x: x[::-1])
-        
+
         # reverse-geocode each requested location
         output_data = []
         for i, ith_column in enumerate(target_columns):
@@ -284,7 +261,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
         PopenObj.kill()
 
         # Build d3m-type dataframe
-        out_df = pd.DataFrame(index=range(inputs.shape[0]),columns=target_columns)
+        out_df = pd.DataFrame(index=range(inputs.shape[0]), columns=target_columns)
         d3m_df = d3m_DataFrame(out_df)
         for i, ith_column in enumerate(target_columns):
             # for every column

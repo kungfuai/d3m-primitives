@@ -4,15 +4,15 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class VarPipeline(PipelineBase):
 
+class VarPipeline(PipelineBase):
     def __init__(
-        self, 
+        self,
         group_compose: bool = False,
         confidence_intervals: bool = False,
         produce_weights: bool = False,
-        interpret_pooling: str = 'avg',
-        interpret_value: str = 'lag_order'
+        interpret_pooling: str = "avg",
+        interpret_value: str = "lag_order",
     ):
 
         pipeline_description = Pipeline()
@@ -25,14 +25,18 @@ class VarPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -99,7 +103,7 @@ class VarPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=[
                 "https://metadata.datadrivendiscovery.org/types/Attribute",
-                'https://metadata.datadrivendiscovery.org/types/GroupingKey',
+                "https://metadata.datadrivendiscovery.org/types/GroupingKey",
             ],
         )
         step.add_output("produce")
@@ -158,19 +162,23 @@ class VarPipeline(PipelineBase):
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
             pipeline_description.add_step(step)
-            
-            data_ref = "steps.6.produce_confidence_intervals" if group_compose else "steps.5.produce_confidence_intervals"
-            pipeline_description.add_output(
-                name="output", data_reference=data_ref
+
+            data_ref = (
+                "steps.6.produce_confidence_intervals"
+                if group_compose
+                else "steps.5.produce_confidence_intervals"
             )
+            pipeline_description.add_output(name="output", data_reference=data_ref)
         elif produce_weights:
             step.add_output("produce_weights")
             pipeline_description.add_step(step)
-            
-            data_ref = "steps.6.produce_weights" if group_compose else "steps.5.produce_weights"
-            pipeline_description.add_output(
-                name="output", data_reference=data_ref
+
+            data_ref = (
+                "steps.6.produce_weights"
+                if group_compose
+                else "steps.5.produce_weights"
             )
+            pipeline_description.add_output(name="output", data_reference=data_ref)
         else:
             step.add_output("produce")
             pipeline_description.add_step(step)

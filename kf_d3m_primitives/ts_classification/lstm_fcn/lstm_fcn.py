@@ -43,7 +43,7 @@ class Params(params.Params):
 
 class Hyperparams(hyperparams.Hyperparams):
     weights_filepath = hyperparams.Hyperparameter[str](
-        default='model_weights.h5',
+        default="model_weights.h5",
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
@@ -110,8 +110,8 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="proportion of training records to set aside for validation. Ignored " +
-            "if iterations flag in `fit` method is not None",
+        description="proportion of training records to set aside for validation. Ignored "
+        + "if iterations flag in `fit` method is not None",
     )
     early_stopping_patience = hyperparams.UniformInt(
         lower=0,
@@ -124,27 +124,20 @@ class Hyperparams(hyperparams.Hyperparams):
     )
 
 
-class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
+class LstmFcnPrimitive(
+    SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]
+):
     """
-        Primitive that applies a LSTM FCN (LSTM fully convolutional network) for time
-        series classification. The implementation is based off this paper: 
-        https://ieeexplore.ieee.org/document/8141873 and this base library: 
-        https://github.com/NewKnowledge/LSTM-FCN.
-    
-        Arguments:
-            hyperparams {Hyperparams} -- D3M Hyperparameter object
-        
-        Keyword Arguments:
-            random_seed {int} -- random seed (default: {0})
+    This primitive applies a LSTM fully convolutional neural network for
+    time series classification. The implementation is based off this paper:
+    https://ieeexplore.ieee.org/document/8141873.
     """
 
     metadata = metadata_base.PrimitiveMetadata(
         {
-            # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
             "id": "a55cef3a-a7a9-411e-9dde-5c935ff3504b",
             "version": __version__,
             "name": "lstm_fcn",
-            # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
             "keywords": [
                 "Time Series",
                 "convolutional neural network",
@@ -156,16 +149,11 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                 "name": __author__,
                 "contact": __contact__,
                 "uris": [
-                    # Unstructured URIs.
                     "https://github.com/kungfuai/d3m-primitives",
                 ],
             },
-            # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
-            # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
-            # install a Python package first to be even able to run setup.py of another package. Or you have
-            # a dependency which is not on PyPi.
             "installation": [
-                {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+                {"type": "PIP", "package": "cython", "version": "0.29.16"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
                     "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
@@ -173,15 +161,12 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
                     ),
                 },
             ],
-            # The same path the primitive is registered with entry points in setup.py.
             "python_path": "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
-            # Choose these from a controlled vocabulary in the schema. If anything is missing which would
-            # best describe the primitive, make a merge request.
             "algorithm_types": [
                 metadata_base.PrimitiveAlgorithmType.CONVOLUTIONAL_NEURAL_NETWORK,
             ],
             "primitive_family": metadata_base.PrimitiveFamily.TIME_SERIES_CLASSIFICATION,
-            "can_use_gpus": True
+            "can_use_gpus": True,
         }
     )
 
@@ -196,32 +181,29 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
     def get_params(self) -> Params:
         if not self._is_fit:
             return Params(
-                label_encoder=None,
-                output_columns=None,
-                ts_sz=None,
-                n_classes=None
+                label_encoder=None, output_columns=None, ts_sz=None, n_classes=None
             )
-        
+
         return Params(
             label_encoder=self._label_encoder,
             output_columns=self._output_columns,
             ts_sz=self._ts_sz,
-            n_classes=self._n_classes
+            n_classes=self._n_classes,
         )
 
     def set_params(self, *, params: Params) -> None:
-        self._label_encoder = params['label_encoder']
-        self._output_columns = params['output_columns']
-        self._ts_sz = params['ts_sz']
-        self._n_classes = params['n_classes']
+        self._label_encoder = params["label_encoder"]
+        self._output_columns = params["output_columns"]
+        self._ts_sz = params["ts_sz"]
+        self._n_classes = params["n_classes"]
         self._is_fit = all(param is not None for param in params.values())
 
     def _get_cols(self, input_metadata):
-        """ private util function that finds grouping column from input metadata
-        
+        """private util function that finds grouping column from input metadata
+
         Arguments:
             input_metadata {D3M Metadata object} -- D3M Metadata object for input frame
-        
+
         Returns:
             list[int] -- list of column indices annotated with GroupingKey metadata
         """
@@ -244,17 +226,19 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         """
 
         # find attribute column but not file column
-        attributes = input_metadata.list_columns_with_semantic_types(('https://metadata.datadrivendiscovery.org/types/Attribute',))
+        attributes = input_metadata.list_columns_with_semantic_types(
+            ("https://metadata.datadrivendiscovery.org/types/Attribute",)
+        )
         # this is assuming alot, but timeseries formaters typicaly place value column at the end
         attribute_col = attributes[-1]
         return attribute_col
 
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
-        """ Sets primitive's training data
+        """Sets primitive's training data
 
-            Arguments:
-                inputs {Inputs} -- D3M dataframe containing attributes
-                outputs {Outputs} -- D3M dataframe containing targets
+        Arguments:
+            inputs {Inputs} -- D3M dataframe containing attributes
+            outputs {Outputs} -- D3M dataframe containing targets
         """
 
         # load and reshape training data
@@ -264,7 +248,9 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         self._ts_sz = inputs.shape[0] // n_ts
 
         attribute_col = self._get_value_col(inputs.metadata)
-        self._X_train = inputs.iloc[:, attribute_col].values.reshape(n_ts, 1, self._ts_sz)
+        self._X_train = inputs.iloc[:, attribute_col].values.reshape(
+            n_ts, 1, self._ts_sz
+        )
         y_train = np.array(outputs)
 
         # encode labels and convert to categorical
@@ -293,14 +279,14 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         self._new_train_data = True
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
-        """ Fits LSTM_FCN classifier using training data from set_training_data and hyperparameters
-            
-            Keyword Arguments:
-                timeout {float} -- timeout, considered (default: {None})
-                iterations {int} -- iterations, considered (default: {None})
-            
-            Returns:
-                CallResult[None]
+        """Fits LSTM_FCN classifier using training data from set_training_data and hyperparameters
+
+        Keyword Arguments:
+            timeout {float} -- timeout, considered (default: {None})
+            iterations {int} -- iterations, considered (default: {None})
+
+        Returns:
+            CallResult[None]
         """
 
         # instantiate classifier and load saved weights
@@ -384,9 +370,9 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             f"Fit for {iterations_completed} epochs, took {time.time() - start_time}s"
         )
 
-        # maintain primitive state 
+        # maintain primitive state
         self._is_fit = True
-        clf.save_weights(self.hyperparams['weights_filepath'])
+        clf.save_weights(self.hyperparams["weights_filepath"])
 
         # use fitting history to set CallResult return values
         if iterations_set:
@@ -403,26 +389,25 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
     def produce(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
     ) -> CallResult[Outputs]:
-        """ Produce primitive's classifications for new time series data
+        """Produce primitive's classifications for new time series data
 
-            Arguments:
-                inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
-            
-            Keyword Arguments:
-                timeout {float} -- timeout, not considered (default: {None})
-                iterations {int} -- iterations, not considered (default: {None})
+        Arguments:
+            inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
 
-            Raises:
-                PrimitiveNotFittedError: if primitive not fit
+        Keyword Arguments:
+            timeout {float} -- timeout, not considered (default: {None})
+            iterations {int} -- iterations, not considered (default: {None})
 
-            Returns:
-                CallResult[Outputs] -- dataframe with a column containing a predicted class 
-                    for each input time series
+        Raises:
+            PrimitiveNotFittedError: if primitive not fit
+
+        Returns:
+            CallResult[Outputs] -- dataframe with a column containing a predicted class
+                for each input time series
         """
 
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
-
 
         # instantiate classifier and load saved weights
         clf = generate_lstmfcn(
@@ -432,7 +417,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
             attention=self.hyperparams["attention_lstm"],
             dropout=self.hyperparams["dropout_rate"],
         )
-        clf.load_weights(self.hyperparams['weights_filepath'])
+        clf.load_weights(self.hyperparams["weights_filepath"])
 
         # find column with ts value through metadata
         grouping_column = self._get_cols(inputs.metadata)
@@ -442,7 +427,7 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
         attribute_col = self._get_value_col(inputs.metadata)
         x_vals = inputs.iloc[:, attribute_col].values.reshape(n_ts, 1, ts_sz)
         x_vals = tf.cast(x_vals, tf.float32)
-        test_dataset = LSTMSequenceTest(x_vals, self.hyperparams['batch_size'])
+        test_dataset = LSTMSequenceTest(x_vals, self.hyperparams["batch_size"])
 
         # make predictions
         preds = clf.predict(test_dataset)
@@ -459,4 +444,3 @@ class LstmFcnPrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, H
 
         # ok to set to True because we have checked that primitive has been fit
         return CallResult(result_df, has_finished=True)
-
