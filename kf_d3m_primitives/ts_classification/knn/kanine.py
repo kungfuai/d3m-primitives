@@ -29,6 +29,7 @@ class Params(params.Params):
     classifier: KNeighborsTimeSeriesClassifier
     output_columns: pd.Index
 
+
 class Hyperparams(hyperparams.Hyperparams):
     n_neighbors = hyperparams.UniformInt(
         lower=0,
@@ -57,28 +58,19 @@ class Hyperparams(hyperparams.Hyperparams):
     )
 
 
-class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]):
+class KaninePrimitive(
+    SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]
+):
     """
-        Primitive that applies the k nearest neighbor classification algorithm to time series data. 
-        The tslearn KNeighborsTimeSeriesClassifier implementation is wrapped.
-        
-        Training inputs: 1) Feature dataframe, 2) Target dataframe
-        Outputs: Dataframe with predictions for specific time series at specific future time instances 
-    
-        Arguments:
-            hyperparams {Hyperparams} -- D3M Hyperparameter object
-        
-        Keyword Arguments:
-            random_seed {int} -- random seed (default: {0})
+    Primitive that applies the k nearest neighbor classification algorithm to time series data.
+    The tslearn KNeighborsTimeSeriesClassifier implementation is wrapped.
     """
 
     metadata = metadata_base.PrimitiveMetadata(
         {
-            # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
             "id": "2d6d3223-1b3c-49cc-9ddd-50f571818268",
             "version": __version__,
             "name": "kanine",
-            # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
             "keywords": [
                 "time series",
                 "knn",
@@ -89,16 +81,11 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                 "name": __author__,
                 "contact": __contact__,
                 "uris": [
-                    # Unstructured URIs.
                     "https://github.com/kungfuai/d3m-primitives",
                 ],
             },
-            # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
-            # Of course Python packages can also have their own dependencies, but sometimes it is necessary to
-            # install a Python package first to be even able to run setup.py of another package. Or you have
-            # a dependency which is not on PyPi.
             "installation": [
-                {"type": "PIP", "package": "cython", "version": "0.29.16"}, 
+                {"type": "PIP", "package": "cython", "version": "0.29.16"},
                 {
                     "type": metadata_base.PrimitiveInstallationType.PIP,
                     "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
@@ -106,10 +93,7 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
                     ),
                 },
             ],
-            # The same path the primitive is registered with entry points in setup.py.
             "python_path": "d3m.primitives.time_series_classification.k_neighbors.Kanine",
-            # Choose these from a controlled vocabulary in the schema. If anything is missing which would
-            # best describe the primitive, make a merge request.
             "algorithm_types": [
                 metadata_base.PrimitiveAlgorithmType.K_NEAREST_NEIGHBORS,
             ],
@@ -131,30 +115,26 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
     def get_params(self) -> Params:
         if not self._is_fit:
-            return Params(
-                scaler=None,
-                classifier=None,
-                output_columns=None
-            )
-        
+            return Params(scaler=None, classifier=None, output_columns=None)
+
         return Params(
             scaler=self._scaler,
             classifier=self._knn,
-            output_columns=self._output_columns
+            output_columns=self._output_columns,
         )
 
     def set_params(self, *, params: Params) -> None:
-        self._scaler = params['scaler']
-        self._knn = params['classifier']
-        self._output_columns = params['output_columns']
+        self._scaler = params["scaler"]
+        self._knn = params["classifier"]
+        self._output_columns = params["output_columns"]
         self._is_fit = all(param is not None for param in params.values())
 
     def _get_cols(self, input_metadata):
-        """ private util function that finds grouping column from input metadata
-        
+        """private util function that finds grouping column from input metadata
+
         Arguments:
             input_metadata {D3M Metadata object} -- D3M Metadata object for input frame
-        
+
         Returns:
             list[int] -- list of column indices annotated with GroupingKey metadata
         """
@@ -177,18 +157,19 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
         """
 
         # find attribute column but not file column
-        attributes = input_metadata.list_columns_with_semantic_types(('https://metadata.datadrivendiscovery.org/types/Attribute',))
+        attributes = input_metadata.list_columns_with_semantic_types(
+            ("https://metadata.datadrivendiscovery.org/types/Attribute",)
+        )
         # this is assuming alot, but timeseries formaters typicaly place value column at the end
         attribute_col = attributes[-1]
         return attribute_col
 
-
     def set_training_data(self, *, inputs: Inputs, outputs: Outputs) -> None:
-        """ Sets primitive's training data
+        """Sets primitive's training data
 
-            Arguments:
-                inputs {Inputs} -- D3M dataframe containing attributes
-                outputs {Outputs} -- D3M dataframe containing targets
+        Arguments:
+            inputs {Inputs} -- D3M dataframe containing attributes
+            outputs {Outputs} -- D3M dataframe containing targets
         """
 
         # load and reshape training data
@@ -199,17 +180,19 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
 
         attribute_col = self._get_value_col(inputs.metadata)
         self._X_train = inputs.iloc[:, attribute_col].values.reshape(n_ts, ts_sz)
-        self._y_train = np.array(outputs).reshape(-1,)
+        self._y_train = np.array(outputs).reshape(
+            -1,
+        )
 
     def fit(self, *, timeout: float = None, iterations: int = None) -> CallResult[None]:
-        """ Fits KNN model using training data from set_training_data and hyperparameters
-            
-            Keyword Arguments:
-                timeout {float} -- timeout, not considered (default: {None})
-                iterations {int} -- iterations, not considered (default: {None})
-            
-            Returns:
-                CallResult[None]
+        """Fits KNN model using training data from set_training_data and hyperparameters
+
+        Keyword Arguments:
+            timeout {float} -- timeout, not considered (default: {None})
+            iterations {int} -- iterations, not considered (default: {None})
+
+        Returns:
+            CallResult[None]
         """
 
         scaled = self._scaler.fit_transform(self._X_train)
@@ -220,21 +203,21 @@ class KaninePrimitive(SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hy
     def produce(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
     ) -> CallResult[Outputs]:
-        """ Produce primitive's classifications for new time series data
+        """Produce primitive's classifications for new time series data
 
-            Arguments:
-                inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
-            
-            Keyword Arguments:
-                timeout {float} -- timeout, not considered (default: {None})
-                iterations {int} -- iterations, not considered (default: {None})
+        Arguments:
+            inputs {Inputs} -- full D3M dataframe, containing attributes, key, and target
 
-            Raises:
-                PrimitiveNotFittedError: if primitive not fit
+        Keyword Arguments:
+            timeout {float} -- timeout, not considered (default: {None})
+            iterations {int} -- iterations, not considered (default: {None})
 
-            Returns:
-                CallResult[Outputs] -- dataframe with a column containing a predicted class 
-                    for each input time series
+        Raises:
+            PrimitiveNotFittedError: if primitive not fit
+
+        Returns:
+            CallResult[Outputs] -- dataframe with a column containing a predicted class
+                for each input time series
         """
 
         if not self._is_fit:

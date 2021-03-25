@@ -13,12 +13,13 @@ from gluonts.model.common import Tensor
 from gluonts.transform import Transformation
 from gluonts.model.predictor import Predictor, RepresentableBlockPredictor
 
-''' This module overwrites the NBEATSPredictionNetwork, NBEATSEstimator, and
+""" This module overwrites the NBEATSPredictionNetwork, NBEATSEstimator, and
     NBEATSEnsembleEstimator classes to make it possible to 
     extract the additive decomposition of the seasonal and trend forecast
     from an interpretable NBEATS architecture. 
-'''
-    
+"""
+
+
 class NBEATSPredictionNetworkHook(NBEATSPredictionNetwork):
     @validated()
     def __init__(self, *args, **kwargs) -> None:
@@ -44,21 +45,21 @@ class NBEATSPredictionNetworkHook(NBEATSPredictionNetwork):
         Tensor
             Prediction sample. Shape: (batch_size, 1, prediction_length).
         """
-        
+
         backcast, forecast = self.net_blocks[0](past_target)
         self.all_trend_forecasts.append(forecast.asnumpy())
         backcast = past_target - backcast
-        forecast = forecast + self.net_blocks[1](backcast)          
+        forecast = forecast + self.net_blocks[1](backcast)
         forecast = F.expand_dims(forecast, axis=1)
         return forecast
 
     def get_trend_forecast(self):
-        trend_forecasts = np.concatenate(self.all_trend_forecasts, axis = 0)
+        trend_forecasts = np.concatenate(self.all_trend_forecasts, axis=0)
         return trend_forecasts
 
     def clear_trend_forecast(self):
         self.all_trend_forecasts = []
-        
+
 
 class NBEATSEstimatorHook(NBEATSEstimator):
     @validated()
@@ -73,7 +74,7 @@ class NBEATSEstimatorHook(NBEATSEstimator):
 
     # def create_training_network(self) -> HybridBlock:
     #     return super().create_training_network()
-    
+
     def create_predictor(
         self, transformation: Transformation, trained_network: HybridBlock
     ) -> Predictor:
@@ -98,6 +99,7 @@ class NBEATSEstimatorHook(NBEATSEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
+
 
 class NBEATSEnsembleEstimatorHook(NBEATSEnsembleEstimator):
     @validated()

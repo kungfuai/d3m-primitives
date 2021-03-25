@@ -5,9 +5,16 @@ import typing
 from d3m import exceptions, utils
 from d3m.container import pandas as container_pandas
 
-def select_rows(resource: container_pandas.DataFrame, row_indices_to_keep: typing.Sequence[int]) -> container_pandas.DataFrame:
+
+def select_rows(
+    resource: container_pandas.DataFrame, row_indices_to_keep: typing.Sequence[int]
+) -> container_pandas.DataFrame:
     if not isinstance(resource, container_pandas.DataFrame):
-        raise exceptions.InvalidArgumentTypeError("Only DataFrame resources can have rows selected, not '{type}'.".format(type=type(resource)))
+        raise exceptions.InvalidArgumentTypeError(
+            "Only DataFrame resources can have rows selected, not '{type}'.".format(
+                type=type(resource)
+            )
+        )
 
     row_indices = sorted(row_indices_to_keep)
     resource = resource.iloc[row_indices, :].reset_index(drop=True)
@@ -22,8 +29,8 @@ def select_rows(resource: container_pandas.DataFrame, row_indices_to_keep: typin
     resource.metadata = resource.metadata.update(
         (),
         {
-            'dimension': {
-                'length': len(row_indices),
+            "dimension": {
+                "length": len(row_indices),
             },
         },
     )

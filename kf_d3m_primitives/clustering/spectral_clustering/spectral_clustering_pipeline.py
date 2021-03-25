@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class SpectralClusteringPipeline(PipelineBase):
 
+class SpectralClusteringPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,14 +18,18 @@ class SpectralClusteringPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -62,7 +66,9 @@ class SpectralClusteringPipeline(PipelineBase):
 
         # imputer
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.imputer.SKlearn"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -81,7 +87,7 @@ class SpectralClusteringPipeline(PipelineBase):
         # Spectral clustering
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.clustering.spectral_graph.SpectralClustering'
+                "d3m.primitives.clustering.spectral_graph.SpectralClustering"
             )
         )
         step.add_argument(
@@ -90,13 +96,13 @@ class SpectralClusteringPipeline(PipelineBase):
             data_reference="steps.3.produce",
         )
         step.add_hyperparameter(
-            name='n_clusters', argument_type=ArgumentType.VALUE,data=3
+            name="n_clusters", argument_type=ArgumentType.VALUE, data=3
         )
         step.add_hyperparameter(
-            name='n_neighbors', argument_type=ArgumentType.VALUE,data=6
+            name="n_neighbors", argument_type=ArgumentType.VALUE, data=6
         )
         step.add_hyperparameter(
-            name='affinity', argument_type=ArgumentType.VALUE,data='nearest_neighbors'
+            name="affinity", argument_type=ArgumentType.VALUE, data="nearest_neighbors"
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -119,7 +125,7 @@ class SpectralClusteringPipeline(PipelineBase):
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
-        
+
         # parse target semantic types
         step = PrimitiveStep(
             primitive=index.get_primitive(
@@ -144,18 +150,22 @@ class SpectralClusteringPipeline(PipelineBase):
         # R Forest
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.learner.random_forest.DistilEnsembleForest'
+                "d3m.primitives.learner.random_forest.DistilEnsembleForest"
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.5.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.6.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.6.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(

@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class ShapPipeline(PipelineBase):
 
+class ShapPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -27,7 +27,9 @@ class ShapPipeline(PipelineBase):
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -53,7 +55,9 @@ class ShapPipeline(PipelineBase):
 
         # imputer -> imputes null values based on mean of column
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.imputer.SKlearn"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -102,8 +106,10 @@ class ShapPipeline(PipelineBase):
         step.add_hyperparameter(
             name="semantic_types",
             argument_type=ArgumentType.VALUE,
-            data=("https://metadata.datadrivendiscovery.org/types/Target",
-                "https://metadata.datadrivendiscovery.org/types/TrueTarget"),
+            data=(
+                "https://metadata.datadrivendiscovery.org/types/Target",
+                "https://metadata.datadrivendiscovery.org/types/TrueTarget",
+            ),
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -127,7 +133,7 @@ class ShapPipeline(PipelineBase):
         step.add_hyperparameter(
             name="metric",
             argument_type=ArgumentType.VALUE,
-            data='accuracy',
+            data="accuracy",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)

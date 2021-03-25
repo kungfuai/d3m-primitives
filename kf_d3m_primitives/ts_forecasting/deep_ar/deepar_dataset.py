@@ -7,12 +7,13 @@ from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.distribution import NegativeBinomialOutput, StudentTOutput
 
+
 class DeepARDataset:
     def __init__(
-        self, 
+        self,
         frame: pd.DataFrame,
-        group_cols: List[int], 
-        cat_cols: List[int], 
+        group_cols: List[int],
+        cat_cols: List[int],
         real_cols: List[int],
         time_col: int,
         target_col: int,
@@ -20,10 +21,9 @@ class DeepARDataset:
         prediction_length: int,
         context_length: int,
         target_semantic_types: List[str],
-        count_data: Union[None, bool]
+        count_data: Union[None, bool],
     ):
-        """initialize DeepARDataset object
-        """
+        """initialize DeepARDataset object"""
 
         self.frame = frame
         self.group_cols = group_cols
@@ -36,16 +36,16 @@ class DeepARDataset:
         self.context_length = context_length
         self.target_semantic_types = target_semantic_types
         self.count_data = count_data
-    
+
         if self.has_group_cols():
             g_cols = self.get_group_names()
-            self.targets = frame.groupby(g_cols, sort = False)[frame.columns[target_col]]
+            self.targets = frame.groupby(g_cols, sort=False)[frame.columns[target_col]]
         else:
             self.targets = self.get_targets(frame)
         self.train_feat_df = self.get_features(frame)
-        
+
         if self.has_cat_cols() or self.has_group_cols():
-           self.enc = OrdinalEncoder().fit(self.frame.iloc[:, cat_cols + group_cols])
+            self.enc = OrdinalEncoder().fit(self.frame.iloc[:, cat_cols + group_cols])
 
     def get_targets(self, df):
         """ gets targets from df using target_col of object """
@@ -59,53 +59,62 @@ class DeepARDataset:
         self,
         targets: pd.Series,
         feat_df: pd.DataFrame,
-        test = False,
-        start_idx = 0, 
+        test=False,
+        start_idx=0,
     ):
-        """ creates dictionary of start time, features, targets for one individual time series
-        
-            if test, creates dictionary from subset of indices using start_idx
+        """creates dictionary of start time, features, targets for one individual time series
+
+        if test, creates dictionary from subset of indices using start_idx
         """
-        
+
         if not test:
             start_idx = 0
 
         assert feat_df.index[start_idx] == targets.index[start_idx]
         features = {FieldName.START: feat_df.index[start_idx]}
-        
+
         if test:
-            features[FieldName.TARGET] = targets.iloc[start_idx:start_idx+self.context_length].values
+            features[FieldName.TARGET] = targets.iloc[
+                start_idx : start_idx + self.context_length
+            ].values
         else:
             features[FieldName.TARGET] = targets.values
 
         if self.has_real_cols():
             if test:
-                total_length = self.context_length+self.prediction_length
-                real_features = feat_df.iloc[start_idx:start_idx+total_length, self.real_cols]
+                total_length = self.context_length + self.prediction_length
+                real_features = feat_df.iloc[
+                    start_idx : start_idx + total_length, self.real_cols
+                ]
                 if real_features.shape[0] < total_length:
-                    real_features = self._pad_future_features(real_features, total_length - real_features.shape[0])    
+                    real_features = self._pad_future_features(
+                        real_features, total_length - real_features.shape[0]
+                    )
             else:
                 real_features = feat_df.iloc[:, self.real_cols]
-            features[FieldName.FEAT_DYNAMIC_REAL] = real_features.values.reshape(len(self.real_cols), -1) 
+            features[FieldName.FEAT_DYNAMIC_REAL] = real_features.values.reshape(
+                len(self.real_cols), -1
+            )
 
         if self.has_cat_cols() or self.has_group_cols():
             features[FieldName.FEAT_STATIC_CAT] = self.enc.transform(
-                feat_df.iloc[0, self.cat_cols + self.group_cols].values.reshape(1,-1)
-            ).reshape(-1,)
+                feat_df.iloc[0, self.cat_cols + self.group_cols].values.reshape(1, -1)
+            ).reshape(
+                -1,
+            )
 
         return features
 
     def get_data(self):
         """ creates train dataset object """
 
-        if self.has_group_cols():            
+        if self.has_group_cols():
             data = []
             g_cols = self.get_group_names()
             for (_, features), (_, targets) in zip(
-                self.train_feat_df.groupby(g_cols, sort = False), 
-                self.targets
+                self.train_feat_df.groupby(g_cols, sort=False), self.targets
             ):
-                data.append(self.get_series(targets, features)) 
+                data.append(self.get_series(targets, features))
         else:
             data = [self.get_series(self.targets, self.train_feat_df)]
 
@@ -116,7 +125,7 @@ class DeepARDataset:
         return [self.frame.columns[i] for i in self.group_cols]
 
     def has_group_cols(self):
-        """ does this DeepAR dataset have grouping columns """ 
+        """ does this DeepAR dataset have grouping columns """
         return len(self.group_cols) != 0
 
     def has_cat_cols(self):
@@ -150,7 +159,7 @@ class DeepARDataset:
     def get_cardinality(self):
         """ get the cardinalities of categorical columns of dataset """
         if len(self.group_cols + self.cat_cols) != 0:
-            return [self.frame.iloc[:,col].nunique() for col in self.group_cols]
+            return [self.frame.iloc[:, col].nunique() for col in self.group_cols]
         else:
             return None
 

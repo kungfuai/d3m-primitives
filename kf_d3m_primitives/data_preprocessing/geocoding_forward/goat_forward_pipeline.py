@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class GoatForwardPipeline(PipelineBase):
 
+class GoatForwardPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -13,14 +13,16 @@ class GoatForwardPipeline(PipelineBase):
 
         # Denormalize primitive
         step = PrimitiveStep(
-            primitive = index.get_primitive(
-                'd3m.primitives.data_transformation.denormalize.Common'
+            primitive=index.get_primitive(
+                "d3m.primitives.data_transformation.denormalize.Common"
             )
         )
         step.add_argument(
-            name = 'inputs', argument_type = ArgumentType.CONTAINER, data_reference = 'inputs.0'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         pipeline_description.add_step(step)
 
         # DS to DF on input DS
@@ -30,14 +32,18 @@ class GoatForwardPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Goat forward
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.geocoding.Goat_forward")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.geocoding.Goat_forward"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -74,17 +80,21 @@ class GoatForwardPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         step.add_hyperparameter(
             name="return_result", argument_type=ArgumentType.VALUE, data="replace"
         )
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(

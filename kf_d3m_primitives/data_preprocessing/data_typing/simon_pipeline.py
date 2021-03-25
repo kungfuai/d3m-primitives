@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class SimonPipeline(PipelineBase):
 
+class SimonPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,14 +18,18 @@ class SimonPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simon
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.column_type_profiler.Simon")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.column_type_profiler.Simon"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -52,21 +56,25 @@ class SimonPipeline(PipelineBase):
         # XG Boost
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.classification.xgboost_gbtree.Common'
+                "d3m.primitives.classification.xgboost_gbtree.Common"
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.2.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.2.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.2.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.2.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         step.add_hyperparameter(
-            name='add_index_columns', argument_type=ArgumentType.VALUE,data=True
+            name="add_index_columns", argument_type=ArgumentType.VALUE, data=True
         )
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(

@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class StorcPipeline(PipelineBase):
 
+class StorcPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,7 +18,9 @@ class StorcPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -53,17 +55,17 @@ class StorcPipeline(PipelineBase):
 
         # Storc primitive -> KMeans
         step = PrimitiveStep(
-            primitive=index.get_primitive(
-                'd3m.primitives.clustering.k_means.Sloth'
-            )
+            primitive=index.get_primitive("d3m.primitives.clustering.k_means.Sloth")
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.2.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.2.produce",
         )
         step.add_hyperparameter(
-            name='nclusters', argument_type=ArgumentType.VALUE,data=3
+            name="nclusters", argument_type=ArgumentType.VALUE, data=3
         )
-        step.add_output('produce')
+        step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Final Output

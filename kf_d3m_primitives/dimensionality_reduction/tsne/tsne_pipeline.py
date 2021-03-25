@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class TsnePipeline(PipelineBase):
 
+class TsnePipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,14 +18,18 @@ class TsnePipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -62,7 +66,9 @@ class TsnePipeline(PipelineBase):
 
         # imputer
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.imputer.SKlearn")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.imputer.SKlearn"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -81,7 +87,7 @@ class TsnePipeline(PipelineBase):
         # TSNE
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.dimensionality_reduction.t_distributed_stochastic_neighbor_embedding.Tsne'
+                "d3m.primitives.dimensionality_reduction.t_distributed_stochastic_neighbor_embedding.Tsne"
             )
         )
         step.add_argument(
@@ -90,7 +96,7 @@ class TsnePipeline(PipelineBase):
             data_reference="steps.3.produce",
         )
         step.add_hyperparameter(
-            name='n_components', argument_type=ArgumentType.VALUE, data=3
+            name="n_components", argument_type=ArgumentType.VALUE, data=3
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -113,7 +119,7 @@ class TsnePipeline(PipelineBase):
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
-        
+
         # parse target semantic types
         step = PrimitiveStep(
             primitive=index.get_primitive(
@@ -138,18 +144,22 @@ class TsnePipeline(PipelineBase):
         # R Forest
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.learner.random_forest.DistilEnsembleForest'
+                "d3m.primitives.learner.random_forest.DistilEnsembleForest"
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.5.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.5.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.6.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.6.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(

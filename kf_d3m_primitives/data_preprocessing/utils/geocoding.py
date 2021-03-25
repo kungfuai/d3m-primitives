@@ -6,6 +6,7 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 def check_geocoding_server(address, volumes, timeout=100, interval=10):
     # confirm that server is responding before proceeding
     # the `12g` in the following may become a hyper-parameter in the future

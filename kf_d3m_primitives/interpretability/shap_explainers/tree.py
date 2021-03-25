@@ -12,33 +12,33 @@ logger = logging.getLogger(__name__)
 
 class Tree:
     """
-        Primitive that takes a dataset and a fitted tree-based model and returns explanations. 
-        For global explanations returns a tuple containing the datatset that explanations were made on, and the global explanations
-        For sample explnations, returns a list of the explanations for the samples provided
-    
-        Parameters
-        ----------
-        model : model object
-            The tree based machine learning model that we want to explain. XGBoost, LightGBM, CatBoost,
-            and most tree-based scikit-learn models are supported.
+    Primitive that takes a dataset and a fitted tree-based model and returns explanations.
+    For global explanations returns a tuple containing the datatset that explanations were made on, and the global explanations
+    For sample explnations, returns a list of the explanations for the samples provided
 
-        X :numpy.array, pandas.DataFrame or catboost.Pool (for catboost)
-            A matrix of samples (# samples x # features) on which to explain the model’s output. 
-            (catboost not yet supported)
+    Parameters
+    ----------
+    model : model object
+        The tree based machine learning model that we want to explain. XGBoost, LightGBM, CatBoost,
+        and most tree-based scikit-learn models are supported.
 
-        number_of_features : int, (default = 5)
-            Function will return explanations for the top K number of features
-        
-        model_type : None (default), or 'Random_Forest'
-            If 'Random_Forest' then global explanation is calculated on a sub-sample of the full dataset
+    X :numpy.array, pandas.DataFrame or catboost.Pool (for catboost)
+        A matrix of samples (# samples x # features) on which to explain the model’s output.
+        (catboost not yet supported)
 
-        task_type : 'regression' (default) or 'classification'
-            Is the tree model a regressor or a classifier
+    number_of_features : int, (default = 5)
+        Function will return explanations for the top K number of features
 
-        max_dataset_size : int, (default = 1500)
-            The maximum dataset size on which to apply SHAP interpretation to each sample individually. Otherwise, this number of samples will be
-            drawn from the data distribution after clustering (to approximate the distribution) and interpretation will only be applied to these
-            samples
+    model_type : None (default), or 'Random_Forest'
+        If 'Random_Forest' then global explanation is calculated on a sub-sample of the full dataset
+
+    task_type : 'regression' (default) or 'classification'
+        Is the tree model a regressor or a classifier
+
+    max_dataset_size : int, (default = 1500)
+        The maximum dataset size on which to apply SHAP interpretation to each sample individually. Otherwise, this number of samples will be
+        drawn from the data distribution after clustering (to approximate the distribution) and interpretation will only be applied to these
+        samples
     """
 
     def __init__(
@@ -62,9 +62,9 @@ class Tree:
     def _get_data_sample(self):
 
         """
-            Sub-samples the dataframe to provide a smaller, balanced dataframe to make global explainer
+        Sub-samples the dataframe to provide a smaller, balanced dataframe to make global explainer
 
-            
+
         """
 
         df = self.X.copy()
@@ -109,8 +109,8 @@ class Tree:
     def produce_sample(self, samples):
 
         """
-            Returns a dataframe of the shapley values for the given samples
-            
+        Returns a dataframe of the shapley values for the given samples
+
         """
 
         ##restrict features to most important
@@ -135,17 +135,17 @@ class Tree:
 
     def produce_global(self, approximate=False):
         """
-            Returns a dataframe of the shap values for each feature
-            This will be a downsampled dataframe for random forest models on datasets with more samples than self.max_dataset_size
+        Returns a dataframe of the shap values for each feature
+        This will be a downsampled dataframe for random forest models on datasets with more samples than self.max_dataset_size
 
-            If the task_type is classification and the model_type is random forest, the returned interpretability values 
-                will be offset from the most frequent class in the dataset
+        If the task_type is classification and the model_type is random forest, the returned interpretability values
+            will be offset from the most frequent class in the dataset
 
-            approximation : boolean, (default = False)
-                Whether to calculate SHAP interpretability values using the Saabas approximation. This approximation samples over only one
-                permuation of feature values for each sample - that defined by the path along the decision tree. Thus, this approximation suffers
-                from inconsistency, which means that 'a model can change such that it relies more on a given feature, yet the importance estimate
-                assigned to that feature decreases' (Lundberg et al. 2019). Specifically, it will place too much weight on lower splits in the tree.
+        approximation : boolean, (default = False)
+            Whether to calculate SHAP interpretability values using the Saabas approximation. This approximation samples over only one
+            permuation of feature values for each sample - that defined by the path along the decision tree. Thus, this approximation suffers
+            from inconsistency, which means that 'a model can change such that it relies more on a given feature, yet the importance estimate
+            assigned to that feature decreases' (Lundberg et al. 2019). Specifically, it will place too much weight on lower splits in the tree.
         """
 
         if approximate:
@@ -182,4 +182,3 @@ class Tree:
         #  return (sub_sample.iloc[:,features], shap_values)
 
         return pd.DataFrame(shap_values, columns=df.columns, index=df.index)
-

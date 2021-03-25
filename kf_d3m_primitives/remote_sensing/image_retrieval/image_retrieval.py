@@ -92,7 +92,8 @@ class Hyperparams(hyperparams.Hyperparams):
 class ImageRetrievalPrimitive(
     SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]
 ):
-    """Primitive that retrieves semantically similar images from an index of un-annotated images.
+    """This primitive retrieves semantically similar images from an index of
+        un-annotated images using heuristics.
 
     Training inputs: 1) Feature dataframe, 2) Label dataframe
     Outputs: D3M dataset with similarity ranking of images

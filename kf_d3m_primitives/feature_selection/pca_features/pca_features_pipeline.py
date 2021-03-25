@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class PcaFeaturesPipeline(PipelineBase):
 
+class PcaFeaturesPipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,14 +18,18 @@ class PcaFeaturesPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -87,7 +91,7 @@ class PcaFeaturesPipeline(PipelineBase):
             ],
         )
         step.add_hyperparameter(
-            name='add_index_columns', argument_type=ArgumentType.VALUE,data=True
+            name="add_index_columns", argument_type=ArgumentType.VALUE, data=True
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -95,21 +99,25 @@ class PcaFeaturesPipeline(PipelineBase):
         # XGBoost
         step = PrimitiveStep(
             primitive=index.get_primitive(
-                'd3m.primitives.classification.xgboost_gbtree.Common'
+                "d3m.primitives.classification.xgboost_gbtree.Common"
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.4.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.4.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         step.add_hyperparameter(
-            name='add_index_columns', argument_type=ArgumentType.VALUE,data=True
+            name="add_index_columns", argument_type=ArgumentType.VALUE, data=True
         )
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(

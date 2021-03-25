@@ -6,14 +6,14 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class MlpClassifierPipeline(PipelineBase):
 
+class MlpClassifierPipeline(PipelineBase):
     def __init__(
-        self, 
-        weights_filepath: str = '/scratch_dir/model_weights.pth',
+        self,
+        weights_filepath: str = "/scratch_dir/model_weights.pth",
         explain_all_classes: bool = False,
-        all_confidences: bool = False, 
-        epochs: int = 25
+        all_confidences: bool = False,
+        epochs: int = 25,
     ):
 
         pipeline_description = Pipeline()
@@ -26,9 +26,9 @@ class MlpClassifierPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -40,9 +40,9 @@ class MlpClassifierPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.0.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.0.produce",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -54,14 +54,12 @@ class MlpClassifierPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", 
-            argument_type=ArgumentType.CONTAINER, 
-            data_reference="steps.1.produce"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.1.produce",
         )
         step.add_hyperparameter(
-            name="return_result",
-            argument_type=ArgumentType.VALUE,
-            data="replace"
+            name="return_result", argument_type=ArgumentType.VALUE, data="replace"
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
@@ -127,7 +125,7 @@ class MlpClassifierPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=[
                 "https://metadata.datadrivendiscovery.org/types/Target",
-                "https://metadata.datadrivendiscovery.org/types/TrueTarget"
+                "https://metadata.datadrivendiscovery.org/types/TrueTarget",
             ],
         )
         pipeline_description.add_step(step)
@@ -145,9 +143,7 @@ class MlpClassifierPipeline(PipelineBase):
         )
         step.add_output("produce")
         step.add_hyperparameter(
-            name="pool_features",
-            argument_type=ArgumentType.VALUE,
-            data=False
+            name="pool_features", argument_type=ArgumentType.VALUE, data=False
         )
         pipeline_description.add_step(step)
 
@@ -171,22 +167,20 @@ class MlpClassifierPipeline(PipelineBase):
         step.add_hyperparameter(
             name="weights_filepath",
             argument_type=ArgumentType.VALUE,
-            data=weights_filepath
+            data=weights_filepath,
         )
         step.add_hyperparameter(
             name="explain_all_classes",
             argument_type=ArgumentType.VALUE,
-            data=explain_all_classes
+            data=explain_all_classes,
         )
         step.add_hyperparameter(
             name="all_confidences",
             argument_type=ArgumentType.VALUE,
-            data=all_confidences
+            data=all_confidences,
         )
         step.add_hyperparameter(
-            name="epochs",
-            argument_type=ArgumentType.VALUE,
-            data=epochs
+            name="epochs", argument_type=ArgumentType.VALUE, data=epochs
         )
         pipeline_description.add_step(step)
 
@@ -208,9 +202,7 @@ class MlpClassifierPipeline(PipelineBase):
         )
         step.add_output("produce")
         step.add_hyperparameter(
-            name="use_columns",
-            argument_type=ArgumentType.VALUE,
-            data=[0,1]
+            name="use_columns", argument_type=ArgumentType.VALUE, data=[0, 1]
         )
         pipeline_description.add_step(step)
 

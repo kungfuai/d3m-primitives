@@ -6,21 +6,21 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class NBEATSPipeline(PipelineBase):
 
+class NBEATSPipeline(PipelineBase):
     def __init__(
-        self, 
+        self,
         interpretable: bool = True,
         epochs: int = 10,
         steps_per_epoch: int = 50,
         prediction_length: int = 30,
         num_context_lengths: int = 1,
         num_estimators: int = 2,
-        #quantiles: List[float] = [0.1, 0.9],
+        # quantiles: List[float] = [0.1, 0.9],
         group_compose: bool = False,
         confidence_intervals: bool = False,
         output_mean: bool = True,
-        weights_dir: str = '/scratch_dir/nbeats'
+        weights_dir: str = "/scratch_dir/nbeats",
     ):
 
         pipeline_description = Pipeline()
@@ -33,14 +33,18 @@ class NBEATSPipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simple Profiler Column Role Annotation
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.schema_discovery.profiler.Common")
+            primitive=index.get_primitive(
+                "d3m.primitives.schema_discovery.profiler.Common"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -107,7 +111,7 @@ class NBEATSPipeline(PipelineBase):
             argument_type=ArgumentType.VALUE,
             data=[
                 "https://metadata.datadrivendiscovery.org/types/Attribute",
-                'https://metadata.datadrivendiscovery.org/types/GroupingKey'
+                "https://metadata.datadrivendiscovery.org/types/GroupingKey",
             ],
         )
         step.add_output("produce")
@@ -203,8 +207,12 @@ class NBEATSPipeline(PipelineBase):
         if confidence_intervals:
             step.add_output("produce_confidence_intervals")
             pipeline_description.add_step(step)
-            
-            data_ref = "steps.6.produce_confidence_intervals" if group_compose else "steps.5.produce_confidence_intervals"
+
+            data_ref = (
+                "steps.6.produce_confidence_intervals"
+                if group_compose
+                else "steps.5.produce_confidence_intervals"
+            )
             pipeline_description.add_output(
                 name="output predictions", data_reference=data_ref
             )

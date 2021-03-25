@@ -4,8 +4,8 @@ from d3m.metadata.pipeline import Pipeline, PrimitiveStep
 
 from kf_d3m_primitives.pipeline_base import PipelineBase
 
-class GoatReversePipeline(PipelineBase):
 
+class GoatReversePipeline(PipelineBase):
     def __init__(self):
 
         pipeline_description = Pipeline()
@@ -18,14 +18,18 @@ class GoatReversePipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name="inputs", argument_type=ArgumentType.CONTAINER, data_reference="inputs.0"
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="inputs.0",
         )
         step.add_output("produce")
         pipeline_description.add_step(step)
 
         # Simon
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.column_type_profiler.Simon")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.column_type_profiler.Simon"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -33,7 +37,9 @@ class GoatReversePipeline(PipelineBase):
             data_reference="steps.0.produce",
         )
         step.add_hyperparameter(
-            name="statistical_classification", argument_type=ArgumentType.VALUE, data=False
+            name="statistical_classification",
+            argument_type=ArgumentType.VALUE,
+            data=False,
         )
         step.add_hyperparameter(
             name="p_threshold", argument_type=ArgumentType.VALUE, data=0.1
@@ -41,7 +47,7 @@ class GoatReversePipeline(PipelineBase):
         step.add_output("produce")
         pipeline_description.add_step(step)
 
-        # column parser 
+        # column parser
         step = PrimitiveStep(
             primitive=index.get_primitive(
                 "d3m.primitives.data_transformation.column_parser.Common"
@@ -57,7 +63,9 @@ class GoatReversePipeline(PipelineBase):
 
         # Goat reverse
         step = PrimitiveStep(
-            primitive=index.get_primitive("d3m.primitives.data_cleaning.geocoding.Goat_reverse")
+            primitive=index.get_primitive(
+                "d3m.primitives.data_cleaning.geocoding.Goat_reverse"
+            )
         )
         step.add_argument(
             name="inputs",
@@ -77,17 +85,21 @@ class GoatReversePipeline(PipelineBase):
             )
         )
         step.add_argument(
-            name='inputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="inputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
         step.add_argument(
-            name='outputs', argument_type=ArgumentType.CONTAINER, data_reference='steps.3.produce'
+            name="outputs",
+            argument_type=ArgumentType.CONTAINER,
+            data_reference="steps.3.produce",
         )
-        step.add_output('produce')
+        step.add_output("produce")
         step.add_hyperparameter(
             name="return_result", argument_type=ArgumentType.VALUE, data="replace"
         )
         pipeline_description.add_step(step)
-        
+
         # construct predictions
         step = PrimitiveStep(
             primitive=index.get_primitive(
