@@ -56,7 +56,6 @@ setup(
             "data_cleaning.text_summarization.Duke = kf_d3m_primitives.data_preprocessing.text_summarization.duke:DukePrimitive",
             "feature_selection.pca_features.Pcafeatures = kf_d3m_primitives.feature_selection.pca_features.pca_features:PcaFeaturesPrimitive",
             "feature_selection.rffeatures.Rffeatures = kf_d3m_primitives.feature_selection.rf_features.rf_features:RfFeaturesPrimitive",
-            "classification.inceptionV3_image_feature.Gator = kf_d3m_primitives.image_classification.imagenet_transfer_learning.gator:GatorPrimitive",
             "remote_sensing.remote_sensing_pretrained.RemoteSensingPretrained = kf_d3m_primitives.remote_sensing.featurizer.remote_sensing_pretrained:RemoteSensingPretrainedPrimitive",
             "remote_sensing.mlp.MlpClassifier = kf_d3m_primitives.remote_sensing.classifier.mlp_classifier:MlpClassifierPrimitive",
             "similarity_modeling.iterative_labeling.ImageRetrieval = kf_d3m_primitives.remote_sensing.image_retrieval.image_retrieval:ImageRetrievalPrimitive",

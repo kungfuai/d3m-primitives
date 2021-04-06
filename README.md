@@ -101,10 +101,6 @@ make pipelines-gpu
 
 1. **Sent2VecPrimitive**: This primitive produces numerical representations of text data using a model that was pre-trained on English Twitter bi-grams. Base library [here](https://github.com/uncharted-distil/nk-sent2vec).
 
-### Image Classification
-
-1. **GatorPrimitive**: This primitive produces image classifications by iteratively fine-tuning an Inception V3 model pre-trained on ImageNet. It is useful because it leverages transfer learning from the ImageNet dataset. However, it thus inherits the problematic ontology and biases of ImageNet as outlined [here](https://excavating.ai/). 
-
 ### Object Detection
 
 1. **ObjectDetectionRNPrimitive**: This primitive utilizes RetinaNet, a convolutional neural network (CNN), for object detection. It wraps the Keras implementation of Retinanet from [this repo](https://github.com/fizyr/keras-retinanet). The original Retinanet paper can be found [here](https://arxiv.org/abs/1708.02002). It is useful because it leverages transfer learning from the ImageNet dataset. However, it thus inherits the problematic ontology and biases of ImageNet as outlined [here](https://excavating.ai/). 
