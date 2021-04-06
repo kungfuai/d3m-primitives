@@ -9,7 +9,7 @@ setup(
     setkeywords=["d3m_primitive"],
     install_requires=[
         "d3m",
-        "torch==1.4.0",
+        "torch>=1.4.0",
         "pillow==7.1.2",
         "tslearn==0.4.1",
         "statsmodels==0.11.1",
@@ -17,7 +17,7 @@ setup(
         "hdbscan==0.8.26",
         "requests==2.23.0",
         "shap==0.37.0",
-        "torchvision==0.5.0",
+        "torchvision>=0.5.0",
         "opencv-python-headless==4.1.1.26",
         "gluonts==0.5.2",
         "albumentations==0.4.6",
