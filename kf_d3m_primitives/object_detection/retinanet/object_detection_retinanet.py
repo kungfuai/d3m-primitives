@@ -17,7 +17,6 @@ from object_detection_retinanet import models
 from object_detection_retinanet.models.retinanet import retinanet_bbox
 from object_detection_retinanet.preprocessing.csv_generator import CSVGenerator
 from object_detection_retinanet.utils.anchors import make_shapes_callback
-from object_detection_retinanet.utils.model import freeze as freeze_model
 from object_detection_retinanet.utils.image import (
     read_image_bgr,
     preprocess_image,
@@ -44,25 +43,24 @@ class Hyperparams(hyperparams.Hyperparams):
                         "https://metadata.datadrivendiscovery.org/types/TuningParameter"
                     ],
                     description="Backbone architecture from resnet50 architecture (https://arxiv.org/abs/1512.03385)",
+                ),
+                'resnet101': hyperparams.Constant[str](
+                    default = 'resnet101',
+                    semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
+                    description = "Backbone architecture from resnet101 architecture (https://arxiv.org/abs/1512.03385)"
+                ),
+                'resnet152': hyperparams.Constant[str](
+                    default = 'resnet152',
+                    semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
+                    description = "Backbone architecture from resnet152 architecture (https://arxiv.org/abs/1512.03385)"
                 )
-                # 'resnet101': hyperparams.Constant[str](
-                #     default = 'resnet101',
-                #     semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
-                #     description = "Backbone architecture from resnet101 architecture (https://arxiv.org/abs/1512.03385)"
-                # ),
-                # 'resnet152': hyperparams.Constant[str](
-                #     default = 'resnet152',
-                #     semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
-                #     description = "Backbone architecture from resnet152 architecture (https://arxiv.org/abs/1512.03385)"
-                # )
             }
         ),
         default="resnet50",
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="Backbone architecture from which RetinaNet is built. All backbones "
-        + "require a weights file downloaded for use during runtime.",
+        description="Backbone architecture from which RetinaNet is built."
     )
     batch_size = hyperparams.Hyperparameter[int](
         default=32,
@@ -77,20 +75,6 @@ class Hyperparams(hyperparams.Hyperparams):
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
         description="Number of epochs to train.",
-    )
-    freeze_backbone = hyperparams.Hyperparameter[bool](
-        default=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="Freeze training of backbone layers.",
-    )
-    weights = hyperparams.Hyperparameter[bool](
-        default=True,
-        semantic_types=[
-            "https://metadata.datadrivendiscovery.org/types/ControlParameter"
-        ],
-        description="Load the model with pretrained weights specific to selected backbone.",
     )
     learning_rate = hyperparams.Hyperparameter[float](
         default=1e-5,
@@ -300,7 +284,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         return callbacks
 
     def _create_models(
-        self, backbone_retinanet, num_classes, weights, freeze_backbone=False, lr=1e-5
+        self, backbone_retinanet, num_classes, lr=1e-5
     ):
 
         """
@@ -310,10 +294,6 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         ----------
             backbone_retinanet : A function to call to create a retinanet model with a given backbone.
             num_classes        : The number of classes to train.
-            weights            : The weights to load into the model.
-            multi_gpu          : The number of GPUs to use for training.
-            freeze_backbone    : If True, disables learning for the backbone.
-            config             : Config parameters, None indicates the default configuration.
 
         Returns
         -------
@@ -323,15 +303,10 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
                                 (applies regression values and performs NMS).
         """
 
-        modifier = freeze_model if freeze_backbone else None
         anchor_params = None
         num_anchors = None
 
-        model = self._model_with_weights(
-            backbone_retinanet(num_classes, num_anchors=num_anchors, modifier=modifier),
-            weights=weights,
-            skip_mismatch=True,
-        )
+        model = backbone_retinanet(num_classes, num_anchors=num_anchors, modifier=None)
         training_model = model
         prediction_model = retinanet_bbox(model=model, anchor_params=anchor_params)
         training_model.compile(
@@ -346,25 +321,6 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         Number of classes in the dataset.
         """
         return max(self.classes.values()) + 1
-
-    def _model_with_weights(self, model, weights, skip_mismatch):
-        """
-        Load weights for model.
-
-        Parameters
-        ----------
-            model         : The model to load weights for.
-            weights       : The weights to load.
-            skip_mismatch : If True, skips layers whose shape of weights doesn't match with the model.
-
-        Returns
-        -------
-            model         : Model with loaded weights.
-        """
-
-        if weights is not None:
-            model.load_weights(weights, by_name=True, skip_mismatch=skip_mismatch)
-        return model
 
     def _create_generator(self, annotations, classes, shuffle_groups):
         """
@@ -417,8 +373,6 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         dataframe column.
 
         Can choose to use validation generator.
-
-        If no weight file is provided, the default is to use the ImageNet weights.
         """
 
         # Create object that stores backbone information
@@ -434,21 +388,12 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             shuffle_groups=False,
         )
 
-        # Running the model
-        ## Assign weights
-        if self.hyperparams["weights"] is False:
-            weights = None
-        else:
-            weights = self.volumes[self.hyperparams["backbone"]]
-
         ## Create model
         logger.info("Creating model...")
 
         model, training_model, prediction_model = self._create_models(
             backbone_retinanet=self.backbone.retinanet,
             num_classes=train_generator.num_classes(),
-            weights=weights,
-            freeze_backbone=self.hyperparams["freeze_backbone"],
             lr=self.hyperparams["learning_rate"],
         )
 
@@ -514,18 +459,10 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
             shuffle_groups=False,
         )
 
-        # Assign weights
-        if self.hyperparams["weights"] is False:
-            weights = None
-        else:
-            weights = self.volumes[self.hyperparams["backbone"]]
-
         # Instantiate model
         model, training_model, prediction_model = self._create_models(
             backbone_retinanet=backbone.retinanet,
             num_classes=train_generator.num_classes(),
-            weights=weights,
-            freeze_backbone=self.hyperparams["freeze_backbone"],
             lr=self.hyperparams["learning_rate"],
         )
 

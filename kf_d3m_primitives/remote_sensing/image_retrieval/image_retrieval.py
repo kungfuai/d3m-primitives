@@ -263,12 +263,10 @@ class ImageRetrievalPrimitive(
         pos_scores = gem(pos_scores, p=self.hyperparams["gem_p"])
 
         if len(self.neg_scores) >= self.hyperparams["denominator_min"]:
-            print("rank by negative")
             neg_scores = np.row_stack(self.neg_scores)
             neg_scores = gem(neg_scores, p=self.hyperparams["gem_p"])
             scores = pos_scores / (neg_scores + 1e-12)
         else:
-            print("rank by positive")
             scores = pos_scores
 
         mis_scores = scores[self.mis_idxs]

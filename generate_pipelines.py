@@ -211,17 +211,6 @@ def generate_pipelines(gpu=False):
         "d3m.primitives.feature_selection.rffeatures.Rffeatures": [
             (RfFeaturesPipeline(), ("185_baseball_MIN_METADATA",))
         ],
-        "d3m.primitives.classification.inceptionV3_image_feature.Gator": [
-            (
-                GatorPipeline(),
-                (
-                    "124_174_cifar10_MIN_METADATA",
-                    "124_188_usps_MIN_METADATA",
-                    "124_214_coil20_MIN_METADATA",
-                    "uu_101_object_categories_MIN_METADATA",
-                ),
-            )
-        ],
         "d3m.primitives.remote_sensing.mlp.MlpClassifier": [
             (MlpClassifierPipeline(), ("LL1_bigearth_landuse_detection",))
         ],

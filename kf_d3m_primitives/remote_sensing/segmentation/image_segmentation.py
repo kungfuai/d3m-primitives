@@ -472,8 +472,7 @@ class ImageSegmentationPrimitive(
                 )
 
             if stopping_ct == self.hyperparams["patience"]:
-                ## self.logger
-                print(
+                self.logger(
                     f"Stopping training early - no improvement for {self.hyperparams['patience']} epochs"
                 )
                 break
