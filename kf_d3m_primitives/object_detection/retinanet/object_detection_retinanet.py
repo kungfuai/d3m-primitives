@@ -43,7 +43,7 @@ class Hyperparams(hyperparams.Hyperparams):
                         "https://metadata.datadrivendiscovery.org/types/TuningParameter"
                     ],
                     description="Backbone architecture from resnet50 architecture (https://arxiv.org/abs/1512.03385)",
-                )
+                ),
                 'resnet101': hyperparams.Constant[str](
                     default = 'resnet101',
                     semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
