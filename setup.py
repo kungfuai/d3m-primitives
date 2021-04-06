@@ -26,7 +26,7 @@ setup(
         "segmentation-models-pytorch==0.1.3",
         "punk @ git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk",
         "object_detection_retinanet @ git+https://github.com/uncharted-distil/object-detection-retinanet@485db6681ac98bf56f02cf681efbdcb004a5cfb5#egg=object_detection_retinanet",
-        "Simon @ git+https://github.com/uncharted-distil/simon@26e4e54e6de455bde8ee1a24634d060e1ec7babb#egg=Simon",
+        "Simon @ git+https://github.com/uncharted-distil/simon@ff2fa7e963653b9c42ed6d7ecb53d7e37b191670#egg=Simon",
         "nk_sent2vec @ git+https://github.com/uncharted-distil/nk-sent2vec@8face221f30c523261f60585f2344252d981c822#egg=nk_sent2vec",
         "duke @ git+https://github.com/uncharted-distil/duke@627912e23685d058c6becc4e4615a7d3e8c93b93#egg=duke",
         "rsp @ git+https://github.com/cfld/rs_pretrained@92d832efe1961d6a06011f689dad7ef2481a64b1#egg=rsp",
