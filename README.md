@@ -103,7 +103,7 @@ make pipelines-gpu
 
 ### Object Detection
 
-1. **ObjectDetectionRNPrimitive**: This primitive utilizes RetinaNet, a convolutional neural network (CNN), for object detection. It wraps the Keras implementation of Retinanet from [this repo](https://github.com/fizyr/keras-retinanet). The original Retinanet paper can be found [here](https://arxiv.org/abs/1708.02002). It is useful because it leverages transfer learning from the ImageNet dataset. However, it thus inherits the problematic ontology and biases of ImageNet as outlined [here](https://excavating.ai/). 
+1. **ObjectDetectionRNPrimitive**: This primitive utilizes RetinaNet, a convolutional neural network (CNN), for object detection. It wraps the Keras implementation of Retinanet from [this repo](https://github.com/fizyr/keras-retinanet). The original Retinanet paper can be found [here](https://arxiv.org/abs/1708.02002).  
 
 ### Time Series Classification
 
