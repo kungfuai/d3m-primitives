@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from rsp.moco_r50.data import sentinel_augmentation_valid
-import lzo
+import lz4
 
 
 class StreamingDataset(Dataset):
@@ -39,7 +39,7 @@ class StreamingDataset(Dataset):
 
         if self.decompress_data:
             compressed_bytes = img.tobytes()
-            decompressed_bytes = lzo.decompress(compressed_bytes)
+            decompressed_bytes = lz4.frame.decompress(compressed_bytes)
             storage_type, shape_0, shape_1, shape_2 = struct.unpack(
                 "cIII", decompressed_bytes[:16]
             )

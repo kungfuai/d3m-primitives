@@ -11,7 +11,7 @@ import pandas as pd
 import torch
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-import lzo
+import lz4
 from rsp.moco_r50.data import sentinel_augmentation_valid
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
@@ -59,7 +59,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="If True, applies LZO decompression algorithm to the data. \
+        description="If True, applies LZ4 decompression algorithm to the data. \
                     Compressed data stores a header consisting of the dtype character and the \
                     data shape as unsigned integers. Given c struct alignment, will occupy \
                     16 bytes (1 + 4 + 4 + 4 + 3 ) padding",
@@ -158,21 +158,6 @@ class ImageSegmentationPrimitive(
                     "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.UBUNTU,
-                    "package": "zlib1g-dev",
-                    "version": "1:1.2.11.dfsg-0ubuntu2",
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.UBUNTU,
-                    "package": "liblzo2-dev",
-                    "version": "2.08-1.2",
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package": "python-lzo",
-                    "version": "1.12",
                 },
                 {
                     "type": "FILE",
@@ -350,7 +335,7 @@ class ImageSegmentationPrimitive(
     def _decompress(self, img):
         """ decompress image """
         compressed_bytes = img.tobytes()
-        decompressed_bytes = lzo.decompress(compressed_bytes)
+        decompressed_bytes = lz4.frame.decompress(compressed_bytes)
         storage_type, shape_0, shape_1, shape_2 = struct.unpack(
             "cIII", decompressed_bytes[:16]
         )

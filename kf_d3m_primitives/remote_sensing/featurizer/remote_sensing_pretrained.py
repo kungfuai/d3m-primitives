@@ -76,7 +76,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="If True, applies LZO decompression algorithm to the data. \
+        description="If True, applies LZ4 decompression algorithm to the data. \
                     Compressed data stores a header consisting of the dtype character and the \
                     data shape as unsigned integers. Given c struct alignment, will occupy \
                     16 bytes (1 + 4 + 4 + 4 + 3 ) padding",
@@ -125,21 +125,6 @@ class RemoteSensingPretrainedPrimitive(
                     "package_uri": "git+https://github.com/kungfuai/d3m-primitives.git@{git_commit}#egg=kf-d3m-primitives".format(
                         git_commit=utils.current_git_commit(os.path.dirname(__file__)),
                     ),
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.UBUNTU,
-                    "package": "zlib1g-dev",
-                    "version": "1:1.2.11.dfsg-0ubuntu2",
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.UBUNTU,
-                    "package": "liblzo2-dev",
-                    "version": "2.08-1.2",
-                },
-                {
-                    "type": metadata_base.PrimitiveInstallationType.PIP,
-                    "package": "python-lzo",
-                    "version": "1.12",
                 },
                 {
                     "type": "FILE",

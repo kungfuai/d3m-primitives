@@ -3,7 +3,7 @@ import struct
 
 import pandas as pd
 import numpy as np
-import lzo
+import lz4
 from rsp.data import load_patch
 from rsp.moco_r50.resnet import ResNet
 from rsp.amdim.inference import AMDIM
@@ -41,7 +41,7 @@ def load_frame(compress_data=False):
                 )
             )
             output_bytes.extend(img.tobytes())
-            compressed_bytes = lzo.compress(bytes(output_bytes))
+            compressed_bytes = lz4.frame.compress(bytes(output_bytes))
             compressed_img = np.frombuffer(
                 compressed_bytes, dtype="uint8", count=len(compressed_bytes)
             )
@@ -114,19 +114,19 @@ def test_produce_when_inference_model_moco():
     _test_output_df(test_frame, feature_df, 2048)
 
 
-def test_produce_when_inference_model_moco_no_pooling():
-    test_frame = load_frame()
-    rsp = RemoteSensingPretrainedPrimitive(
-        hyperparams=rs_hp(
-            rs_hp.defaults(),
-            inference_model="moco",
-            use_columns=[1],
-            pool_features=False,
-        ),
-        volumes={"amdim_weights": amdim_path, "moco_weights": moco_path},
-    )
-    feature_df = rsp.produce(inputs=test_frame).value
-    _test_output_df(test_frame, feature_df, 2048 * 4 * 4)
+# def test_produce_when_inference_model_moco_no_pooling():
+#     test_frame = load_frame()
+#     rsp = RemoteSensingPretrainedPrimitive(
+#         hyperparams=rs_hp(
+#             rs_hp.defaults(),
+#             inference_model="moco",
+#             use_columns=[1],
+#             pool_features=False,
+#         ),
+#         volumes={"amdim_weights": amdim_path, "moco_weights": moco_path},
+#     )
+#     feature_df = rsp.produce(inputs=test_frame).value
+#     _test_output_df(test_frame, feature_df, 2048 * 4 * 4)
 
 
 def test_produce_when_inference_model_moco_decompress():
