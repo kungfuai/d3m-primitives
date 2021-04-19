@@ -108,7 +108,7 @@ class Hyperparams(hyperparams.Hyperparams):
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/ControlParameter"
         ],
-        description="whether to return explanations all classes and all confidences from produce method",
+        description="whether to return explanations for all classes and all confidences from produce method",
     )
 
 
