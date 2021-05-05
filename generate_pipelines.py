@@ -58,6 +58,12 @@ from kf_d3m_primitives.ts_forecasting.nbeats.nbeats_pipeline import NBEATSPipeli
 from kf_d3m_primitives.remote_sensing.classifier.mlp_classifier_pipeline import (
     MlpClassifierPipeline,
 )
+from kf_d3m_primitives.semi_supervised.correct_and_smooth.correct_and_smooth_pipeline import (
+    CorrectAndSmoothPipeline,
+)
+from kf_d3m_primitives.semi_supervised.tabular_semi_supervised.tabular_semi_supervised_pipeline import (
+    TabularSemiSupervisedPipeline,
+)
 
 
 def generate_pipelines(gpu=False):
@@ -213,6 +219,12 @@ def generate_pipelines(gpu=False):
         ],
         "d3m.primitives.remote_sensing.mlp.MlpClassifier": [
             (MlpClassifierPipeline(), ("LL1_bigearth_landuse_detection",))
+        ],
+        "d3m.primitives.semisupervised_classification.iterative_labeling.CorrectAndSmooth": [
+            (CorrectAndSmoothPipeline(), "SEMI_1044_eye_movements_MIN_METADATA")
+        ],
+        "d3m.primitives.semisupervised_classification.iterative_labeling.TabularSemiSupervised": [
+            (TabularSemiSupervisedPipeline(), "SEMI_1044_eye_movements_MIN_METADATA")
         ],
     }
 

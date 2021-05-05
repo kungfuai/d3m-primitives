@@ -134,5 +134,11 @@ series forecasting ([N-BEATS](https://arxiv.org/abs/1905.10437)) method for time
 
 4. **ImageSegmentationPrimitive**: This primitive trains a binary image segmentation model using image-level weak supervision (see [1](https://www.mdpi.com/2072-4292/12/2/207/htm)). Furthermore, the pre-trained featurizer is used the initialize the parameters of segmentation encoder. Thus, the training process is also an instance of transfer learning (see [2](https://arxiv.org/pdf/2003.02899.pdf)). 
 
+### Semi-Supervised
+
+1. **CorrectAndSmoothPrimitive**: This primitive applies the [Correct and Smooth](https://arxiv.org/pdf/2010.13993.pdf) procedure for semi-supervised learning. It combines a simple classification model with two label propagation post-processing steps - one that spreads residual errors and one that smooths predictions. 
+
+2. **TabularSemiSupervisedPrimitive**: This primitive applies one of three methods (PseudoLabel, VAT, and ICT) for semi-supervised learning on tabular data. 
+
 
 

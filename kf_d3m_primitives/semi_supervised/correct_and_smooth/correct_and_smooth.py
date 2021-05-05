@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 class Params(params.Params):
     is_fit: bool
-    n_class: int
     X_train: np.ndarray
     idx_train: np.ndarray
     y_train: np.ndarray
@@ -142,7 +141,6 @@ class CorrectAndSmoothPrimitive(
     def get_params(self) -> Params:
         return Params(
             is_fit=self._is_fit,
-            n_class=self.n_class,
             X_train=self.X_train,
             idx_train=self.idx_train,
             y_train=self.y_train,
@@ -153,7 +151,6 @@ class CorrectAndSmoothPrimitive(
 
     def set_params(self, *, params: Params) -> None:
         self._is_fit = params["is_fit"]
-        self.n_class = params["n_class"]
         self.X_train = params["X_train"]
         self.idx_train = params["idx_train"]
         self.y_train = params["y_train"]
@@ -180,7 +177,6 @@ class CorrectAndSmoothPrimitive(
         y_train = outputs.values[self.idx_train].flatten()
         self.label_encoder = LabelEncoder()
         self.y_train = self.label_encoder.fit_transform(y_train)
-        self.n_class = np.unique(self.y_train).shape[0]
         
         self.output_column = outputs.columns[0]
         self._is_fit = False
@@ -223,13 +219,14 @@ class CorrectAndSmoothPrimitive(
         X = np.ascontiguousarray(X)
 
         S, AD = self._make_adj_matrix(X)
+        n_class = len(self.label_encoder.classes_)
 
-        Z_orig = self._get_initial_predictions(X)
-        Y_resid = self._get_residuals(Z_orig, idx_train)
+        Z_orig = self._get_initial_predictions(X, n_class)
+        Y_resid = self._get_residuals(Z_orig, idx_train, n_class)
         Z_corrected = self._spread_residuals(Z_orig, Y_resid, AD, idx_train)
         Z_smoothed = self._smooth_predictions(Z_corrected, S, idx_train)
         
-        preds_df = self._prepare_d3m_df(Z_smoothed)
+        preds_df = self._prepare_d3m_df(Z_smoothed, n_class)
         return CallResult(preds_df)
 
     def _compare_train_rows(self, X):
@@ -278,12 +275,12 @@ class CorrectAndSmoothPrimitive(
 
         return S, AD
 
-    def _get_initial_predictions(self, X):
+    def _get_initial_predictions(self, X, n_class):
         """ get initial predictions from Linear SVC"""
 
         Z_orig = self.clf.decision_function(X)
         
-        if self.n_class == 2:
+        if n_class == 2:
             Z_orig = 1 / (1 + np.exp(Z_orig))
             Z_orig = np.column_stack([1 - Z_orig, Z_orig])
         else:
@@ -291,10 +288,10 @@ class CorrectAndSmoothPrimitive(
         
         return Z_orig
         
-    def _get_residuals(self, Z_orig, idx_train):
+    def _get_residuals(self, Z_orig, idx_train, n_class):
         """ get residuals from original classifier"""
 
-        Y_resid = np.zeros((Z_orig.shape[0], self.n_class))
+        Y_resid = np.zeros((Z_orig.shape[0], n_class))
         Y_resid[(idx_train, self.y_train)] = 1
         Y_resid[idx_train] -= Z_orig[idx_train]
         return Y_resid
@@ -333,15 +330,15 @@ class CorrectAndSmoothPrimitive(
         Z_smoothed = self._label_propagation(S, Y_corrected, clip=(0, 1)) 
         return Z_smoothed
 
-    def _prepare_d3m_df(self, Z_smoothed):
+    def _prepare_d3m_df(self, Z_smoothed, n_class):
         """ prepare d3m dataframe with appropriate metadata """
 
         if self.test_dataset:
             Z_smoothed = Z_smoothed[len(self.idx_train):]
 
         if self.hyperparams['all_scores']:
-            index = np.repeat(range(len(Z_smoothed)), self.n_class)
-            labels = np.tile(range(self.n_class), len(Z_smoothed))
+            index = np.repeat(range(len(Z_smoothed)), n_class)
+            labels = np.tile(range(n_class), len(Z_smoothed))
             scores = Z_smoothed.flatten()
         else:
             index = None
@@ -349,6 +346,7 @@ class CorrectAndSmoothPrimitive(
             scores = Z_smoothed[range(len(labels)), labels]
 
         labels = self.label_encoder.inverse_transform(labels)
+        
         preds_df = d3m_DataFrame(
             pd.DataFrame(
                 {

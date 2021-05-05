@@ -4,7 +4,7 @@ setup(
     name="kf-d3m-primitives",
     version="0.6.0",
     description="All Kung Fu D3M primitives as a single library",
-    license='Apache-2.0',
+    license="Apache-2.0",
     packages=find_packages(exclude="scripts"),
     setkeywords=["d3m_primitive"],
     install_requires=[
@@ -62,7 +62,8 @@ setup(
             "remote_sensing.mlp.MlpClassifier = kf_d3m_primitives.remote_sensing.classifier.mlp_classifier:MlpClassifierPrimitive",
             "similarity_modeling.iterative_labeling.ImageRetrieval = kf_d3m_primitives.remote_sensing.image_retrieval.image_retrieval:ImageRetrievalPrimitive",
             "remote_sensing.convolutional_neural_net.ImageSegmentation = kf_d3m_primitives.remote_sensing.segmentation.image_segmentation:ImageSegmentationPrimitive",
-            "semisupervised_classification.iterative_labeling.CorrectAndSmooth = kf_d3m_primitives.semi_supervised.correct_and_smooth.correct_and_smooth:CorrectAndSmoothPrimitive"
+            "semisupervised_classification.iterative_labeling.CorrectAndSmooth = kf_d3m_primitives.semi_supervised.correct_and_smooth.correct_and_smooth:CorrectAndSmoothPrimitive",
+            "semisupervised_classification.iterative_labeling.TabularSemiSupervised = kf_d3m_primitives.semi_supervised.tabular_semi_supervised.tabular_semi_supervised:TabularSemiSupervisedPrimitive",
         ],
     },
 )
