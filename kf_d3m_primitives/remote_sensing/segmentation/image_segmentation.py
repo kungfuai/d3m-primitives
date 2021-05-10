@@ -16,6 +16,7 @@ from rsp.moco_r50.data import sentinel_augmentation_valid
 from d3m import container, utils
 from d3m.container import DataFrame as d3m_DataFrame
 from d3m.metadata import hyperparams, params, base as metadata_base
+from d3m.exceptions import PrimitiveNotFittedError
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 

@@ -4,7 +4,7 @@ setup(
     name="kf-d3m-primitives",
     version="0.6.0",
     description="All Kung Fu D3M primitives as a single library",
-    license='Apache-2.0',
+    license="Apache-2.0",
     packages=find_packages(exclude="scripts"),
     setkeywords=["d3m_primitive"],
     install_requires=[
@@ -25,6 +25,7 @@ setup(
         "tqdm==4.48.2",
         "segmentation-models-pytorch==0.1.3",
         "lz4==3.1.3",
+        "faiss-cpu==1.7.0",
         "punk @ git+https://github.com/uncharted-distil/punk@8b101eca26b5f9a3df2a65aab2733bd404965578#egg=punk",
         "object_detection_retinanet @ git+https://github.com/uncharted-distil/object-detection-retinanet@485db6681ac98bf56f02cf681efbdcb004a5cfb5#egg=object_detection_retinanet",
         "Simon @ git+https://github.com/uncharted-distil/simon@ff2fa7e963653b9c42ed6d7ecb53d7e37b191670#egg=Simon",
@@ -61,6 +62,8 @@ setup(
             "remote_sensing.mlp.MlpClassifier = kf_d3m_primitives.remote_sensing.classifier.mlp_classifier:MlpClassifierPrimitive",
             "similarity_modeling.iterative_labeling.ImageRetrieval = kf_d3m_primitives.remote_sensing.image_retrieval.image_retrieval:ImageRetrievalPrimitive",
             "remote_sensing.convolutional_neural_net.ImageSegmentation = kf_d3m_primitives.remote_sensing.segmentation.image_segmentation:ImageSegmentationPrimitive",
+            "semisupervised_classification.iterative_labeling.CorrectAndSmooth = kf_d3m_primitives.semi_supervised.correct_and_smooth.correct_and_smooth:CorrectAndSmoothPrimitive",
+            "semisupervised_classification.iterative_labeling.TabularSemiSupervised = kf_d3m_primitives.semi_supervised.tabular_semi_supervised.tabular_semi_supervised:TabularSemiSupervisedPrimitive",
         ],
     },
 )

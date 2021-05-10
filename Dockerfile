@@ -1,10 +1,5 @@
 FROM registry.gitlab.com/datadrivendiscovery/images/primitives:ubuntu-bionic-python36-stable
 
-RUN sudo apt-get update -y && \ 
-    sudo apt-get install -y zlib1g-dev && \ 
-    sudo apt-get install -y liblzo2-dev && \ 
-    pip install python-lzo
-
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
