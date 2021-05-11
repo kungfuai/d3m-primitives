@@ -43,9 +43,6 @@ from kf_d3m_primitives.natural_language_processing.sent2vec.sent2vec_pipeline im
 from kf_d3m_primitives.object_detection.retinanet.object_detection_retinanet_pipeline import (
     ObjectDetectionRNPipeline,
 )
-from kf_d3m_primitives.image_classification.imagenet_transfer_learning.gator_pipeline import (
-    GatorPipeline,
-)
 from kf_d3m_primitives.ts_classification.knn.kanine_pipeline import KaninePipeline
 from kf_d3m_primitives.ts_classification.lstm_fcn.lstm_fcn_pipeline import (
     LstmFcnPipeline,
@@ -69,7 +66,6 @@ from kf_d3m_primitives.semi_supervised.tabular_semi_supervised.tabular_semi_supe
 def generate_pipelines(gpu=False):
 
     gpu_prims = [
-        "d3m.primitives.classification.inceptionV3_image_feature.Gator",
         "d3m.primitives.object_detection.retina_net.ObjectDetectionRN",
         "d3m.primitives.time_series_classification.convolutional_neural_net.LSTM_FCN",
         "d3m.primitives.feature_extraction.nk_sent2vec.Sent2Vec",
@@ -221,10 +217,13 @@ def generate_pipelines(gpu=False):
             (MlpClassifierPipeline(), ("LL1_bigearth_landuse_detection",))
         ],
         "d3m.primitives.semisupervised_classification.iterative_labeling.CorrectAndSmooth": [
-            (CorrectAndSmoothPipeline(), "SEMI_1044_eye_movements_MIN_METADATA")
+            (
+                CorrectAndSmoothPipeline(normalize_features=True),
+                ("SEMI_1044_eye_movements_MIN_METADATA",),
+            )
         ],
         "d3m.primitives.semisupervised_classification.iterative_labeling.TabularSemiSupervised": [
-            (TabularSemiSupervisedPipeline(), "SEMI_1044_eye_movements_MIN_METADATA")
+            (TabularSemiSupervisedPipeline(), ("SEMI_1044_eye_movements_MIN_METADATA",))
         ],
     }
 
