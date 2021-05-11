@@ -11,7 +11,7 @@ from d3m.metadata import hyperparams, base as metadata_base, params
 
 __author__ = "Distil"
 __version__ = "3.1.2"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame

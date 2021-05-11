@@ -19,7 +19,7 @@ from ..utils.geocoding import check_geocoding_server
 
 __author__ = "Distil"
 __version__ = "1.0.8"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 
 Inputs = container.pandas.DataFrame
@@ -95,9 +95,7 @@ class GoatReversePrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams
             "source": {
                 "name": __author__,
                 "contact": __contact__,
-                "uris": [
-                    "https://github.com/kungfuai/d3m-primitives"
-                ],
+                "uris": ["https://github.com/kungfuai/d3m-primitives"],
             },
             "installation": [
                 {"type": "PIP", "package": "cython", "version": "0.29.16"},

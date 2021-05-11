@@ -25,7 +25,7 @@ from ..utils.lstm_model_utils import (
 
 __author__ = "Distil"
 __version__ = "1.2.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)

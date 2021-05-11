@@ -21,7 +21,7 @@ import tensorflow as tf
 
 __author__ = "Distil"
 __version__ = "1.2.3"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
@@ -222,14 +222,14 @@ class Hyperparams(hyperparams.Hyperparams):
 class SimonPrimitive(
     UnsupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]
 ):
-    """This primitive infers the semantic type of each column using a pre-trained LSTM-CNN model. 
-    The model was trained on simulated data of different semantic types using the python Faker library. 
-    A hyperparameter `return_result` controls whether Simon's inferences replace existing metadata, 
+    """This primitive infers the semantic type of each column using a pre-trained LSTM-CNN model.
+    The model was trained on simulated data of different semantic types using the python Faker library.
+    A hyperparameter `return_result` controls whether Simon's inferences replace existing metadata,
     append new columns with inferred metadata, or return a new dataframe with only the inferred columns.
 
-    Simon can append multiple annotations if the hyperparameter `multi_label_classification` is 
-    set to 'True'. If `statistical_classification` is set to True, Simon will use rule-based heuristics 
-    to label categorical and ordinal columns. Finally, the `p_threshold` hyperparameter varies the 
+    Simon can append multiple annotations if the hyperparameter `multi_label_classification` is
+    set to 'True'. If `statistical_classification` is set to True, Simon will use rule-based heuristics
+    to label categorical and ordinal columns. Finally, the `p_threshold` hyperparameter varies the
     prediction probability threshold for adding annotations.
 
     The following annotations will only be considered if `statistical_classification` is set to False:
@@ -352,7 +352,7 @@ class SimonPrimitive(
             column_name = column_metadata.get("name", str(col_idx))
             column_semantic_types = list(column_metadata.get("semantic_types", []))
 
-            # We might be here because column has a known type, but it has 
+            # We might be here because column has a known type, but it has
             # "https://metadata.datadrivendiscovery.org/types/SuggestedTarget" set.
             has_unknown_type = (
                 not column_semantic_types
@@ -363,8 +363,8 @@ class SimonPrimitive(
             # A normalized copy of semantic types, which always includes unknown type.
             normalized_column_semantic_types = copy.copy(column_semantic_types)
 
-            # If we are processing this column and it does not have semantic type then it 
-            # has missing semantic types, we first set it, to normalize the input semantic types. 
+            # If we are processing this column and it does not have semantic type then it
+            # has missing semantic types, we first set it, to normalize the input semantic types.
             # If we will add any other semantic type, we will then remove this semantic type.
             if (
                 has_unknown_type
@@ -710,7 +710,7 @@ class SimonPrimitive(
                 for i in np.arange(raw_data.shape[1])
             ]
 
-            # probability of rule-based statistical / ordinal classifications = 
+            # probability of rule-based statistical / ordinal classifications =
             # min probability of existing classifications
             for i, g in enumerate(guesses):
                 if g[0] == "category":

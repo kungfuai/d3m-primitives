@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 __author__ = "Distil"
 __version__ = "1.2.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -379,8 +379,8 @@ class VarPrimitive(
     def produce_weights(
         self, *, inputs: Inputs, timeout: float = None, iterations: int = None
     ) -> CallResult[Outputs]:
-        """Produce absolute values of correlation coefficients (weights) for each of the terms used in each 
-            regression model. Terms must be aggregated by series or by lag order (thus the need for absolute value). 
+        """Produce absolute values of correlation coefficients (weights) for each of the terms used in each
+            regression model. Terms must be aggregated by series or by lag order (thus the need for absolute value).
             Pooling operation can be maximum or average (controlled by 'interpret_pooling' HP).
 
         Arguments:
@@ -394,12 +394,12 @@ class VarPrimitive(
             PrimitiveNotFittedError: if primitive not fit
 
         Returns:
-            CallResult[Outputs] -- pandas df where each row represents a unique series from one of the 
-                regressions that was fit. The columns contain the coefficients for each term in the regression, 
-                potentially aggregated by series or lag order. Column names will represent the lag order or 
-                series to which that column refers. If the regression is an ARIMA model, the set of column 
+            CallResult[Outputs] -- pandas df where each row represents a unique series from one of the
+                regressions that was fit. The columns contain the coefficients for each term in the regression,
+                potentially aggregated by series or lag order. Column names will represent the lag order or
+                series to which that column refers. If the regression is an ARIMA model, the set of column
                 names will also contain AR_i (autoregressive terms) and MA_i (moving average terms).
-                Columns that are not included in the regression for a specific series will have NaN 
+                Columns that are not included in the regression for a specific series will have NaN
                 values in those respective columns.
         """
 

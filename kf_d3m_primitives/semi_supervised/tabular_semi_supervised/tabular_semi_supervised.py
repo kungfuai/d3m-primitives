@@ -24,7 +24,7 @@ from .ssl_algorithms import PseudoLabel, VAT, ICT
 
 __author__ = "Distil"
 __version__ = "1.0.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.DataFrame
 Outputs = container.DataFrame
@@ -36,6 +36,7 @@ class Params(params.Params):
     is_fit: bool
     output_column: str
     label_encoder: LabelEncoder
+
 
 class Hyperparams(hyperparams.Hyperparams):
     algorithm = hyperparams.Enumeration(
@@ -213,7 +214,7 @@ class TabularSemiSupervisedPrimitive(
         return Params(
             is_fit=self._is_fit,
             output_column=self.output_column,
-            label_encoder=self.label_encoder       
+            label_encoder=self.label_encoder,
         )
 
     def set_params(self, *, params: Params) -> None:
@@ -313,7 +314,7 @@ class TabularSemiSupervisedPrimitive(
 
         dataset = TensorDataset(torch.Tensor(X))
         loader = DataLoader(dataset, 64, shuffle=False, num_workers=10)
-        
+
         all_logits = []
         for data in loader:
             logits = mlp_model(data[0].to(self.device))
@@ -376,7 +377,9 @@ class TabularSemiSupervisedPrimitive(
                 )
 
                 loss_u = self.loss(y_hat_u, y_u, mask)
-                loss = loss_l + (self.hyperparams['semi_supervised_loss_weight'] * loss_u)
+                loss = loss_l + (
+                    self.hyperparams["semi_supervised_loss_weight"] * loss_u
+                )
                 opt.zero_grad()
                 loss.backward()
                 opt.step()

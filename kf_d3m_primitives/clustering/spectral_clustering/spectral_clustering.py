@@ -16,7 +16,7 @@ from ..utils.dataframe_utils import select_rows
 
 __author__ = "Distil"
 __version__ = "1.0.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -133,8 +133,8 @@ class SpectralClusteringPrimitive(
 
         Returns
         ----------
-        Outputs: D3M dataframe with cluster predictions and D3M indices. Clusterlabels are 
-            of "suggestTarget" semantic type if the task_type hyperparameter is clustering, 
+        Outputs: D3M dataframe with cluster predictions and D3M indices. Clusterlabels are
+            of "suggestTarget" semantic type if the task_type hyperparameter is clustering,
             and "Attribute" if the task_type is classification.
         """
 

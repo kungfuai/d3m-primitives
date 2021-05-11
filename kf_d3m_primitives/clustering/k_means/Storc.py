@@ -19,7 +19,7 @@ from ..utils.cluster import KMeans
 
 __author__ = "Distil"
 __version__ = "2.0.5"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 
 logger = logging.getLogger(__name__)
@@ -216,7 +216,7 @@ class StorcPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
         else:
             self._timestamp_col = timestamp_cols[0]
 
-        # if the value col isn't set, take the first integer/float attribute 
+        # if the value col isn't set, take the first integer/float attribute
         # we come across that isn't the grouping or timestamp col
         value_cols = self.hyperparams.get("value_col_index", None)
         if value_cols is None:
@@ -248,7 +248,7 @@ class StorcPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
 
         timeseries = []
         for group_name, group in groups:
-            # Ensure timeseries are list of floating point values of the same size.  
+            # Ensure timeseries are list of floating point values of the same size.
             # Pad the ends out with NaNs and then interpolate all missing data.
             timeseries_values = (group.iloc[:, self._value_col]).astype(float)
             timeseries_padded = timeseries_values.append(

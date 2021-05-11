@@ -17,7 +17,7 @@ from ..utils.dataframe_utils import select_rows
 
 __author__ = "Distil"
 __version__ = "1.0.2"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -139,8 +139,8 @@ class HdbscanPrimitive(TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
         Returns
         ----------
         Outputs:
-            The output depends on the required_output hyperparameter and is either a dataframe 
-            containing a single column where each entry is the cluster ID, or the input daatframe 
+            The output depends on the required_output hyperparameter and is either a dataframe
+            containing a single column where each entry is the cluster ID, or the input daatframe
             with the cluster ID of each row added as an additional feature.
         """
 

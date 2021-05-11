@@ -25,7 +25,7 @@ from object_detection_retinanet.utils.image import (
 
 __author__ = "Distil"
 __version__ = "0.1.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.pandas.DataFrame
 Outputs = container.pandas.DataFrame
@@ -44,23 +44,27 @@ class Hyperparams(hyperparams.Hyperparams):
                     ],
                     description="Backbone architecture from resnet50 architecture (https://arxiv.org/abs/1512.03385)",
                 ),
-                'resnet101': hyperparams.Constant[str](
-                    default = 'resnet101',
-                    semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
-                    description = "Backbone architecture from resnet101 architecture (https://arxiv.org/abs/1512.03385)"
+                "resnet101": hyperparams.Constant[str](
+                    default="resnet101",
+                    semantic_types=[
+                        "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+                    ],
+                    description="Backbone architecture from resnet101 architecture (https://arxiv.org/abs/1512.03385)",
                 ),
-                'resnet152': hyperparams.Constant[str](
-                    default = 'resnet152',
-                    semantic_types = ['https://metadata.datadrivendiscovery.org/types/TuningParameter'],
-                    description = "Backbone architecture from resnet152 architecture (https://arxiv.org/abs/1512.03385)"
-                )
+                "resnet152": hyperparams.Constant[str](
+                    default="resnet152",
+                    semantic_types=[
+                        "https://metadata.datadrivendiscovery.org/types/TuningParameter"
+                    ],
+                    description="Backbone architecture from resnet152 architecture (https://arxiv.org/abs/1512.03385)",
+                ),
             }
         ),
         default="resnet50",
         semantic_types=[
             "https://metadata.datadrivendiscovery.org/types/TuningParameter"
         ],
-        description="Backbone architecture from which RetinaNet is built."
+        description="Backbone architecture from which RetinaNet is built.",
     )
     batch_size = hyperparams.Hyperparameter[int](
         default=32,
@@ -283,9 +287,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
 
         return callbacks
 
-    def _create_models(
-        self, backbone_retinanet, num_classes, lr=1e-5
-    ):
+    def _create_models(self, backbone_retinanet, num_classes, lr=1e-5):
 
         """
         Creates three models (model, training_model, prediction_model).
@@ -299,7 +301,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
         -------
             model              : The base model.
             training_model     : The training model. If multi_gpu=0, this is identical to model.
-            prediction_model   : The model wrapped with utility functions to perform object detection 
+            prediction_model   : The model wrapped with utility functions to perform object detection
                                 (applies regression values and performs NMS).
         """
 
@@ -342,7 +344,7 @@ class ObjectDetectionRNPrimitive(PrimitiveBase[Inputs, Outputs, Params, Hyperpar
     ):
         """
         D3M metrics evaluator needs at least one prediction per image. If RetinaNet does not return
-        predictions for an image, this method creates a dummy empty prediction row to 
+        predictions for an image, this method creates a dummy empty prediction row to
         add to results_df for that missing image.
 
         TODO: DUMMY CONFIDENCE SCORES LOWER AVERAGE PRECISION. FIND A FIX.

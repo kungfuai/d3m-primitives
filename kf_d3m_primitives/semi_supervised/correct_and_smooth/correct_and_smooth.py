@@ -17,7 +17,7 @@ from sklearn.preprocessing import LabelEncoder
 
 __author__ = "Distil"
 __version__ = "1.0.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.DataFrame
 Outputs = container.DataFrame
@@ -81,13 +81,14 @@ class Hyperparams(hyperparams.Hyperparams):
         description="whether to L2 normalize feature vectors",
     )
 
+
 class CorrectAndSmoothPrimitive(
     SupervisedLearnerPrimitiveBase[Inputs, Outputs, Params, Hyperparams]
 ):
-    """ This primitive applies the "Correct and Smooth" procedure for semi-supervised learning
-        (https://arxiv.org/pdf/2010.13993.pdf). It combines a simple classification model with 
-        two label propagation post-processing steps - one that spreads residual errors and one
-        that smooths predictions. 
+    """This primitive applies the "Correct and Smooth" procedure for semi-supervised learning
+    (https://arxiv.org/pdf/2010.13993.pdf). It combines a simple classification model with
+    two label propagation post-processing steps - one that spreads residual errors and one
+    that smooths predictions.
     """
 
     metadata = metadata_base.PrimitiveMetadata(
@@ -146,7 +147,7 @@ class CorrectAndSmoothPrimitive(
             y_train=self.y_train,
             output_column=self.output_column,
             clf=self.clf,
-            label_encoder=self.label_encoder
+            label_encoder=self.label_encoder,
         )
 
     def set_params(self, *, params: Params) -> None:
@@ -166,18 +167,18 @@ class CorrectAndSmoothPrimitive(
             outputs {Outputs} -- D3M dataframe containing labels
 
         """
-        
+
         X = inputs.astype(np.float32).values
-        if self.hyperparams['normalize_features']:
+        if self.hyperparams["normalize_features"]:
             X = X / np.sqrt((X ** 2).sum(axis=-1, keepdims=True))
-        
-        self.idx_train = np.where(outputs.values != '')[0]
+
+        self.idx_train = np.where(outputs.values != "")[0]
         self.X_train = X[self.idx_train]
-        
+
         y_train = outputs.values[self.idx_train].flatten()
         self.label_encoder = LabelEncoder()
         self.y_train = self.label_encoder.fit_transform(y_train)
-        
+
         self.output_column = outputs.columns[0]
         self._is_fit = False
 
@@ -211,9 +212,9 @@ class CorrectAndSmoothPrimitive(
 
         if not self._is_fit:
             raise PrimitiveNotFittedError("Primitive not fitted.")
-        
+
         X = inputs.astype(np.float32).values
-        if self.hyperparams['normalize_features']:
+        if self.hyperparams["normalize_features"]:
             X = X / np.sqrt((X ** 2).sum(axis=-1, keepdims=True))
         X, idx_train = self._compare_train_rows(X)
         X = np.ascontiguousarray(X)
@@ -225,18 +226,18 @@ class CorrectAndSmoothPrimitive(
         Y_resid = self._get_residuals(Z_orig, idx_train, n_class)
         Z_corrected = self._spread_residuals(Z_orig, Y_resid, AD, idx_train)
         Z_smoothed = self._smooth_predictions(Z_corrected, S, idx_train)
-        
+
         preds_df = self._prepare_d3m_df(Z_smoothed, n_class)
         return CallResult(preds_df)
 
     def _compare_train_rows(self, X):
         """ compare train rows against test set; add train rows if necessary"""
-        
+
         if self.idx_train.max() > X.shape[0]:
             X = np.vstack((self.X_train, X))
             idx_train = np.arange(self.X_train.shape[0])
             self.test_dataset = True
-        
+
         else:
             train_rows = X[self.idx_train]
             if not np.array_equal(train_rows, self.X_train):
@@ -246,32 +247,32 @@ class CorrectAndSmoothPrimitive(
             else:
                 idx_train = self.idx_train
                 self.test_dataset = False
-        
+
         return X, idx_train
 
     def _make_adj_matrix(self, features):
         """ make normalized adjacency matrix from features """
 
         n_obs = features.shape[0]
-    
+
         findex = faiss.IndexFlatL2(features.shape[1])
         findex.add(features)
-        _, I = findex.search(features, k=self.hyperparams['k'])
+        _, I = findex.search(features, k=self.hyperparams["k"])
 
-        row = np.arange(n_obs).repeat(self.hyperparams['k'])
+        row = np.arange(n_obs).repeat(self.hyperparams["k"])
         col = I.ravel()
-        val = np.ones(self.hyperparams['k'] * n_obs)
+        val = np.ones(self.hyperparams["k"] * n_obs)
 
-        adj = sp.csr_matrix((val, (row, col)), shape=(n_obs, n_obs))  
+        adj = sp.csr_matrix((val, (row, col)), shape=(n_obs, n_obs))
         adj = (adj + adj.T).astype(np.float)
-        
+
         # Compute normalization matrix
         D = np.asarray(adj.sum(axis=0)).squeeze()
         Dinv = sp.diags(1 / D)
 
         # Compute normalized adjacency matrices
         S = np.sqrt(Dinv) @ adj @ np.sqrt(Dinv)
-        AD  = adj @ Dinv
+        AD = adj @ Dinv
 
         return S, AD
 
@@ -279,15 +280,15 @@ class CorrectAndSmoothPrimitive(
         """ get initial predictions from Linear SVC"""
 
         Z_orig = self.clf.decision_function(X)
-        
+
         if n_class == 2:
             Z_orig = 1 / (1 + np.exp(Z_orig))
             Z_orig = np.column_stack([1 - Z_orig, Z_orig])
         else:
             Z_orig = np.exp(Z_orig) / np.exp(Z_orig).sum(axis=-1, keepdims=True)
-        
+
         return Z_orig
-        
+
     def _get_residuals(self, Z_orig, idx_train, n_class):
         """ get residuals from original classifier"""
 
@@ -296,27 +297,27 @@ class CorrectAndSmoothPrimitive(
         Y_resid[idx_train] -= Z_orig[idx_train]
         return Y_resid
 
-    def _label_propagation(self, adj, labels, clip=(0,1)):
+    def _label_propagation(self, adj, labels, clip=(0, 1)):
         """ propagate labels for n_iterations"""
 
         Z = labels.copy()
-        for _ in range(self.hyperparams['n_iterations']):
-            Z = self.hyperparams['alpha'] * (adj @ Z)
-            Z = Z + (1 - self.hyperparams['alpha']) * labels
+        for _ in range(self.hyperparams["n_iterations"]):
+            Z = self.hyperparams["alpha"] * (adj @ Z)
+            Z = Z + (1 - self.hyperparams["alpha"]) * labels
             Z = Z.clip(*clip)
         return Z
 
     def _spread_residuals(self, Z_orig, Y_resid, AD, idx_train):
-        """ spread residuals with label propagation""" 
+        """ spread residuals with label propagation"""
 
         resid = self._label_propagation(AD, Y_resid, clip=(-1, 1))
-        
+
         num = np.abs(Y_resid[idx_train]).sum() / idx_train.shape[0]
         denom = np.abs(resid).sum(axis=-1, keepdims=True)
-        scale = (num / denom)
+        scale = num / denom
         scale[denom == 0] = 1
         scale[scale > 1000] = 1
-        
+
         Z_corrected = Z_orig + scale * resid
         return Z_corrected
 
@@ -326,17 +327,17 @@ class CorrectAndSmoothPrimitive(
         Y_corrected = Z_corrected.copy()
         Y_corrected[idx_train] = 0
         Y_corrected[(idx_train, self.y_train)] = 1
-        
-        Z_smoothed = self._label_propagation(S, Y_corrected, clip=(0, 1)) 
+
+        Z_smoothed = self._label_propagation(S, Y_corrected, clip=(0, 1))
         return Z_smoothed
 
     def _prepare_d3m_df(self, Z_smoothed, n_class):
         """ prepare d3m dataframe with appropriate metadata """
 
         if self.test_dataset:
-            Z_smoothed = Z_smoothed[len(self.idx_train):]
+            Z_smoothed = Z_smoothed[len(self.idx_train) :]
 
-        if self.hyperparams['all_scores']:
+        if self.hyperparams["all_scores"]:
             index = np.repeat(range(len(Z_smoothed)), n_class)
             labels = np.tile(range(n_class), len(Z_smoothed))
             scores = Z_smoothed.flatten()
@@ -346,13 +347,10 @@ class CorrectAndSmoothPrimitive(
             scores = Z_smoothed[range(len(labels)), labels]
 
         labels = self.label_encoder.inverse_transform(labels)
-        
+
         preds_df = d3m_DataFrame(
             pd.DataFrame(
-                {
-                    self.output_column: labels,
-                    "confidence": scores
-                },
+                {self.output_column: labels, "confidence": scores},
                 index=index,
             ),
             generate_metadata=True,

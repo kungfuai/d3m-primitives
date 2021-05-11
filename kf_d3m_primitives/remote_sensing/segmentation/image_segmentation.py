@@ -25,7 +25,7 @@ from .binary_focal_loss import BinaryFocalLoss
 
 __author__ = "Distil"
 __version__ = "1.0.0"
-__contact__ = "mailto:jeffrey.gleason@kungfu.ai"
+__contact__ = "mailto:cbethune@uncharted.software"
 
 Inputs = container.DataFrame
 Outputs = container.DataFrame
