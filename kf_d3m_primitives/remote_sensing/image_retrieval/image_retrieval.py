@@ -191,7 +191,7 @@ class ImageRetrievalPrimitive(
             self.d3m_idxs = inputs[self.idx_name].values
             input_features = inputs.drop(self.idx_name, axis=1).values
         else:
-            self.idx_name = "index"
+            self.idx_name = "d3mIndex"
             self.d3m_idxs = np.arange(inputs.shape[0])
             input_features = inputs.values
 
