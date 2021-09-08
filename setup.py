@@ -10,7 +10,7 @@ setup(
     install_requires=[
         "d3m",
         "torch>=1.4.0",
-        "pillow==7.1.2",
+        "pillow==8.3.2",
         "tslearn==0.4.1",
         "statsmodels==0.11.1",
         "pmdarima==1.6.1",
