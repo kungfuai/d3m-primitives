@@ -4,6 +4,8 @@ import sys
 from typing import List
 from time import time
 import pickle
+import math
+from threading import Thread
 
 import numpy as np
 import pandas as pd
@@ -15,7 +17,7 @@ from d3m.metadata import hyperparams, params, base as metadata_base
 from d3m.primitive_interfaces.base import CallResult
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 
-from .gem import gem
+from .gem import linear_gem, segmented_gem, thread_helper_gem
 
 __author__ = "Distil"
 __version__ = "1.0.0"
@@ -145,6 +147,7 @@ class ImageRetrievalPrimitive(
         self.pos_scores = []
         self.neg_scores = []
         self.random_seed = random_seed
+        self.linear_threshold=10000 #TODO expose as a param
         np.random.seed(random_seed)
         cache_dir = self.hyperparams["dot_products_cache"]
         os.makedirs(cache_dir, exist_ok=True)
@@ -260,11 +263,11 @@ class ImageRetrievalPrimitive(
         """
 
         pos_scores = np.row_stack(self.pos_scores)
-        pos_scores = gem(pos_scores, p=self.hyperparams["gem_p"])
+        pos_scores = self._conditional_gem(pos_scores)
 
         if len(self.neg_scores) >= self.hyperparams["denominator_min"]:
             neg_scores = np.row_stack(self.neg_scores)
-            neg_scores = gem(neg_scores, p=self.hyperparams["gem_p"])
+            neg_scores = self._conditional_gem(neg_scores)
             scores = pos_scores / (neg_scores + 1e-12)
         else:
             scores = pos_scores
@@ -299,7 +302,29 @@ class ImageRetrievalPrimitive(
         features = self._reduce(features)
         features = self._normalize(features)
         return features
-
+    # runs gem in linear or in parallel depending on dimension
+    def _conditional_gem(self, scores: np.ndarray, num_of_threads:int = 4) -> np.ndarray:
+        _, num_of_columns = scores.shape
+        p=self.hyperparams["gem_p"]
+        if num_of_columns < self.linear_threshold:
+            return linear_gem(scores, p)
+        if num_of_columns < num_of_threads:
+            num_of_threads = num_of_columns
+        bucket_size = math.ceil(num_of_columns / num_of_threads)
+        thread_pool = [Thread] * num_of_threads
+        result = [None] * num_of_threads
+        for i in range(num_of_threads):
+            start = i * bucket_size
+            end = min(start + bucket_size, num_of_columns)
+            thread_pool[i] = Thread(target=thread_helper_gem, args=(result, i, scores, start, end, p))
+            thread_pool[i].start()
+        # join all threads
+        for thread in thread_pool:
+            thread.join()
+        output=[]
+        for i in range(len(result)):
+            output=np.concatenate([output,result[i]], axis=0)
+        return output
     def _normalize(self, features: np.ndarray) -> np.ndarray:
         """ L2 normalize features """
         return features / np.sqrt((features ** 2).sum(axis=-1, keepdims=True))
