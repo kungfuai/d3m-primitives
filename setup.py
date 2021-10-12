@@ -18,7 +18,7 @@ setup(
         "requests==2.23.0",
         "shap==0.37.0",
         "torchvision>=0.5.0",
-        "opencv-python-headless==4.1.1.26",
+        "opencv-python-headless==4.2.0.32",
         "gluonts==0.5.2",
         "albumentations==0.4.6",
         "tifffile==2020.8.13",
