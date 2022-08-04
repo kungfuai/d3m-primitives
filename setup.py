@@ -14,7 +14,7 @@ setup(
         "tslearn==0.4.1",
         "statsmodels==0.11.1",
         "pmdarima==1.6.1",
-        "hdbscan==0.8.26",
+        "hdbscan>=0.8.26",
         "requests==2.23.0",
         "shap==0.37.0",
         "torchvision>=0.5.0",
