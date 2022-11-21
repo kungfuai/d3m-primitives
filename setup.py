@@ -35,8 +35,8 @@ setup(
     ],
     extras_require={
         "cpu": ["tensorflow==2.2.0", "mxnet==1.6.0"],
-        "gpu-cuda-10.1": ["tensorflow-gpu==2.2.0", "mxnet-cu101mkl==1.6.0.post0"],
-        "gpu-cuda-9.2": ["tensorflow-gpu==2.2.0", "mxnet-cu92mkl==1.6.0.post0"],
+        "gpu-cuda-10.1": ["tensorflow-gpu==2.9.3", "mxnet-cu101mkl==1.6.0.post0"],
+        "gpu-cuda-9.2": ["tensorflow-gpu==2.9.3", "mxnet-cu92mkl==1.6.0.post0"],
     },
     entry_points={
         "d3m.primitives": [
